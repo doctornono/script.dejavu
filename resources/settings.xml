@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+
+    <!-- Account -->
+    <category label="30000">
+        <setting id="username" type="text" label="30001" default="" enable="false"/>
+        <setting id="access_token" type="text" label="30099" default="" visible="false"/>
+        <setting id="action_login" type="action" label="30002" action="RunScript(script.dejavu,action=login)" visible="String.IsEmpty(Setting(access_token))"/>
+        <setting id="action_logout" type="action" label="30003" action="RunScript(script.dejavu,action=logout)" visible="!String.IsEmpty(Setting(access_token))"/>
+    </category>
+
+    <!-- Scrobbling -->
+    <category label="30010">
+        <setting id="enable_scrobble" type="bool" label="30011" default="true"/>
+        <setting id="watched_percent" type="number" label="30013" default="90"/>
+        <setting id="prompt_rating" type="bool" label="30070" default="true"/>
+    </category>
+
+    <!-- Advanced -->
+    <category label="30020">
+        <setting id="scrobble_interval" type="number" label="30012" default="30"/>
+        <setting id="api_url" type="text" label="30021" default="https://dejavu.plus/api/v1"/>
+        <setting id="debug" type="bool" label="30022" default="false"/>
+    </category>
+
+</settings>

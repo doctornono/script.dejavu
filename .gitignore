@@ -28,7 +28,6 @@ wheels/
 Thumbs.db
 
 # Credentials & local settings
-resources/settings.xml
 *.secret
 *.token
 
