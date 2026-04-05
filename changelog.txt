@@ -1,0 +1,19 @@
+v1.2.0 (2026-04-05)
+- API v1 compliance: full refactor of api_client.py and lib/ adaptations
+- Automated "Mark as Watched" at 90% threshold (no manual action needed)
+- Robust metadata resolution: show TMDB IDs resolved via JSON-RPC for episodes
+- Enhanced Monitor: 14 RPC actions added for inter-addon integration (History, Watchlist, etc.)
+- Improved scrobble payload with tvShowId, seasonNumber, and episodeNumber
+- Rating dialog: better ID resolution for seasons/episodes and error notifications
+- Auth: persistence of refresh_token if returned by the API
+
+v1.1.0 (2026-04-02)
+- Refactored into clean module structure (resources/lib/)
+- Full Device Code Flow login (RFC 8628) with progress dialog
+- Scrobble: periodic updates + auto-watched at configurable threshold
+- Ratings: movie / tv / season / episode via context menu
+- Settings: login/logout, scrobble interval, watched %, API URL, debug
+- Bilingual strings: English + French
+
+v1.0.1
+- Initial release

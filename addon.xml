@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="script.dejavu" name="dejaVu" version="1.1.0" provider-name="dejaVu Team">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+        <import addon="script.module.requests" version="2.25.1"/>
+    </requires>
+
+    <!-- Background service : scrobbling automatique -->
+    <extension point="xbmc.service" library="service.py" start="startup"/>
+
+    <!-- Script principal (menu Programs) -->
+    <extension point="xbmc.python.script" library="default.py">
+        <provides>executable</provides>
+    </extension>
+
+    <!-- Librairie partagée -->
+    <extension point="xbmc.python.module" library="resources/lib"/>
+
+    <!-- Élément de menu contextuel : noter un film/épisode -->
+    <extension point="kodi.context.item">
+        <menu id="kodi.core.main">
+            <item library="default.py" args="action=rate">
+                <label>30016</label>
+                <visible>ListItem.IsVideo</visible>
+            </item>
+        </menu>
+    </extension>
+
+    <extension point="xbmc.addon.metadata">
+        <platform>all</platform>
+        <license>MIT</license>
+        <website>https://dejavu.plus</website>
+        <source>https://github.com/doctornono/dejaVu-kodi</source>
+        <summary lang="en_GB">dejaVu integration for Kodi</summary>
+        <summary lang="fr_FR">Intégration dejaVu pour Kodi</summary>
+        <description lang="en_GB">
+            Sync your watch history, watchlist and ratings with dejaVu.plus.
+            Automatic scrobbling included. Supports movies and TV episodes.
+        </description>
+        <description lang="fr_FR">
+            Synchronisez votre historique, votre watchlist et vos notes avec dejaVu.plus.
+            Scrobbling automatique inclus. Supporte les films et épisodes TV.
+        </description>
+    </extension>
+</addon>

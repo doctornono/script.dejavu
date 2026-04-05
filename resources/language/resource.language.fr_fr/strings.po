@@ -1,0 +1,122 @@
+# Kodi Media Center language file
+# Addon Name: dejaVu
+# Addon id: script.dejavu
+msgid ""
+msgstr ""
+
+msgctxt "#30000"
+msgid "Account"
+msgstr "Compte"
+
+msgctxt "#30001"
+msgid "Logged in as"
+msgstr "Connecté en tant que"
+
+msgctxt "#30002"
+msgid "Login with dejaVu"
+msgstr "Se connecter à dejaVu"
+
+msgctxt "#30003"
+msgid "Logout"
+msgstr "Se déconnecter"
+
+msgctxt "#30010"
+msgid "Scrobbling"
+msgstr "Scrobbling"
+
+msgctxt "#30011"
+msgid "Enable automatic scrobbling"
+msgstr "Activer le scrobbling automatique"
+
+msgctxt "#30012"
+msgid "Scrobble interval (seconds)"
+msgstr "Intervalle de scrobble (secondes)"
+
+msgctxt "#30013"
+msgid "Mark as watched at (% played)"
+msgstr "Marquer comme vu à (% lu)"
+
+msgctxt "#30020"
+msgid "Advanced"
+msgstr "Avancé"
+
+msgctxt "#30021"
+msgid "API URL"
+msgstr "URL de l'API"
+
+msgctxt "#30022"
+msgid "Debug logging"
+msgstr "Journalisation débogage"
+
+msgctxt "#30030"
+msgid "dejaVu Login"
+msgstr "Connexion dejaVu"
+
+msgctxt "#30031"
+msgid "Visit the URL below and enter the code:"
+msgstr "Rendez-vous à l'URL suivante et entrez le code :"
+
+msgctxt "#30032"
+msgid "Login successful! Welcome, %s."
+msgstr "Connexion réussie ! Bienvenue, %s."
+
+msgctxt "#30033"
+msgid "Login cancelled."
+msgstr "Connexion annulée."
+
+msgctxt "#30034"
+msgid "Login failed. Could not connect to dejaVu."
+msgstr "Échec de la connexion. Impossible de joindre dejaVu."
+
+msgctxt "#30035"
+msgid "Login code expired. Please try again."
+msgstr "Le code a expiré. Veuillez réessayer."
+
+msgctxt "#30040"
+msgid "Logged out of dejaVu."
+msgstr "Déconnecté de dejaVu."
+
+msgctxt "#30016"
+msgid "Rate on dejaVu..."
+msgstr "Noter sur dejaVu..."
+
+msgctxt "#30017"
+msgid "Select a rating (1-10)"
+msgstr "Choisir une note (1-10)"
+
+msgctxt "#30018"
+msgid "Rated %s/10 on dejaVu"
+msgstr "Noté %s/10 sur dejaVu"
+
+msgctxt "#30019"
+msgid "Error: No TMDB ID found for this item."
+msgstr "Erreur : aucun ID TMDB trouvé pour cet élément."
+
+msgctxt "#30050"
+msgid "Not logged in. Please login in the addon settings."
+msgstr "Non connecté. Veuillez vous connecter dans les paramètres."
+
+msgctxt "#30051"
+msgid "Scrobbling..."
+msgstr "Scrobbling en cours..."
+
+msgctxt "#30052"
+msgid "Marked as watched"
+msgstr "Marqué comme vu"
+
+msgctxt "#30060"
+msgid "Login"
+msgstr "Se connecter"
+
+msgctxt "#30061"
+msgid "Logout"
+msgstr "Se déconnecter"
+
+msgctxt "#30062"
+msgid "Settings"
+msgstr "Paramètres"
+
+msgctxt "#30070"
+msgid "Prompt for rating after playback"
+msgstr "Proposer de noter après visionnage"
+

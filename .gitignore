@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Kodi specific
+*.pyo
+*.pyd
+.stfolder/
+.DS_Store
+Thumbs.db
+
+# Credentials & local settings
+resources/settings.xml
+*.secret
+*.token
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
