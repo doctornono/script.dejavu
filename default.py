@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 dejaVu default.py
 Handles all user-invoked actions:
@@ -149,3 +150,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dejavu" name="dejaVu" version="1.1.0" provider-name="dejaVu Team">
+<addon id="script.dejavu" name="dejaVu" version="1.1.0" provider-name="doctornono">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
@@ -30,16 +30,26 @@
         <platform>all</platform>
         <license>MIT</license>
         <website>https://dejavu.plus</website>
-        <source>https://github.com/doctornono/dejaVu-kodi</source>
-        <summary lang="en_GB">dejaVu integration for Kodi</summary>
-        <summary lang="fr_FR">Intégration dejaVu pour Kodi</summary>
-        <description lang="en_GB">
-            Sync your watch history, watchlist and ratings with dejaVu.plus.
-            Automatic scrobbling included. Supports movies and TV episodes.
-        </description>
-        <description lang="fr_FR">
-            Synchronisez votre historique, votre watchlist et vos notes avec dejaVu.plus.
-            Scrobbling automatique inclus. Supporte les films et épisodes TV.
-        </description>
+        <source>https://github.com/doctornono/script.dejavu</source>
+        <disclaimer lang="en_GB">For full synchronization, ensure your dejaVu.plus account is active. Background scrobbling might be affected by power saving settings.</disclaimer>
+        <disclaimer lang="fr_FR">Pour une synchronisation complète, assurez-vous que votre compte dejaVu.plus est actif. Le scrobbling en arrière-plan peut être affecté par les réglages d'économie d'énergie.</disclaimer>
+        <news lang="en_GB">
+v1.1.0 (2026-04-05):
+- API v1 compliance: scrobble, ratings, history.
+- Automated "Mark as Watched" at 90% threshold.
+- Enhanced Monitor: 14 RPC actions for integration.
+- Fixed episode TMDB ID resolution via JSON-RPC.
+        </news>
+        <news lang="fr_FR">
+v1.1.0 (2026-04-05):
+- Conformité API v1 : scrobble, notes, historique.
+- Automatisation du marquage "vu" au seuil de 90%.
+- Moniteur RPC étendu : 14 actions pour intégration facilitée.
+- Correction de la résolution d'ID TMDB pour épisodes.
+        </news>
+        <assets>
+            <icon>icon.png</icon>
+            <fanart>fanart.jpg</fanart>
+        </assets>
     </extension>
 </addon>

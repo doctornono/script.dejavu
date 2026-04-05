@@ -64,10 +64,6 @@ msgctxt "#30032"
 msgid "Login successful! Welcome, %s."
 msgstr ""
 
-msgctxt "#30033"
-msgid "Login cancelled."
-msgstr ""
-
 msgctxt "#30034"
 msgid "Login failed. Could not connect to dejaVu."
 msgstr ""
@@ -99,27 +95,11 @@ msgid "Error: No TMDB ID found for this item."
 msgstr ""
 
 # Notifications
-msgctxt "#30050"
-msgid "Not logged in. Please login in the addon settings."
-msgstr ""
-
-msgctxt "#30051"
-msgid "Scrobbling..."
-msgstr ""
-
 msgctxt "#30052"
 msgid "Marked as watched"
 msgstr ""
 
 # Main menu
-msgctxt "#30060"
-msgid "Login"
-msgstr ""
-
-msgctxt "#30061"
-msgid "Logout"
-msgstr ""
-
 msgctxt "#30062"
 msgid "Settings"
 msgstr ""
@@ -129,3 +109,7 @@ msgctxt "#30070"
 msgid "Prompt for rating after playback"
 msgstr ""
 
+# Settings labels
+msgctxt "#30099"
+msgid "Access Token"
+msgstr ""

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 dejaVu Service
 Entry point for xbmc.service – runs in the background for the lifetime of Kodi.
@@ -28,3 +29,4 @@ def run():
 
 if __name__ == "__main__":
     run()
+

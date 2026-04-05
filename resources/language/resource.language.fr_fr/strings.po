@@ -60,10 +60,6 @@ msgctxt "#30032"
 msgid "Login successful! Welcome, %s."
 msgstr "Connexion réussie ! Bienvenue, %s."
 
-msgctxt "#30033"
-msgid "Login cancelled."
-msgstr "Connexion annulée."
-
 msgctxt "#30034"
 msgid "Login failed. Could not connect to dejaVu."
 msgstr "Échec de la connexion. Impossible de joindre dejaVu."
@@ -92,25 +88,9 @@ msgctxt "#30019"
 msgid "Error: No TMDB ID found for this item."
 msgstr "Erreur : aucun ID TMDB trouvé pour cet élément."
 
-msgctxt "#30050"
-msgid "Not logged in. Please login in the addon settings."
-msgstr "Non connecté. Veuillez vous connecter dans les paramètres."
-
-msgctxt "#30051"
-msgid "Scrobbling..."
-msgstr "Scrobbling en cours..."
-
 msgctxt "#30052"
 msgid "Marked as watched"
 msgstr "Marqué comme vu"
-
-msgctxt "#30060"
-msgid "Login"
-msgstr "Se connecter"
-
-msgctxt "#30061"
-msgid "Logout"
-msgstr "Se déconnecter"
 
 msgctxt "#30062"
 msgid "Settings"
@@ -120,3 +100,6 @@ msgctxt "#30070"
 msgid "Prompt for rating after playback"
 msgstr "Proposer de noter après visionnage"
 
+msgctxt "#30099"
+msgid "Access Token"
+msgstr "Jeton d'accès"
