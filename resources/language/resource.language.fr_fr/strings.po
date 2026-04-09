@@ -36,6 +36,10 @@ msgctxt "#30013"
 msgid "Mark as watched at (% played)"
 msgstr "Marquer comme vu à (% lu)"
 
+msgctxt "#30014"
+msgid "Show notifications (start, watched, rated)"
+msgstr "Afficher les notifications (début, vu, noté)"
+
 msgctxt "#30020"
 msgid "Advanced"
 msgstr "Avancé"
@@ -91,6 +95,10 @@ msgstr "Erreur : aucun ID TMDB trouvé pour cet élément."
 msgctxt "#30052"
 msgid "Marked as watched"
 msgstr "Marqué comme vu"
+
+msgctxt "#30053"
+msgid "Scrobbling started"
+msgstr "Scrobbling démarré"
 
 msgctxt "#30062"
 msgid "Settings"

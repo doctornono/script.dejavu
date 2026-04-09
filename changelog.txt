@@ -1,4 +1,11 @@
-v1.2.0 (2026-04-05)
+v1.1.2 (2026-04-09)
+- Fix: accurate episode and movie identification by resolving specific TMDB IDs from api.themoviedb.org
+
+v1.1.1 (2026-04-08)
+- Fix: accurate episode identification by resolving specific TMDB IDs from api.themoviedb.org
+- Support: fallback identification for episodes in plugins via ListItem properties (tvshow_tmdb_id, etc.)
+- Improved: "healing" logic when episode ID is missing or duplicate of Show ID
+- Settings: added TMDB API Key for external resolution
 - API v1 compliance: full refactor of api_client.py and lib/ adaptations
 - Automated "Mark as Watched" at 90% threshold (no manual action needed)
 - Robust metadata resolution: show TMDB IDs resolved via JSON-RPC for episodes

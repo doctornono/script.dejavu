@@ -7,6 +7,7 @@ Authentication: x-api-key header with secret key (sk_...)
 
 import xbmc
 import xbmcaddon
+import json
 import requests
 
 ADDON = xbmcaddon.Addon()
@@ -141,18 +142,27 @@ class DejaVuAPI:
             "duration": int(duration),
         }
         if tmdb_id:
-            payload["id"] = int(tmdb_id)
-        elif item_id:
-            payload["id"] = int(item_id)
-            
+            if str(tmdb_id).isdigit():
+                payload["id"] = int(tmdb_id)
+            else:
+                _log(f"scrobble: tmdb_id is non-numeric ('{tmdb_id}'). Skipping 'id' field.", xbmc.LOGWARNING)
+
+        if item_id:
+            if str(item_id).isdigit():
+                payload["id"] = int(item_id)
+
         if tv_show_id:
-            payload["tvShowId"] = int(tv_show_id)
+            if str(tv_show_id).isdigit():
+                payload["tvShowId"] = int(tv_show_id)
+            else:
+                _log(f"scrobble: tv_show_id is non-numeric ('{tv_show_id}'). Skipping 'tvShowId' field.", xbmc.LOGWARNING)
+
         if season is not None:
             payload["seasonNumber"] = int(season)
         if episode is not None:
             payload["episodeNumber"] = int(episode)
 
-        _log(f"scrobble payload: {payload}", xbmc.LOGDEBUG)
+        _log(f"scrobble API Call payload: {json.dumps(payload)}", xbmc.LOGDEBUG)
         return self._post("/scrobble", payload)
 
     def delete_scrobble_session(self, session_id):
@@ -199,11 +209,20 @@ class DejaVuAPI:
             "rating": int(rating),
         }
         if tmdb_id:
-            payload["id"] = int(tmdb_id)
+            if str(tmdb_id).isdigit():
+                payload["id"] = int(tmdb_id)
+            else:
+                _log(f"rate: tmdb_id is non-numeric ('{tmdb_id}').", xbmc.LOGWARNING)
         elif item_id:
-            payload["id"] = int(item_id)
+            if str(item_id).isdigit():
+                payload["id"] = int(item_id)
+
         if tv_show_id:
-            payload["tvShowId"] = int(tv_show_id)
+            if str(tv_show_id).isdigit():
+                payload["tvShowId"] = int(tv_show_id)
+            else:
+                _log(f"rate: tv_show_id is non-numeric ('{tv_show_id}').", xbmc.LOGWARNING)
+
         if season is not None:
             payload["seasonNumber"] = int(season)
         if episode is not None:
@@ -211,7 +230,7 @@ class DejaVuAPI:
         if review:
             payload["review"] = str(review)
 
-        _log(f"rate payload: {payload}", xbmc.LOGDEBUG)
+        _log(f"rate API Call payload: {json.dumps(payload)}", xbmc.LOGDEBUG)
         return self._post("/ratings", payload)
 
     def delete_rating(self, media_type, tmdb_id=None, tv_show_id=None, season=None):
@@ -272,15 +291,25 @@ class DejaVuAPI:
         """
         payload = {"type": media_type, "count": int(count)}
         if tmdb_id:
-            payload["id"] = int(tmdb_id)
+            if str(tmdb_id).isdigit():
+                payload["id"] = int(tmdb_id)
+            else:
+                _log(f"add_to_history: tmdb_id is non-numeric ('{tmdb_id}').", xbmc.LOGWARNING)
+
         if watched_at:
             payload["watchedAt"] = watched_at
+
         if tv_show_id:
-            payload["tvShowId"] = int(tv_show_id)
+            if str(tv_show_id).isdigit():
+                payload["tvShowId"] = int(tv_show_id)
+            else:
+                _log(f"add_to_history: tv_show_id is non-numeric ('{tv_show_id}').", xbmc.LOGWARNING)
+
         if season is not None:
             payload["seasonNumber"] = int(season)
         if episode is not None:
             payload["episodeNumber"] = int(episode)
+        _log(f"add_to_history API Call payload: {json.dumps(payload)}", xbmc.LOGDEBUG)
         return self._post("/history", payload)
 
     def delete_history(self, media_type, tmdb_id):
@@ -290,7 +319,13 @@ class DejaVuAPI:
         media_type : "movie" | "tv" | "episode"
         tmdb_id    : TMDB ID of the movie or episode
         """
-        return self._delete_qs("/history", {"type": media_type, "id": int(tmdb_id)})
+        params = {"type": media_type}
+        if str(tmdb_id).isdigit():
+            params["id"] = int(tmdb_id)
+        else:
+            _log(f"delete_history: tmdb_id is non-numeric ('{tmdb_id}').", xbmc.LOGWARNING)
+            return None
+        return self._delete_qs("/history", params)
 
     # ------------------------------------------------------------------
     # Watchlist

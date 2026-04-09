@@ -13,12 +13,14 @@
     <category label="30010">
         <setting id="enable_scrobble" type="bool" label="30011" default="true"/>
         <setting id="watched_percent" type="number" label="30013" default="90"/>
+        <setting id="show_notifications" type="bool" label="30014" default="true"/>
         <setting id="prompt_rating" type="bool" label="30070" default="true"/>
     </category>
 
     <!-- Advanced -->
     <category label="30020">
         <setting id="scrobble_interval" type="number" label="30012" default="30"/>
+        <setting id="tmdb_api_key" type="text" label="TMDB API Key" default="9c1662a033ca5210dc75b91e0aa9b49e" visible="false"/>
         <setting id="api_url" type="text" label="30021" default="https://dejavu.plus/api/v1"/>
         <setting id="debug" type="bool" label="30022" default="false"/>
     </category>
