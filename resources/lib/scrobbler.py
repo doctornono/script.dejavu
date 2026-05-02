@@ -12,7 +12,7 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 from .api_client import DejaVuAPI
-from .auth_handler import is_logged_in
+from .auth_handler import is_logged_in, login
 
 ADDON = xbmcaddon.Addon()
 
@@ -504,6 +504,7 @@ class DejaVuPlayer(xbmc.Player):
             pass  # default: enabled
         if not is_logged_in():
             return
+            login()
         if not self._active:
             return
         if self._watched_sent:
