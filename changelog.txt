@@ -1,3 +1,8 @@
+v1.2.2 (2026-05-04)
+- Context menus: Add to Collection (with format picker), Add to Watchlist, Add to Favorites.
+- Helper _get_media_info() with dual fallback (Kodi library + plugin custom properties).
+- New strings: 30080-30088 (EN + FR).
+
 v1.1.2 (2026-04-09)
 - Fix: accurate episode and movie identification by resolving specific TMDB IDs from api.themoviedb.org
 

@@ -117,6 +117,45 @@ msgctxt "#30070"
 msgid "Prompt for rating after playback"
 msgstr ""
 
+# Context menu — Collection (30080-30082)
+msgctxt "#30080"
+msgid "Add to Collection (dejaVu)..."
+msgstr ""
+
+msgctxt "#30081"
+msgid "Added to your collection."
+msgstr ""
+
+msgctxt "#30082"
+msgid "Error: Could not add to collection."
+msgstr ""
+
+# Context menu — Watchlist (30083-30085)
+msgctxt "#30083"
+msgid "Add to Watchlist (dejaVu)"
+msgstr ""
+
+msgctxt "#30084"
+msgid "Added to your watchlist."
+msgstr ""
+
+msgctxt "#30085"
+msgid "Error: Could not add to watchlist."
+msgstr ""
+
+# Context menu — Favorites (30086-30088)
+msgctxt "#30086"
+msgid "Add to Favorites (dejaVu)"
+msgstr ""
+
+msgctxt "#30087"
+msgid "Added to your favorites."
+msgstr ""
+
+msgctxt "#30088"
+msgid "Error: Could not add to favorites."
+msgstr ""
+
 # Settings labels
 msgctxt "#30099"
 msgid "Access Token"
