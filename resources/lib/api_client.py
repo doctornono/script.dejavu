@@ -524,3 +524,66 @@ class DejaVuAPI:
         }
         return self._get("/upnext", params)
 
+    # ------------------------------------------------------------------
+    # Dashboard
+    # ------------------------------------------------------------------
+
+    def get_dashboard(self):
+        """
+        Retrieve the user's dashboard layout configuration.
+
+        Returns a list of widgets (excluding non-video widgets like 'stats'),
+        each with: id, type, title, props, and a ready-to-use apiUrl.
+
+        Example response:
+          {
+            "success": True,
+            "data": {
+              "widgets": [
+                {
+                  "id": "up_next-1",
+                  "type": "up_next",
+                  "title": "Up Next",
+                  "props": {},
+                  "apiUrl": "/api/v1/dashboard/widget?type=up_next"
+                },
+                ...
+              ],
+              "filters": []
+            }
+          }
+        """
+        return self._get("/dashboard")
+
+    def get_dashboard_widget(self, widget_type, list_id=None, page=1,
+                             page_size=20, minimal=False):
+        """
+        Retrieve the content of a specific dashboard widget.
+
+        This is a unified proxy that routes to the appropriate underlying
+        endpoint based on the widget type.
+
+        widget_type : one of:
+                      "up_next"                – Next episodes to watch
+                      "recent_watchlist"       – Last items added to watchlist
+                      "continue_watching"      – All active scrobble sessions
+                      "active_movie_scrobbles" – Active movie scrobble sessions
+                      "active_tv_scrobbles"    – Active TV scrobble sessions
+                      "upcoming_releases"      – Upcoming movies (TMDB Discover)
+                      "upcoming_schedule"      – Upcoming TV shows (TMDB Discover)
+                      "list"                   – Custom list items (requires list_id)
+        list_id     : list ID, required when widget_type == "list"
+        page        : page number (default 1)
+        page_size   : items per page (default 20)
+        minimal     : if True, returns a lightweight payload (default False)
+        """
+        params = {
+            "type": widget_type,
+            "page": page,
+            "pageSize": page_size,
+            "minimal": str(minimal).lower(),
+        }
+        if list_id:
+            params["listId"] = list_id
+        return self._get("/dashboard/widget", params)
+

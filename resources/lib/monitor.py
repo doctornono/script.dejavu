@@ -5,28 +5,40 @@ Handles RPC-style inter-addon communication via Kodi notifications.
 
 Supported actions (method format: 'script.dejavu.ACTION'):
   READ
-    get_watchlist       params: page, page_size, type
-    get_history         params: page, page_size, type, sort
-    get_ratings         params: page, page_size, type
-    get_favorites       params: page, page_size, type
-    get_collection      params: page, page_size, type, sort, format
-    get_up_next         params: page, page_size
-    get_lists           params: page, page_size
+    get_watchlist         params: page, page_size, type
+    get_history           params: page, page_size, type, sort
+    get_ratings           params: page, page_size, type
+    get_favorites         params: page, page_size, type
+    get_collection        params: page, page_size, type, sort, format
+    get_up_next           params: page, page_size
+    get_lists             params: page, page_size
+    get_dashboard         params: (none)
+    get_dashboard_widget  params: widget_type, list_id, page, page_size, minimal
 
   WRITE
-    add_to_watchlist    params: type, id, priority, notes
+    add_to_watchlist      params: type, id, priority, notes
     remove_from_watchlist params: type, id
-    add_to_history      params: type, id, count, watched_at, tvShowId, seasonNumber, episodeNumber
-    add_to_favorites    params: type, id
+    add_to_history        params: type, id, count, watched_at, tvShowId, seasonNumber, episodeNumber
+    add_to_favorites      params: type, id
     remove_from_favorites params: type, id
-    rate                params: type, id, rating, tvShowId, seasonNumber, episodeNumber, review
-    scrobble            params: type, id, progress, duration
+    rate                  params: type, id, rating, tvShowId, seasonNumber, episodeNumber, review
+    scrobble              params: type, id, progress, duration
 
 Data format for notification:
   {
     "result_property": "my.addon.result",   // optional, default: script.dejavu.<ACTION>.result
     // ... action-specific params
   }
+
+Dashboard widget types (get_dashboard_widget):
+  up_next               Next episodes to watch
+  recent_watchlist      Last items added to watchlist
+  continue_watching     All active scrobble sessions
+  active_movie_scrobbles  Active movie scrobble sessions
+  active_tv_scrobbles   Active TV scrobble sessions
+  upcoming_releases     Upcoming movie releases (TMDB Discover)
+  upcoming_schedule     Upcoming TV show episodes (TMDB Discover)
+  list                  Custom list items (requires list_id param)
 """
 
 import json
@@ -85,6 +97,10 @@ class DejaVuMonitor(xbmc.Monitor):
             self._handle_get_up_next(params, result_property)
         elif action == "get_lists":
             self._handle_get_lists(params, result_property)
+        elif action == "get_dashboard":
+            self._handle_get_dashboard(params, result_property)
+        elif action == "get_dashboard_widget":
+            self._handle_get_dashboard_widget(params, result_property)
 
         # ---- WRITE actions ----
         elif action == "add_to_watchlist":
@@ -194,6 +210,26 @@ class DejaVuMonitor(xbmc.Monitor):
             self._set_result(result_property, result)
         except Exception as e:
             _log(f"get_lists RPC error: {e}", xbmc.LOGERROR)
+
+    def _handle_get_dashboard(self, params, result_property):
+        try:
+            result = self.api.get_dashboard()
+            self._set_result(result_property, result)
+        except Exception as e:
+            _log(f"get_dashboard RPC error: {e}", xbmc.LOGERROR)
+
+    def _handle_get_dashboard_widget(self, params, result_property):
+        try:
+            result = self.api.get_dashboard_widget(
+                widget_type=params["widget_type"],
+                list_id=params.get("list_id"),
+                page=params.get("page", 1),
+                page_size=params.get("page_size", 20),
+                minimal=params.get("minimal", False),
+            )
+            self._set_result(result_property, result)
+        except Exception as e:
+            _log(f"get_dashboard_widget RPC error: {e}", xbmc.LOGERROR)
 
     # ------------------------------------------------------------------
     # WRITE handlers
