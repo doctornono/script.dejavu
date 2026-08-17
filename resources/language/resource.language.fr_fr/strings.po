@@ -108,6 +108,42 @@ msgctxt "#30070"
 msgid "Prompt for rating after playback"
 msgstr "Proposer de noter après visionnage"
 
+msgctxt "#30071"
+msgid "Resume from last position"
+msgstr "Reprendre à la dernière position"
+
+msgctxt "#30072"
+msgid "Offer next episode when playback ends"
+msgstr "Proposer l'épisode suivant en fin de lecture"
+
+msgctxt "#30073"
+msgid "Resume from %s?"
+msgstr "Reprendre à %s ?"
+
+msgctxt "#30074"
+msgid "Play next episode: %s?"
+msgstr "Lire l'épisode suivant : %s ?"
+
+msgctxt "#30075"
+msgid "Not logged in. Scrobbling is disabled."
+msgstr "Non connecté. Le scrobbling est désactivé."
+
+msgctxt "#30076"
+msgid "Rating removed."
+msgstr "Note supprimée."
+
+msgctxt "#30077"
+msgid "Also rate this TV show?"
+msgstr "Noter aussi la série ?"
+
+msgctxt "#30078"
+msgid "Watched status (dejaVu)"
+msgstr "Statut vu (dejaVu)"
+
+msgctxt "#30079"
+msgid "Marked as unwatched"
+msgstr "Marqué comme non vu"
+
 msgctxt "#30099"
 msgid "Access Token"
 msgstr "Jeton d'accès"
@@ -150,3 +186,43 @@ msgstr "Ajouté à vos favoris."
 msgctxt "#30088"
 msgid "Error: Could not add to favorites."
 msgstr "Erreur : impossible d'ajouter aux favoris."
+
+msgctxt "#30089"
+msgid "Watchlist (dejaVu)"
+msgstr "Liste à voir (dejaVu)"
+
+msgctxt "#30090"
+msgid "Favorites (dejaVu)"
+msgstr "Favoris (dejaVu)"
+
+msgctxt "#30091"
+msgid "Collection (dejaVu)..."
+msgstr "Collection (dejaVu)..."
+
+msgctxt "#30092"
+msgid "Mark as watched"
+msgstr "Marquer comme vu"
+
+msgctxt "#30093"
+msgid "Mark as unwatched"
+msgstr "Marquer comme non vu"
+
+msgctxt "#30094"
+msgid "Removed from your watchlist."
+msgstr "Retiré de votre liste à voir."
+
+msgctxt "#30095"
+msgid "Removed from your favorites."
+msgstr "Retiré de vos favoris."
+
+msgctxt "#30096"
+msgid "Removed from your collection."
+msgstr "Retiré de votre collection."
+
+msgctxt "#30097"
+msgid "Could not update watched status."
+msgstr "Impossible de mettre à jour le statut vu."
+
+msgctxt "#30098"
+msgid "Remove rating"
+msgstr "Supprimer la note"

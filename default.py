@@ -4,10 +4,12 @@ dejaVu default.py
 Handles all user-invoked actions:
   - action=login             → device code login flow
   - action=logout            → clear credentials
-  - action=rate              → rating dialog (context menu)
-  - action=add_to_collection → add to collection dialog (context menu)
-  - action=add_to_watchlist  → add to watchlist (context menu)
-  - action=add_to_favorites  → add to favorites (context menu)
+  - action=rate              → rating dialog (context menu, with remove + preselect)
+  - action=toggle_watched    → mark as watched / unwatched
+  - action=toggle_watchlist  → add or remove from watchlist
+  - action=toggle_favorites  → add or remove from favorites
+  - action=toggle_collection → add (format picker) or remove from collection
+  - action=add_to_*          → aliases kept for compatibility
   - action=settings          → open addon settings
   - (no args)                → Programs menu
 """
@@ -19,9 +21,52 @@ import xbmcaddon
 
 ADDON = xbmcaddon.Addon()
 
+FORMAT_LABELS = ["(none)", "Blu-ray", "DVD", "Digital", "4K UHD", "VHS"]
+FORMAT_VALUES = ["",       "bluray",  "dvd", "digital", "uhd",    "vhs"]
+
 
 def _ls(string_id):
     return ADDON.getLocalizedString(string_id)
+
+
+def _notify_ok(msg_id):
+    xbmcgui.Dialog().notification("dejaVu", _ls(msg_id), xbmcgui.NOTIFICATION_INFO, 3000)
+
+
+def _notify_err(msg_id):
+    xbmcgui.Dialog().notification("dejaVu", _ls(msg_id), xbmcgui.NOTIFICATION_ERROR)
+
+
+def _api_and_info():
+    from resources.lib.api_client import DejaVuAPI
+    from resources.lib.util import get_listitem_media_info, resolve_listitem_tmdb
+
+    api = DejaVuAPI()
+    info = resolve_listitem_tmdb(api, get_listitem_media_info())
+    return api, info
+
+
+def _require_tmdb(info):
+    tmdb_id = info.get("tmdb_id") or info.get("show_tmdb_id")
+    if not tmdb_id or not str(tmdb_id).isdigit():
+        _notify_err(30019)
+        return None
+    return tmdb_id
+
+
+def _status_entry(api, info):
+    from resources.lib.util import status_for
+
+    api_type = info.get("api_type") or "movie"
+    tmdb_id = info.get("tmdb_id") if api_type == "movie" else (
+        info.get("show_tmdb_id") or info.get("tmdb_id")
+    )
+    if api_type == "tv" and info.get("dbtype") == "episode":
+        tmdb_id = info.get("show_tmdb_id") or tmdb_id
+    if not tmdb_id or not str(tmdb_id).isdigit():
+        return {}, api_type, tmdb_id
+    result = api.get_media_status([{"type": api_type, "id": int(tmdb_id)}])
+    return status_for(result, api_type, tmdb_id), api_type, tmdb_id
 
 
 # ---------------------------------------------------------------------------
@@ -29,187 +74,260 @@ def _ls(string_id):
 # ---------------------------------------------------------------------------
 
 def rate_dialog():
-    """Shows a 1-10 rating dialog for the currently focused ListItem."""
-    ratings = [str(i) for i in range(10, 0, -1)]
-    selected = xbmcgui.Dialog().select(_ls(30017), ratings)
+    """Shows a 1-10 rating dialog, pre-filled, with an option to remove the rating."""
+    api, info = _api_and_info()
+    status, api_type, status_id = _status_entry(api, info)
 
-    if selected < 0:
-        return  # cancelled
+    dbtype = info.get("dbtype") or ""
+    tmdb_id = info.get("tmdb_id")
+    show_tmdb = info.get("show_tmdb_id")
+    season = info.get("season")
+    episode = info.get("episode")
 
-    rating = int(ratings[selected])
+    if dbtype == "tvshow":
+        rate_type = "tv"
+        tmdb_id = tmdb_id or show_tmdb
+    elif dbtype == "season":
+        rate_type = "season"
+        show_tmdb = show_tmdb or tmdb_id
+    elif dbtype == "episode":
+        rate_type = "episode"
+    else:
+        rate_type = "movie"
 
-    media_type = (
-        xbmc.getInfoLabel("ListItem.DBType")
-        or xbmc.getInfoLabel("ListItem.Property(DBType)")
-        or ""
-    )
-    tmdb_id = xbmc.getInfoLabel("ListItem.UniqueID(tmdb)")
-
-    if not tmdb_id:
-        xbmcgui.Dialog().notification("dejaVu", _ls(30019), xbmcgui.NOTIFICATION_ERROR)
+    if not tmdb_id and not (rate_type == "episode" and show_tmdb and season and episode):
+        _notify_err(30019)
         return
 
-    from resources.lib.api_client import DejaVuAPI
-    api = DejaVuAPI()
-    result = None
+    current = status.get("rating") if rate_type in ("movie", "tv") else None
+    ratings = [str(i) for i in range(10, 0, -1)]
+    options = [_ls(30098)] + ratings
+    preselect = 0
+    if current:
+        try:
+            preselect = options.index(str(int(current)))
+        except ValueError:
+            preselect = 0
 
-    if media_type == "movie":
-        result = api.rate("movie", rating, tmdb_id=tmdb_id)
+    try:
+        selected = xbmcgui.Dialog().select(_ls(30017), options, preselect=preselect)
+    except TypeError:
+        selected = xbmcgui.Dialog().select(_ls(30017), options)
+    if selected < 0:
+        return
 
-    elif media_type == "tvshow":
-        result = api.rate("tv", rating, tmdb_id=tmdb_id)
+    from resources.lib.util import notify_changed
 
-    elif media_type == "season":
-        season = xbmc.getInfoLabel("ListItem.Season")
-        show_tmdb = xbmc.getInfoLabel("ListItem.TVShowUniqueID(tmdb)") or tmdb_id
-        result = api.rate(
-            "season",
-            rating,
+    if selected == 0:
+        result = api.delete_rating(
+            rate_type,
             tmdb_id=tmdb_id,
             tv_show_id=show_tmdb or None,
-            season=int(season) if season else None
+            season=season,
         )
+        if result is None:
+            _notify_err(30019)
+            return
+        _notify_ok(30076)
+        notify_changed("delete_rating", rate_type, tmdb_id)
+        return
 
-    elif media_type == "episode":
-        season  = xbmc.getInfoLabel("ListItem.Season")
-        episode = xbmc.getInfoLabel("ListItem.Episode")
-        show_tmdb = xbmc.getInfoLabel("ListItem.TVShowUniqueID(tmdb)") or xbmc.getInfoLabel("ListItem.UniqueID(tvshow_tmdb)")
-        
-        result = api.rate(
-            "episode",
-            rating,
-            tmdb_id=tmdb_id,
-            tv_show_id=show_tmdb or None,
-            season=int(season) if season else None,
-            episode=int(episode) if episode else None,
-        )
-    else:
-        # Fallback: treat as movie
-        result = api.rate("movie", rating, tmdb_id=tmdb_id)
-
+    rating = int(ratings[selected - 1])
+    result = api.rate(
+        rate_type,
+        rating,
+        tmdb_id=tmdb_id,
+        tv_show_id=show_tmdb or None,
+        season=season,
+        episode=episode,
+    )
     if result is None:
-        xbmcgui.Dialog().notification("dejaVu", _ls(30019), xbmcgui.NOTIFICATION_ERROR)
+        _notify_err(30019)
         return
 
     xbmcgui.Dialog().notification(
-        "dejaVu",
-        _ls(30018) % rating,
-        xbmcgui.NOTIFICATION_INFO,
-        3000,
+        "dejaVu", _ls(30018) % rating, xbmcgui.NOTIFICATION_INFO, 3000
     )
+    notify_changed("rate", rate_type, tmdb_id, extra={"rating": rating})
 
-# ---------------------------------------------------------------------------
-# Shared helper: extract media type + TMDB ID from the current ListItem
-# ---------------------------------------------------------------------------
-
-FORMAT_LABELS = ["(none)", "Blu-ray", "DVD", "Digital", "4K UHD", "VHS"]
-FORMAT_VALUES = ["",       "bluray",  "dvd", "digital", "uhd",    "vhs"]
-
-
-def _get_media_info():
-    """
-    Returns (api_type, tmdb_id) for the currently focused ListItem.
-    api_type : "movie" | "tv"  (normalised from Kodi's "tvshow")
-    tmdb_id  : string TMDB ID, or empty string if not found
-    Reads both the Kodi library fields and custom plugin properties as fallback.
-    """
-    media_type = (
-        xbmc.getInfoLabel("ListItem.DBType")
-        or xbmc.getInfoLabel("ListItem.Property(DBType)")
-        or xbmc.getInfoLabel("ListItem.Property(media_type)")
-        or ""
-    )
-    tmdb_id = (
-        xbmc.getInfoLabel("ListItem.UniqueID(tmdb)")
-        or xbmc.getInfoLabel("ListItem.Property(tmdb_id)")
-        or ""
-    )
-    # Kodi uses "tvshow"; the dejaVu API expects "tv"
-    api_type = "tv" if media_type == "tvshow" else media_type
-    return api_type, tmdb_id
+    if rate_type == "episode" and (show_tmdb or tmdb_id):
+        if xbmcgui.Dialog().yesno("dejaVu", _ls(30077)):
+            show_id = show_tmdb or tmdb_id
+            show_result = api.rate("tv", rating, tmdb_id=show_id)
+            if show_result is not None:
+                notify_changed("rate", "tv", show_id, extra={"rating": rating})
 
 
 # ---------------------------------------------------------------------------
-# Context menu — Add to Collection
+# Context menu — Watched toggle
 # ---------------------------------------------------------------------------
 
-def add_to_collection_dialog():
-    """Asks for a physical format then adds the item to the user's collection."""
-    api_type, tmdb_id = _get_media_info()
+def toggle_watched():
+    api, info = _api_and_info()
+    from resources.lib.util import notify_changed, set_kodi_playcount, status_for
 
-    if not tmdb_id:
-        xbmcgui.Dialog().notification("dejaVu", _ls(30019), xbmcgui.NOTIFICATION_ERROR)
+    dbtype = info.get("dbtype") or ""
+    tmdb_id = info.get("tmdb_id")
+    show_tmdb = info.get("show_tmdb_id")
+    season = info.get("season")
+    episode = info.get("episode")
+
+    if dbtype == "episode":
+        if not (tmdb_id or (show_tmdb and season and episode)):
+            _notify_err(30019)
+            return
+        choice = xbmcgui.Dialog().select(_ls(30078), [_ls(30092), _ls(30093)])
+        if choice < 0:
+            return
+        mark_watched = choice == 0
+        if mark_watched:
+            result = api.add_to_history(
+                "episode",
+                tmdb_id=tmdb_id or None,
+                tv_show_id=show_tmdb or None,
+                season=season,
+                episode=episode,
+            )
+        else:
+            if not tmdb_id:
+                _notify_err(30019)
+                return
+            result = api.delete_history("episode", tmdb_id)
+        if result is None:
+            _notify_err(30097)
+            return
+        set_kodi_playcount(info.get("dbid"), "episode", watched=mark_watched)
+        _notify_ok(30052 if mark_watched else 30079)
+        notify_changed("watched" if mark_watched else "unwatched", "episode", tmdb_id)
         return
 
-    sel = xbmcgui.Dialog().select(_ls(30080), FORMAT_LABELS)
-    if sel < 0:
-        return  # cancelled
+    tmdb_id = _require_tmdb(info)
+    if not tmdb_id:
+        return
 
-    from resources.lib.api_client import DejaVuAPI
-    api = DejaVuAPI()
+    if dbtype in ("tvshow", "tv", "season"):
+        # History write is per movie/episode, not per series
+        _notify_err(30097)
+        return
+
+    result = api.get_media_status([{"type": "movie", "id": int(tmdb_id)}])
+    watched = bool(status_for(result, "movie", tmdb_id).get("watched"))
+
+    if watched:
+        result = api.delete_history("movie", tmdb_id)
+        mark_watched = False
+    else:
+        result = api.add_to_history("movie", tmdb_id=tmdb_id)
+        mark_watched = True
+    if result is None:
+        _notify_err(30097)
+        return
+    set_kodi_playcount(info.get("dbid"), "movie", watched=mark_watched)
+    _notify_ok(30052 if mark_watched else 30079)
+    notify_changed("watched" if mark_watched else "unwatched", "movie", tmdb_id)
+
+
+# ---------------------------------------------------------------------------
+# Context menu — Watchlist / Favorites / Collection toggles
+# ---------------------------------------------------------------------------
+
+def toggle_watchlist():
+    api, info = _api_and_info()
+    from resources.lib.util import notify_changed
+
+    status, api_type, tmdb_id = _status_entry(api, info)
+    if not tmdb_id:
+        _notify_err(30019)
+        return
+    if info.get("dbtype") == "episode":
+        api_type = "tv"
+        tmdb_id = info.get("show_tmdb_id") or tmdb_id
+        if not tmdb_id:
+            _notify_err(30019)
+            return
+        status, _, _ = _status_entry(api, {**info, "api_type": "tv", "tmdb_id": tmdb_id})
+
+    if status.get("inWatchlist"):
+        result = api.remove_from_watchlist(api_type, tmdb_id)
+        ok_id, action = 30094, "remove_from_watchlist"
+        err_id = 30085
+    else:
+        result = api.add_to_watchlist(api_type, tmdb_id)
+        ok_id, action = 30084, "add_to_watchlist"
+        err_id = 30085
+    if result is None:
+        _notify_err(err_id)
+        return
+    _notify_ok(ok_id)
+    notify_changed(action, api_type, tmdb_id)
+
+
+def toggle_favorites():
+    api, info = _api_and_info()
+    from resources.lib.util import notify_changed
+
+    status, api_type, tmdb_id = _status_entry(api, info)
+    if not tmdb_id:
+        _notify_err(30019)
+        return
+    if info.get("dbtype") == "episode":
+        api_type = "tv"
+        tmdb_id = info.get("show_tmdb_id") or tmdb_id
+        if not tmdb_id:
+            _notify_err(30019)
+            return
+        status, _, _ = _status_entry(api, {**info, "api_type": "tv", "tmdb_id": tmdb_id})
+
+    if status.get("isFavorite"):
+        result = api.remove_from_favorites(api_type, tmdb_id)
+        ok_id, action = 30095, "remove_from_favorites"
+        err_id = 30088
+    else:
+        result = api.add_to_favorites(api_type, tmdb_id)
+        ok_id, action = 30087, "add_to_favorites"
+        err_id = 30088
+    if result is None:
+        _notify_err(err_id)
+        return
+    _notify_ok(ok_id)
+    notify_changed(action, api_type, tmdb_id)
+
+
+def toggle_collection():
+    api, info = _api_and_info()
+    from resources.lib.util import notify_changed
+
+    status, api_type, tmdb_id = _status_entry(api, info)
+    if not tmdb_id:
+        _notify_err(30019)
+        return
+    if info.get("dbtype") == "episode":
+        api_type = "tv"
+        tmdb_id = info.get("show_tmdb_id") or tmdb_id
+        if not tmdb_id:
+            _notify_err(30019)
+            return
+        status, _, _ = _status_entry(api, {**info, "api_type": "tv", "tmdb_id": tmdb_id})
+
+    if status.get("inCollection"):
+        result = api.remove_from_collection(api_type, tmdb_id)
+        if result is None:
+            _notify_err(30082)
+            return
+        _notify_ok(30096)
+        notify_changed("remove_from_collection", api_type, tmdb_id)
+        return
+
+    sel = xbmcgui.Dialog().select(_ls(30091), FORMAT_LABELS)
+    if sel < 0:
+        return
     fmt = FORMAT_VALUES[sel] or None
     result = api.add_to_collection(api_type, tmdb_id, fmt=fmt)
-
-    if result is not None:
-        xbmcgui.Dialog().notification(
-            "dejaVu", _ls(30081), xbmcgui.NOTIFICATION_INFO, 3000
-        )
-    else:
-        xbmcgui.Dialog().notification(
-            "dejaVu", _ls(30082), xbmcgui.NOTIFICATION_ERROR
-        )
-
-
-# ---------------------------------------------------------------------------
-# Context menu — Add to Watchlist
-# ---------------------------------------------------------------------------
-
-def add_to_watchlist_dialog():
-    """Adds the focused item to the user's watchlist."""
-    api_type, tmdb_id = _get_media_info()
-
-    if not tmdb_id:
-        xbmcgui.Dialog().notification("dejaVu", _ls(30019), xbmcgui.NOTIFICATION_ERROR)
+    if result is None:
+        _notify_err(30082)
         return
-
-    from resources.lib.api_client import DejaVuAPI
-    api = DejaVuAPI()
-    result = api.add_to_watchlist(api_type, tmdb_id)
-
-    if result is not None:
-        xbmcgui.Dialog().notification(
-            "dejaVu", _ls(30084), xbmcgui.NOTIFICATION_INFO, 3000
-        )
-    else:
-        xbmcgui.Dialog().notification(
-            "dejaVu", _ls(30085), xbmcgui.NOTIFICATION_ERROR
-        )
-
-
-# ---------------------------------------------------------------------------
-# Context menu — Add to Favorites
-# ---------------------------------------------------------------------------
-
-def add_to_favorites_dialog():
-    """Adds the focused item to the user's favorites."""
-    api_type, tmdb_id = _get_media_info()
-
-    if not tmdb_id:
-        xbmcgui.Dialog().notification("dejaVu", _ls(30019), xbmcgui.NOTIFICATION_ERROR)
-        return
-
-    from resources.lib.api_client import DejaVuAPI
-    api = DejaVuAPI()
-    result = api.add_to_favorites(api_type, tmdb_id)
-
-    if result is not None:
-        xbmcgui.Dialog().notification(
-            "dejaVu", _ls(30087), xbmcgui.NOTIFICATION_INFO, 3000
-        )
-    else:
-        xbmcgui.Dialog().notification(
-            "dejaVu", _ls(30088), xbmcgui.NOTIFICATION_ERROR
-        )
+    _notify_ok(30081)
+    notify_changed("add_to_collection", api_type, tmdb_id)
 
 
 def main_menu():
@@ -254,12 +372,14 @@ def main():
         logout()
     elif "action=rate" in params:
         rate_dialog()
-    elif "action=add_to_collection" in params:
-        add_to_collection_dialog()
-    elif "action=add_to_watchlist" in params:
-        add_to_watchlist_dialog()
-    elif "action=add_to_favorites" in params:
-        add_to_favorites_dialog()
+    elif "action=toggle_watched" in params:
+        toggle_watched()
+    elif "action=toggle_watchlist" in params or "action=add_to_watchlist" in params:
+        toggle_watchlist()
+    elif "action=toggle_favorites" in params or "action=add_to_favorites" in params:
+        toggle_favorites()
+    elif "action=toggle_collection" in params or "action=add_to_collection" in params:
+        toggle_collection()
     elif "action=settings" in params:
         ADDON.openSettings()
     else:
@@ -268,4 +388,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

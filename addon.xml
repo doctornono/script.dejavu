@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dejavu" name="dejaVu" version="1.2.2" provider-name="doctornono">
+<addon id="script.dejavu" name="dejaVu" version="1.3.0" provider-name="doctornono">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
@@ -23,25 +23,31 @@
             <!-- ⭐ Noter un film / épisode -->
             <item library="default.py" args="action=rate">
                 <label>30016</label>
-                <visible>ListItem.IsVideo</visible>
+                <visible>!String.IsEmpty(ListItem.UniqueID(tmdb)) | !String.IsEmpty(ListItem.Property(TmdbId)) | !String.IsEmpty(ListItem.Property(tmdb_id)) | !String.IsEmpty(ListItem.IMDBNumber)</visible>
             </item>
 
-            <!-- 📚 Ajouter à la collection -->
-            <item library="default.py" args="action=add_to_collection">
-                <label>30080</label>
-                <visible>[ListItem.DBType + string = movie] | [ListItem.DBType + string = tvshow] | [!IsEmpty(ListItem.Property(tmdb_id)) + !IsEmpty(ListItem.Property(media_type))]</visible>
+            <!-- ✅ Marquer comme vu / non vu -->
+            <item library="default.py" args="action=toggle_watched">
+                <label>30078</label>
+                <visible>!String.IsEmpty(ListItem.UniqueID(tmdb)) | !String.IsEmpty(ListItem.Property(TmdbId)) | !String.IsEmpty(ListItem.Property(tmdb_id)) | !String.IsEmpty(ListItem.IMDBNumber)</visible>
             </item>
 
-            <!-- 👁️ Ajouter à la liste à voir -->
-            <item library="default.py" args="action=add_to_watchlist">
-                <label>30083</label>
-                <visible>[ListItem.DBType + string = movie] | [ListItem.DBType + string = tvshow] | [!IsEmpty(ListItem.Property(tmdb_id)) + !IsEmpty(ListItem.Property(media_type))]</visible>
+            <!-- 📚 Collection (toggle) -->
+            <item library="default.py" args="action=toggle_collection">
+                <label>30091</label>
+                <visible>!String.IsEmpty(ListItem.UniqueID(tmdb)) | !String.IsEmpty(ListItem.Property(TmdbId)) | !String.IsEmpty(ListItem.Property(tmdb_id)) | !String.IsEmpty(ListItem.IMDBNumber)</visible>
             </item>
 
-            <!-- ❤️ Ajouter aux favoris -->
-            <item library="default.py" args="action=add_to_favorites">
-                <label>30086</label>
-                <visible>[ListItem.DBType + string = movie] | [ListItem.DBType + string = tvshow] | [!IsEmpty(ListItem.Property(tmdb_id)) + !IsEmpty(ListItem.Property(media_type))]</visible>
+            <!-- 👁️ Watchlist (toggle) -->
+            <item library="default.py" args="action=toggle_watchlist">
+                <label>30089</label>
+                <visible>!String.IsEmpty(ListItem.UniqueID(tmdb)) | !String.IsEmpty(ListItem.Property(TmdbId)) | !String.IsEmpty(ListItem.Property(tmdb_id)) | !String.IsEmpty(ListItem.IMDBNumber)</visible>
+            </item>
+
+            <!-- ❤️ Favoris (toggle) -->
+            <item library="default.py" args="action=toggle_favorites">
+                <label>30090</label>
+                <visible>!String.IsEmpty(ListItem.UniqueID(tmdb)) | !String.IsEmpty(ListItem.Property(TmdbId)) | !String.IsEmpty(ListItem.Property(tmdb_id)) | !String.IsEmpty(ListItem.IMDBNumber)</visible>
             </item>
 
         </menu>
@@ -55,6 +61,11 @@
         <disclaimer lang="en_GB">For full synchronization, ensure your dejaVu.plus account is active. Background scrobbling might be affected by power saving settings.</disclaimer>
         <disclaimer lang="fr_FR">Pour une synchronisation complète, assurez-vous que votre compte dejaVu.plus est actif. Le scrobbling en arrière-plan peut être affecté par les réglages d'économie d'énergie.</disclaimer>
         <news lang="en_GB">
+v1.3.0 (2026-08-17):
+- RPC: media status (batch overlays), list items, scrobbles, resolve, profile, add/remove collection/history/rating.
+- Scrobble no longer double-increments rewatchCount. Resume from last position. Up Next after episodes.
+- Context menus are toggles (watched, watchlist, favorites, collection). Ratings can be removed and pre-filled.
+- Accept-Language follows Kodi UI. client.py covers all RPC actions.
 v1.2.2 (2026-05-04):
 - Context menus: Add to Collection (with format picker), Add to Watchlist, Add to Favorites.
 - Fallback TMDB ID resolution for plugins (ListItem.Property).
@@ -65,10 +76,15 @@ v1.2.1 (2026-04-08):
 v1.2.0 (2026-04-05):
 - API v1 compliance: scrobble, ratings, history.
 - Automated "Mark as Watched" at 90% threshold.
-- Enhanced Monitor: 14 RPC actions for integration.
+- Enhanced Monitor: RPC actions for integration.
 - Fixed episode TMDB ID resolution via JSON-RPC.
         </news>
         <news lang="fr_FR">
+v1.3.0 (2026-08-17) :
+- RPC : statut média (overlays), items de listes, scrobbles, resolve, profil, ajout/retrait collection/historique/note.
+- Plus de double incrément du rewatchCount. Reprise de lecture. Proposition de l'épisode suivant.
+- Menus contextuels en toggle (vu, watchlist, favoris, collection). Suppression et pré-remplissage des notes.
+- Accept-Language selon la langue de Kodi. client.py couvre toutes les actions RPC.
 v1.2.2 (2026-05-04) :
 - Menus contextuels : Ajouter à la collection (avec choix du format), à la liste à voir, aux favoris.
 - Résolution TMDB ID en double fallback (bibliothèque Kodi + propriétés plugin).
@@ -79,7 +95,7 @@ v1.2.1 (2026-04-08) :
 v1.2.0 (2026-04-05) :
 - Conformité API v1 : scrobble, notes, historique.
 - Automatisation du marquage "vu" au seuil de 90%.
-- Moniteur RPC étendu : 14 actions pour intégration facilitée.
+- Moniteur RPC étendu pour intégration facilitée.
 - Correction de la résolution d'ID TMDB pour épisodes.
         </news>
         <assets>

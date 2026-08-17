@@ -117,6 +117,42 @@ msgctxt "#30070"
 msgid "Prompt for rating after playback"
 msgstr ""
 
+msgctxt "#30071"
+msgid "Resume from last position"
+msgstr ""
+
+msgctxt "#30072"
+msgid "Offer next episode when playback ends"
+msgstr ""
+
+msgctxt "#30073"
+msgid "Resume from %s?"
+msgstr ""
+
+msgctxt "#30074"
+msgid "Play next episode: %s?"
+msgstr ""
+
+msgctxt "#30075"
+msgid "Not logged in. Scrobbling is disabled."
+msgstr ""
+
+msgctxt "#30076"
+msgid "Rating removed."
+msgstr ""
+
+msgctxt "#30077"
+msgid "Also rate this TV show?"
+msgstr ""
+
+msgctxt "#30078"
+msgid "Watched status (dejaVu)"
+msgstr ""
+
+msgctxt "#30079"
+msgid "Marked as unwatched"
+msgstr ""
+
 # Context menu — Collection (30080-30082)
 msgctxt "#30080"
 msgid "Add to Collection (dejaVu)..."
@@ -154,6 +190,46 @@ msgstr ""
 
 msgctxt "#30088"
 msgid "Error: Could not add to favorites."
+msgstr ""
+
+msgctxt "#30089"
+msgid "Watchlist (dejaVu)"
+msgstr ""
+
+msgctxt "#30090"
+msgid "Favorites (dejaVu)"
+msgstr ""
+
+msgctxt "#30091"
+msgid "Collection (dejaVu)..."
+msgstr ""
+
+msgctxt "#30092"
+msgid "Mark as watched"
+msgstr ""
+
+msgctxt "#30093"
+msgid "Mark as unwatched"
+msgstr ""
+
+msgctxt "#30094"
+msgid "Removed from your watchlist."
+msgstr ""
+
+msgctxt "#30095"
+msgid "Removed from your favorites."
+msgstr ""
+
+msgctxt "#30096"
+msgid "Removed from your collection."
+msgstr ""
+
+msgctxt "#30097"
+msgid "Could not update watched status."
+msgstr ""
+
+msgctxt "#30098"
+msgid "Remove rating"
 msgstr ""
 
 # Settings labels

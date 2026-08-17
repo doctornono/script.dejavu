@@ -1,3 +1,10 @@
+v1.3.0 (2026-08-17)
+- RPC: get_media_status (batch overlays), get_list_items, add/remove list items, get_scrobbles, delete_scrobble, delete_history, delete_rating, collection add/remove, resolve_media, get_me.
+- client.py sugar methods for all RPC actions; Accept-Language follows Kodi UI language.
+- Scrobble uses a single watched path (no double rewatchCount). Resume from GET /scrobble. Up Next after episodes.
+- Context menus are toggles (watched, watchlist, favorites, collection). Ratings can be removed and pre-filled; option to also rate the show after an episode.
+- ID resolution prefers POST /media/resolve. Broadcasts script.dejavu.changed after writes.
+
 v1.2.2 (2026-05-04)
 - Context menus: Add to Collection (with format picker), Add to Watchlist, Add to Favorites.
 - Helper _get_media_info() with dual fallback (Kodi library + plugin custom properties).

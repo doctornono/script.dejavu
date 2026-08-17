@@ -9,6 +9,7 @@ import xbmc
 import xbmcaddon
 import json
 import requests
+from .util import get_accept_language
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = "script.dejavu"
@@ -32,7 +33,11 @@ class DejaVuAPI:
     # ------------------------------------------------------------------
 
     def _headers(self):
-        h = {"Content-Type": "application/json", "Accept": "application/json"}
+        h = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Accept-Language": get_accept_language(),
+        }
         if self.token:
             h["x-api-key"] = self.token
         return h
@@ -165,9 +170,40 @@ class DejaVuAPI:
         _log(f"scrobble API Call payload: {json.dumps(payload)}", xbmc.LOGDEBUG)
         return self._post("/scrobble", payload)
 
+    def get_scrobbles(self, media_type=None, page=1, page_size=20, minimal=False):
+        """
+        Retrieve active playback progress sessions (continue watching).
+
+        media_type : "movie" | "episode" | "all" (default)
+        """
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "minimal": str(minimal).lower(),
+        }
+        if media_type:
+            params["type"] = media_type
+        return self._get("/scrobble", params)
+
+    def delete_scrobble(self, media_type, tmdb_id):
+        """
+        Delete an active scrobble session.
+
+        media_type : "movie" | "episode"
+        tmdb_id    : TMDB ID of the movie or episode
+        """
+        if not str(tmdb_id).isdigit():
+            _log(f"delete_scrobble: tmdb_id is non-numeric ('{tmdb_id}').", xbmc.LOGWARNING)
+            return None
+        return self._delete_qs("/scrobble", {"type": media_type, "id": int(tmdb_id)})
+
     def delete_scrobble_session(self, session_id):
-        """Delete an active scrobble session by its ID."""
-        return self._delete(f"/scrobble/{session_id}")
+        """Deprecated: the API has no /scrobble/{id} route. Use delete_scrobble(type, id)."""
+        _log(
+            "delete_scrobble_session is deprecated; the API expects DELETE /scrobble?type=&id=",
+            xbmc.LOGWARNING,
+        )
+        return None
 
     # ------------------------------------------------------------------
     # Ratings
@@ -243,9 +279,9 @@ class DejaVuAPI:
         season     : season number, required for "season" type
         """
         params = {"type": media_type}
-        if tmdb_id:
+        if tmdb_id is not None and str(tmdb_id).isdigit():
             params["id"] = int(tmdb_id)
-        if tv_show_id:
+        if tv_show_id is not None and str(tv_show_id).isdigit():
             params["tvShowId"] = int(tv_show_id)
         if season is not None:
             params["seasonNumber"] = int(season)
@@ -502,6 +538,35 @@ class DejaVuAPI:
             payload["description"] = description
         return self._post("/lists", payload)
 
+    def get_list_items(self, list_id, page=1, page_size=20, minimal=False):
+        """Retrieve items in a custom list."""
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "minimal": str(minimal).lower(),
+        }
+        return self._get(f"/lists/{list_id}/items", params)
+
+    def add_to_list(self, list_id, media_type, tmdb_id, notes=None, position=None):
+        """
+        Add an item to a custom list.
+
+        media_type : "movie" | "tv"
+        """
+        payload = {"type": media_type, "id": int(tmdb_id)}
+        if notes:
+            payload["notes"] = str(notes)
+        if position is not None:
+            payload["position"] = int(position)
+        return self._post(f"/lists/{list_id}/items", payload)
+
+    def remove_from_list(self, list_id, media_type, tmdb_id):
+        """Remove an item from a custom list."""
+        return self._delete_qs(
+            f"/lists/{list_id}/items",
+            {"type": media_type, "id": int(tmdb_id)},
+        )
+
     # ------------------------------------------------------------------
     # Up Next
     # ------------------------------------------------------------------
@@ -586,4 +651,53 @@ class DejaVuAPI:
         if list_id:
             params["listId"] = list_id
         return self._get("/dashboard/widget", params)
+
+    # ------------------------------------------------------------------
+    # Media status / resolve (integration helpers for other addons)
+    # ------------------------------------------------------------------
+
+    def get_media_status(self, items):
+        """
+        Batch user status for up to 50 movies/TV shows.
+
+        items : list of {"type": "movie"|"tv", "id": int}
+
+        Returns a map keyed by "type:id" with:
+          watched, inWatchlist, inCollection, isFavorite, rating, watchlistPriority
+        """
+        payload_items = []
+        for item in items or []:
+            media_type = item.get("type")
+            raw_id = item.get("id")
+            if media_type not in ("movie", "tv") or raw_id is None:
+                continue
+            if not str(raw_id).isdigit():
+                continue
+            payload_items.append({"type": media_type, "id": int(raw_id)})
+            if len(payload_items) >= 50:
+                break
+        return self._post("/media/status", {"items": payload_items})
+
+    def resolve_media(self, imdb_id=None, tmdb_id=None, media_type=None,
+                      title=None, year=None):
+        """
+        Resolve a movie or TV show to a TMDB ID via dejaVu (no local TMDB key).
+
+        Provide at least one of: imdb_id, tmdb_id+media_type, or title.
+        media_type : "movie" | "tv"
+        """
+        payload = {}
+        if imdb_id:
+            payload["imdbId"] = str(imdb_id)
+        if tmdb_id is not None and str(tmdb_id).isdigit():
+            payload["tmdbId"] = int(tmdb_id)
+        if media_type:
+            payload["type"] = media_type
+        if title:
+            payload["title"] = str(title)
+        if year is not None and str(year).isdigit():
+            payload["year"] = int(year)
+        if not payload:
+            return None
+        return self._post("/media/resolve", payload)
 
