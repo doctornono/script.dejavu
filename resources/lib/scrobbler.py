@@ -5,6 +5,7 @@ Subclasses xbmc.Player to hook playback events and send scrobble updates
 to the dejaVu API.
 """
 
+
 import json
 import time
 import requests

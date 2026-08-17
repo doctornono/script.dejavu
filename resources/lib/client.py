@@ -4,6 +4,7 @@ import xbmcgui
 import json
 import time
 
+
 class DejaVuClient:
     """
     Client for interacting with script.dejavu via RPC (Kodi Notifications).

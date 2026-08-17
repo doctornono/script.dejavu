@@ -3,6 +3,7 @@
 dejaVu Monitor
 Handles RPC-style inter-addon communication via Kodi notifications.
 
+
 Supported actions (method format: 'script.dejavu.ACTION'):
   READ
     get_watchlist         params: page, page_size, type, sort, minimal

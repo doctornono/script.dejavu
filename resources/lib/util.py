@@ -9,6 +9,7 @@ ADDON = xbmcaddon.Addon()
 ADDON_ID = "script.dejavu"
 
 
+
 def _log(msg, level=xbmc.LOGDEBUG):
     xbmc.log(f"[dejaVu] {msg}", level)
 

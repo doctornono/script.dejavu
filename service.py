@@ -13,6 +13,7 @@ from resources.lib.monitor import DejaVuMonitor
 ADDON = xbmcaddon.Addon()
 
 
+
 def run():
     monitor = DejaVuMonitor()
     player  = DejaVuPlayer()

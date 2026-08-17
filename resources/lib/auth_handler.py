@@ -3,6 +3,7 @@
 dejaVu Auth Handler
 Implements the OAuth 2.0 Device Authorization Grant (RFC 8628).
 
+
 Flow:
   1. POST /auth/device/code  → get user_code + verification_uri
   2. Show the code to the user in a progress dialog
