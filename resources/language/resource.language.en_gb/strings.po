@@ -232,6 +232,34 @@ msgctxt "#30098"
 msgid "Remove rating"
 msgstr ""
 
+msgctxt "#30100"
+msgid "dejaVu"
+msgstr ""
+
+msgctxt "#30101"
+msgid "Add to a list..."
+msgstr ""
+
+msgctxt "#30102"
+msgid "No lists found."
+msgstr ""
+
+msgctxt "#30103"
+msgid "Added to list: %s"
+msgstr ""
+
+msgctxt "#30104"
+msgid "Removed from list: %s"
+msgstr ""
+
+msgctxt "#30105"
+msgid "Could not update the list."
+msgstr ""
+
+msgctxt "#30106"
+msgid "Mirror watched status and ratings to the Kodi library"
+msgstr ""
+
 # Settings labels
 msgctxt "#30099"
 msgid "Access Token"

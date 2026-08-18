@@ -1,3 +1,9 @@
+v1.4.0 (2026-08-18)
+- Context menu grouped under a single dejaVu submenu (rate, watched, watchlist, favorites, collection, add to a list).
+- Custom list picker: add or remove the current movie/show from a user list.
+- Mirror watched status and ratings to the Kodi library (playcount / userrating), including lookup by TMDB/IMDb uniqueid when DBID is missing.
+- Setting: "Mirror watched status and ratings to the Kodi library" (default on).
+
 v1.3.0 (2026-08-17)
 - RPC: get_media_status (batch overlays), get_list_items, add/remove list items, get_scrobbles, delete_scrobble, delete_history, delete_rating, collection add/remove, resolve_media, get_me.
 - client.py sugar methods for all RPC actions; Accept-Language follows Kodi UI language.

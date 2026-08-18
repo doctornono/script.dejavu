@@ -14,7 +14,7 @@ import xbmcaddon
 import xbmcgui
 from .api_client import DejaVuAPI
 from .auth_handler import is_logged_in
-from .util import notify_changed, set_kodi_playcount, unwrap_data
+from .util import notify_changed, unwrap_data, sync_kodi_library
 
 ADDON = xbmcaddon.Addon()
 
@@ -630,9 +630,16 @@ class DejaVuPlayer(xbmc.Player):
                     episode=meta.get("episode"),
                 )
             self._watched_sent = True
-            set_kodi_playcount(
-                meta.get("dbid") or xbmc.getInfoLabel("VideoPlayer.DBID"),
-                "episode" if meta.get("type") == "episode" else "movie",
+            sync_kodi_library(
+                {
+                    "dbid": meta.get("dbid"),
+                    "dbtype": "episode" if meta.get("type") == "episode" else "movie",
+                    "history_type": meta.get("type"),
+                    "tmdb_id": meta.get("tmdb_id"),
+                    "show_tmdb_id": meta.get("show_tmdb_id"),
+                    "season": meta.get("season"),
+                    "episode": meta.get("episode"),
+                },
                 watched=True,
             )
             notify_changed(

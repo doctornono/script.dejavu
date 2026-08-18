@@ -66,32 +66,182 @@ def status_for(result, media_type, tmdb_id):
     return data.get(key) or data.get(str(tmdb_id)) or {}
 
 
-def set_kodi_playcount(dbid, dbtype, watched=True):
-    """Mirror dejaVu watched status onto the Kodi library item when a DBID is available."""
-    if not dbid:
-        return
+def _jsonrpc(method, params, req_id=1):
     try:
-        dbid = int(dbid)
-    except (TypeError, ValueError):
-        return
-
-    if dbtype == "movie":
-        method, id_key = "VideoLibrary.SetMovieDetails", "movieid"
-    elif dbtype == "episode":
-        method, id_key = "VideoLibrary.SetEpisodeDetails", "episodeid"
-    else:
-        return
-
-    req = json.dumps({
-        "jsonrpc": "2.0",
-        "method": method,
-        "params": {id_key: dbid, "playcount": 1 if watched else 0},
-        "id": 1,
-    })
-    try:
-        xbmc.executeJSONRPC(req)
+        raw = xbmc.executeJSONRPC(json.dumps({
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params,
+            "id": req_id,
+        }))
+        return json.loads(raw)
     except Exception as e:
-        _log(f"set_kodi_playcount failed: {e}", xbmc.LOGWARNING)
+        _log(f"JSON-RPC {method} failed: {e}", xbmc.LOGWARNING)
+        return {}
+
+
+def _uniqueid_matches(uniqueids, tmdb_id=None, imdb_id=None):
+    if not isinstance(uniqueids, dict):
+        return False
+    values = [str(v) for v in uniqueids.values() if v]
+    if tmdb_id and str(tmdb_id) in values:
+        return True
+    if imdb_id and str(imdb_id) in values:
+        return True
+    tmdb = uniqueids.get("tmdb") or uniqueids.get("unknown")
+    if tmdb_id and str(tmdb) == str(tmdb_id):
+        return True
+    imdb = uniqueids.get("imdb")
+    if imdb_id and str(imdb) == str(imdb_id):
+        return True
+    return False
+
+
+def _find_library_movie(info):
+    dbid = info.get("dbid")
+    if dbid and (info.get("dbtype") or "movie") == "movie":
+        try:
+            return int(dbid)
+        except (TypeError, ValueError):
+            pass
+
+    imdb_id = info.get("imdb_id") or ""
+    tmdb_id = info.get("tmdb_id") or ""
+    candidates = []
+    if imdb_id:
+        candidates.append({"field": "imdbnumber", "operator": "is", "value": str(imdb_id)})
+    if tmdb_id:
+        candidates.append({"field": "uniqueid", "operator": "is", "value": str(tmdb_id)})
+    for flt in candidates:
+        res = _jsonrpc("VideoLibrary.GetMovies", {
+            "filter": flt,
+            "properties": ["uniqueid", "imdbnumber"],
+            "limits": {"start": 0, "end": 5},
+        })
+        for movie in (res.get("result") or {}).get("movies") or []:
+            uniqueids = movie.get("uniqueid") or {}
+            if _uniqueid_matches(uniqueids, tmdb_id, imdb_id):
+                return movie.get("movieid")
+            if imdb_id and str(movie.get("imdbnumber") or "") == str(imdb_id):
+                return movie.get("movieid")
+    return None
+
+
+def _find_library_tvshow(info):
+    dbtype = info.get("dbtype") or ""
+    dbid = info.get("dbid")
+    if dbid and dbtype in ("tvshow", "tv"):
+        try:
+            return int(dbid)
+        except (TypeError, ValueError):
+            pass
+
+    imdb_id = info.get("imdb_id") or ""
+    tmdb_id = info.get("show_tmdb_id") or info.get("tmdb_id") or ""
+    filters = []
+    if imdb_id:
+        filters.append({"field": "imdbnumber", "operator": "is", "value": str(imdb_id)})
+    if tmdb_id:
+        filters.append({"field": "uniqueid", "operator": "is", "value": str(tmdb_id)})
+    for flt in filters:
+        res = _jsonrpc("VideoLibrary.GetTVShows", {
+            "filter": flt,
+            "properties": ["uniqueid", "imdbnumber"],
+            "limits": {"start": 0, "end": 5},
+        })
+        for show in (res.get("result") or {}).get("tvshows") or []:
+            uniqueids = show.get("uniqueid") or {}
+            if _uniqueid_matches(uniqueids, tmdb_id, imdb_id):
+                return show.get("tvshowid")
+            if imdb_id and str(show.get("imdbnumber") or "") == str(imdb_id):
+                return show.get("tvshowid")
+    return None
+
+
+def _find_library_episode(info):
+    dbid = info.get("dbid")
+    if dbid and info.get("dbtype") == "episode":
+        try:
+            return int(dbid)
+        except (TypeError, ValueError):
+            pass
+
+    season = info.get("season")
+    episode = info.get("episode")
+    if season is None or episode is None:
+        return None
+
+    tvshowid = _find_library_tvshow(info)
+    if not tvshowid:
+        return None
+
+    res = _jsonrpc("VideoLibrary.GetEpisodes", {
+        "tvshowid": tvshowid,
+        "season": int(season),
+        "properties": ["episode", "season"],
+        "filter": {"field": "episode", "operator": "is", "value": str(int(episode))},
+        "limits": {"start": 0, "end": 5},
+    })
+    episodes = (res.get("result") or {}).get("episodes") or []
+    if episodes:
+        return episodes[0].get("episodeid")
+    return None
+
+
+def _kodi_sync_enabled():
+    try:
+        return ADDON.getSettingBool("sync_kodi_library")
+    except Exception:
+        return True
+
+
+def sync_kodi_library(info, watched=None, rating=None):
+    """
+    Mirror dejaVu watched/rating onto the Kodi video library.
+
+    Uses ListItem.DBID when present, otherwise looks up the item by TMDB/IMDb
+    uniqueid so a vStream context action can still update the scraped library.
+    """
+    if not info or not _kodi_sync_enabled():
+        return
+    if watched is None and rating is None:
+        return
+
+    dbtype = info.get("dbtype") or ""
+    if dbtype in ("tvshow", "tv"):
+        method, id_key, lib_id = "VideoLibrary.SetTVShowDetails", "tvshowid", _find_library_tvshow(info)
+    elif dbtype == "episode" or info.get("history_type") == "episode":
+        method, id_key, lib_id = "VideoLibrary.SetEpisodeDetails", "episodeid", _find_library_episode(info)
+    elif dbtype == "season":
+        return
+    else:
+        method, id_key, lib_id = "VideoLibrary.SetMovieDetails", "movieid", _find_library_movie(info)
+
+    if not lib_id:
+        _log("Kodi library sync skipped: no matching library item.", xbmc.LOGDEBUG)
+        return
+
+    params = {id_key: int(lib_id)}
+    if watched is not None and method != "VideoLibrary.SetTVShowDetails":
+        params["playcount"] = 1 if watched else 0
+    if rating is not None:
+        try:
+            params["userrating"] = max(0, int(rating))
+        except (TypeError, ValueError):
+            pass
+    if len(params) == 1:
+        return
+
+    res = _jsonrpc(method, params)
+    if res.get("error"):
+        _log(f"Kodi library sync error: {res.get('error')}", xbmc.LOGWARNING)
+    else:
+        _log(f"Kodi library sync {method} {params}", xbmc.LOGDEBUG)
+
+
+def set_kodi_playcount(dbid, dbtype, watched=True):
+    """Backward-compatible wrapper used by the scrobbler."""
+    sync_kodi_library({"dbid": dbid, "dbtype": dbtype}, watched=watched)
 
 
 def get_listitem_media_info():

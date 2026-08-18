@@ -226,3 +226,31 @@ msgstr "Impossible de mettre à jour le statut vu."
 msgctxt "#30098"
 msgid "Remove rating"
 msgstr "Supprimer la note"
+
+msgctxt "#30100"
+msgid "dejaVu"
+msgstr "dejaVu"
+
+msgctxt "#30101"
+msgid "Add to a list..."
+msgstr "Ajouter à une liste..."
+
+msgctxt "#30102"
+msgid "No lists found."
+msgstr "Aucune liste trouvée."
+
+msgctxt "#30103"
+msgid "Added to list: %s"
+msgstr "Ajouté à la liste : %s"
+
+msgctxt "#30104"
+msgid "Removed from list: %s"
+msgstr "Retiré de la liste : %s"
+
+msgctxt "#30105"
+msgid "Could not update the list."
+msgstr "Impossible de mettre à jour la liste."
+
+msgctxt "#30106"
+msgid "Mirror watched status and ratings to the Kodi library"
+msgstr "Répercuter le statut vu et les notes dans la bibliothèque Kodi"

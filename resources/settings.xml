@@ -17,6 +17,7 @@
         <setting id="prompt_rating" type="bool" label="30070" default="true"/>
         <setting id="enable_resume" type="bool" label="30071" default="true"/>
         <setting id="enable_upnext" type="bool" label="30072" default="true"/>
+        <setting id="sync_kodi_library" type="bool" label="30106" default="true"/>
     </category>
 
     <!-- Advanced -->

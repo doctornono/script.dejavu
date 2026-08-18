@@ -9,7 +9,8 @@ Addon id: `script.dejavu` (Kodi 19+ / Python 3).
 - Automatic scrobbling with a configurable watched threshold (default 90%)
 - Resume from the last dejaVu position
 - Next-episode prompt at the end of playback
-- Context menus: rate, watched, watchlist, favorites, collection
+- Context submenu **dejaVu** on any video item (vStream, Elementum, library): rate, watched, watchlist, favorites, collection, add to a list
+- Optional mirror of watched status and ratings onto the Kodi library (`playcount` / `userrating`)
 - Device-code login (no password in Kodi)
 - RPC API so other addons can read/write dejaVu data without an API key
 
@@ -19,7 +20,9 @@ Addon id: `script.dejavu` (Kodi 19+ / Python 3).
 2. Open **Add-on settings** → **Login with dejaVu**.
 3. Open [dejavu.plus/activate](https://dejavu.plus/activate) and enter the code shown in Kodi.
 
-Optional scrobbling settings: watched %, resume, next episode, notifications.
+Optional settings: watched %, resume, next episode, notifications, and mirroring watched/ratings to the Kodi library.
+
+On plugin lists (vStream, etc.) the context menu talks to dejaVu.plus. Kodi `playcount` / `userrating` are only written when the same title exists in the **Kodi video library**. Badges on vStream rows still require that addon to call `get_media_status`.
 
 ---
 
@@ -43,7 +46,7 @@ In your `addon.xml`:
 ```xml
 <requires>
     <import addon="xbmc.python" version="3.0.0"/>
-    <import addon="script.dejavu" version="1.3.0"/>
+    <import addon="script.dejavu" version="1.4.0"/>
 </requires>
 ```
 
@@ -357,7 +360,7 @@ while time.time() < deadline:
 
 ### Checklist for a first integration
 
-1. Depend on `script.dejavu` ≥ 1.3.0 and import `DejaVuClient` behind `System.HasAddon`.
+1. Depend on `script.dejavu` ≥ 1.4.0 and import `DejaVuClient` behind `System.HasAddon`.
 2. Map your items to TMDB (`resolve_media` if you only have IMDb or a title).
 3. Call `get_media_status` in batches of 50 and paint badges from `data["movie:123"]`.
 4. Wire one write (watchlist toggle is enough) and listen for `script.dejavu.changed`.

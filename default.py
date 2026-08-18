@@ -9,6 +9,7 @@ Handles all user-invoked actions:
   - action=toggle_watchlist  → add or remove from watchlist
   - action=toggle_favorites  → add or remove from favorites
   - action=toggle_collection → add (format picker) or remove from collection
+  - action=add_to_list       → pick a custom list (add or remove)
   - action=add_to_*          → aliases kept for compatibility
   - action=settings          → open addon settings
   - (no args)                → Programs menu
@@ -70,6 +71,17 @@ def _status_entry(api, info):
     return status_for(result, api_type, tmdb_id), api_type, tmdb_id
 
 
+def _list_target(info):
+    """movie/tv + TMDB id for list, watchlist, favorites, collection."""
+    if info.get("dbtype") == "episode":
+        return "tv", info.get("show_tmdb_id") or info.get("tmdb_id")
+    api_type = info.get("api_type") or "movie"
+    tmdb_id = info.get("tmdb_id")
+    if api_type == "tv":
+        tmdb_id = info.get("show_tmdb_id") or tmdb_id
+    return api_type, tmdb_id
+
+
 # ---------------------------------------------------------------------------
 # Rating dialog (triggered from context menu on a video item)
 # ---------------------------------------------------------------------------
@@ -117,7 +129,7 @@ def rate_dialog():
     if selected < 0:
         return
 
-    from resources.lib.util import notify_changed
+    from resources.lib.util import notify_changed, sync_kodi_library
 
     if selected == 0:
         result = api.delete_rating(
@@ -131,6 +143,7 @@ def rate_dialog():
             return
         _notify_ok(30076)
         notify_changed("delete_rating", rate_type, tmdb_id)
+        sync_kodi_library(info, rating=0)
         return
 
     rating = int(ratings[selected - 1])
@@ -150,6 +163,7 @@ def rate_dialog():
         "dejaVu", _ls(30018) % rating, xbmcgui.NOTIFICATION_INFO, 3000
     )
     notify_changed("rate", rate_type, tmdb_id, extra={"rating": rating})
+    sync_kodi_library(info, rating=rating)
 
     if rate_type == "episode" and (show_tmdb or tmdb_id):
         if xbmcgui.Dialog().yesno("dejaVu", _ls(30077)):
@@ -157,6 +171,10 @@ def rate_dialog():
             show_result = api.rate("tv", rating, tmdb_id=show_id)
             if show_result is not None:
                 notify_changed("rate", "tv", show_id, extra={"rating": rating})
+                sync_kodi_library(
+                    {**info, "dbtype": "tvshow", "tmdb_id": show_id, "show_tmdb_id": show_id},
+                    rating=rating,
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +183,7 @@ def rate_dialog():
 
 def toggle_watched():
     api, info = _api_and_info()
-    from resources.lib.util import notify_changed, set_kodi_playcount, status_for
+    from resources.lib.util import notify_changed, sync_kodi_library, status_for
 
     dbtype = info.get("dbtype") or ""
     tmdb_id = info.get("tmdb_id")
@@ -197,7 +215,7 @@ def toggle_watched():
         if result is None:
             _notify_err(30097)
             return
-        set_kodi_playcount(info.get("dbid"), "episode", watched=mark_watched)
+        sync_kodi_library(info, watched=mark_watched)
         _notify_ok(30052 if mark_watched else 30079)
         notify_changed("watched" if mark_watched else "unwatched", "episode", tmdb_id)
         return
@@ -223,7 +241,7 @@ def toggle_watched():
     if result is None:
         _notify_err(30097)
         return
-    set_kodi_playcount(info.get("dbid"), "movie", watched=mark_watched)
+    sync_kodi_library(info, watched=mark_watched)
     _notify_ok(30052 if mark_watched else 30079)
     notify_changed("watched" if mark_watched else "unwatched", "movie", tmdb_id)
 
@@ -331,6 +349,87 @@ def toggle_collection():
     notify_changed("add_to_collection", api_type, tmdb_id)
 
 
+# ---------------------------------------------------------------------------
+# Context menu — custom lists
+# ---------------------------------------------------------------------------
+
+def add_to_list_dialog():
+    """Add or remove the focused item from a user list."""
+    api, info = _api_and_info()
+    from resources.lib.util import notify_changed, unwrap_data
+
+    api_type, tmdb_id = _list_target(info)
+    if not tmdb_id or not str(tmdb_id).isdigit():
+        _notify_err(30019)
+        return
+
+    result = api.get_lists(page=1, page_size=50, minimal=True)
+    lists = unwrap_data(result) or []
+    if isinstance(lists, dict):
+        lists = lists.get("lists") or lists.get("data") or []
+    if not isinstance(lists, list) or not lists:
+        _notify_err(30102)
+        return
+
+    entries = [lst for lst in lists if isinstance(lst, dict)]
+    labels = []
+    for lst in entries:
+        name = (
+            lst.get("name")
+            or (lst.get("info") or {}).get("title")
+            or str(lst.get("id") or "")
+        )
+        labels.append(name)
+    if not labels:
+        _notify_err(30102)
+        return
+
+    sel = xbmcgui.Dialog().select(_ls(30101), labels)
+    if sel < 0:
+        return
+
+    chosen = entries[sel]
+    list_id = chosen.get("id")
+    list_name = labels[sel]
+    if not list_id:
+        _notify_err(30105)
+        return
+
+    items_res = api.get_list_items(list_id, page=1, page_size=100, minimal=True)
+    items = unwrap_data(items_res) or []
+    if isinstance(items, dict):
+        items = items.get("items") or items.get("data") or []
+    already = False
+    for item in items if isinstance(items, list) else []:
+        if not isinstance(item, dict):
+            continue
+        item_id = item.get("id") or item.get("tmdbId")
+        item_type = item.get("type")
+        if str(item_id) == str(tmdb_id) and (not item_type or item_type == api_type):
+            already = True
+            break
+
+    if already:
+        result = api.remove_from_list(list_id, api_type, tmdb_id)
+        if result is None:
+            _notify_err(30105)
+            return
+        xbmcgui.Dialog().notification(
+            "dejaVu", _ls(30104) % list_name, xbmcgui.NOTIFICATION_INFO, 3000
+        )
+        notify_changed("remove_from_list", api_type, tmdb_id, extra={"list_id": list_id})
+        return
+
+    result = api.add_to_list(list_id, api_type, tmdb_id)
+    if result is None:
+        _notify_err(30105)
+        return
+    xbmcgui.Dialog().notification(
+        "dejaVu", _ls(30103) % list_name, xbmcgui.NOTIFICATION_INFO, 3000
+    )
+    notify_changed("add_to_list", api_type, tmdb_id, extra={"list_id": list_id})
+
+
 def main_menu():
     """Simple select dialog shown when the addon is launched from Programs."""
     from resources.lib.auth_handler import is_logged_in
@@ -381,6 +480,8 @@ def main():
         toggle_favorites()
     elif "action=toggle_collection" in params or "action=add_to_collection" in params:
         toggle_collection()
+    elif "action=add_to_list" in params:
+        add_to_list_dialog()
     elif "action=settings" in params:
         ADDON.openSettings()
     else:
