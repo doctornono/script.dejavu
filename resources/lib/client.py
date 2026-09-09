@@ -158,6 +158,32 @@ class DejaVuClient:
                 return {"success": False, "error": status}
         return {"success": False, "error": "timeout"}
 
+    def import_kodi_library(self, timeout=600):
+        """
+        Launch the Kodi library import wizard (migration, not scrobble).
+
+        Does not use the 5-second RPC timeout. Polls
+        `script.dejavu.import.status` until success, cancel, error, empty,
+        or `timeout` seconds elapse.
+        """
+        if not self.is_authenticated():
+            return {"success": False, "error": "not_authenticated"}
+
+        self.window.setProperty("script.dejavu.import.status", "")
+        xbmc.executebuiltin("RunScript(script.dejavu,action=import_kodi)")
+
+        start = time.time()
+        monitor = xbmc.Monitor()
+        while time.time() - start < timeout:
+            if monitor.waitForAbort(0.5):
+                return {"success": False, "error": "aborted"}
+            status = self.window.getProperty("script.dejavu.import.status")
+            if status == "success":
+                return {"success": True, "status": status}
+            if status in ("cancelled", "error", "empty"):
+                return {"success": False, "error": status}
+        return {"success": False, "error": "timeout"}
+
     def logout(self):
         return self.call("logout", {})
 

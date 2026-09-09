@@ -66,10 +66,10 @@ class DejaVuAPI:
             _log(f"GET {path} error: {e}", xbmc.LOGERROR)
         return None
 
-    def _post(self, path, payload):
+    def _post(self, path, payload, timeout=10):
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
-            r = requests.post(url, headers=self._headers(), json=payload, timeout=10)
+            r = requests.post(url, headers=self._headers(), json=payload, timeout=timeout)
             r.raise_for_status()
             return r.json()
         except requests.HTTPError as e:
@@ -735,4 +735,21 @@ class DejaVuAPI:
         if not payload:
             return None
         return self._post("/media/resolve", payload)
+
+    # ------------------------------------------------------------------
+    # Kodi library import (migration, not scrobble)
+    # ------------------------------------------------------------------
+
+    def import_kodi_library(self, payload):
+        """
+        Bulk-import a Kodi library snapshot. Distinct from POST /scrobble.
+
+        POST /kodi/import — 120s timeout per chunk.
+        payload keys: source, importSessionId, chunk, totalChunks, options,
+        movies, tvShows, episodes, playlists, favorites.
+        """
+        chunk = payload.get("chunk")
+        total = payload.get("totalChunks")
+        _log(f"import_kodi_library chunk={chunk}/{total}", xbmc.LOGINFO)
+        return self._post("/kodi/import", payload, timeout=120)
 

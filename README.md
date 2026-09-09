@@ -13,6 +13,7 @@ Addon id: `script.dejavu` (Kodi 19+ / Python 3).
 - Optional mirror of watched status and ratings onto the Kodi library (`playcount` / `userrating`)
 - Device-code login (no password in Kodi)
 - **DejaVu Connect** — QR pairing so other addons only call `authenticate()`
+- **Kodi library import** — one-shot migration of watch history, ratings, dates, optional watchlist/resume/playlists/favorites
 - RPC API so other addons can read/write dejaVu data without an API key
 
 ## Install and login
@@ -55,7 +56,65 @@ Listen for `script.dejavu.changed` with `action: "authenticated"` (or `"auth"` o
 
 Suggested UI: a single **Connect dejaVu** button in your settings (next to Trakt). DejaVu is meant to coexist with Trakt.
 
-Depend on `script.dejavu` ≥ **1.5.0**.
+Depend on `script.dejavu` ≥ **1.5.0** for Connect. Library import requires ≥ **1.7.0**.
+
+---
+
+## Import Kodi library (migration)
+
+This is **not** scrobble. Scrobble stays the live path after the user is connected. Import is a one-shot snapshot of the Kodi video library:
+
+`playcount`, `lastplayed`, `userrating`, TMDB/IMDb `uniqueid`, resume bookmarks, video playlists, and library favourites.
+
+After Connect, the script offers the import when a video library exists. The user can also start it from **Add-on settings**, the Programs menu, or another addon:
+
+```python
+dv = DejaVuClient()
+if dv.is_authenticated():
+    result = dv.import_kodi_library()  # wizard; waits up to 10 minutes
+    # { "success": true, "status": "success" }
+    # or { "success": false, "error": "cancelled"|"error"|"empty"|"timeout"|... }
+```
+
+`import_kodi_library()` launches `RunScript(script.dejavu,action=import_kodi)` and polls `script.dejavu.import.status` (same pattern as `authenticate()`). Do **not** call it through the 5-second RPC.
+
+Suggested alkoFlix UI: **Connect dejaVu**, then a separate **Import my Kodi history** button. Do not fire the import immediately when `authenticate()` returns — the script already offers it after login.
+
+The client POSTs `https://dejavu.plus/api/v1/kodi/import` in chunks of ~200 items. Server rules (must be implemented on dejaVu.plus):
+
+- Distinct from `POST /scrobble`
+- Idempotent on `importSessionId` + item (no extra `rewatchCount`)
+- History from `playCount` / `lastPlayed`; do not overwrite a newer dejaVu `watchedAt`
+- Ratings 1–10 only if dejaVu has none
+- Unwatched movies / unstarted shows → watchlist when `unwatchedToWatchlist`
+- Resume → continue-watching only if no active scrobble
+- Playlists → private dejaVu lists of the same name
+- Kodi favourites → dejaVu favorites (not a custom list)
+
+Payload sketch:
+
+```json
+{
+  "source": "kodi",
+  "importSessionId": "uuid",
+  "chunk": 1,
+  "totalChunks": 4,
+  "options": {
+    "importWatched": true,
+    "importRatings": true,
+    "importWatchDates": true,
+    "unwatchedToWatchlist": false,
+    "importResume": true,
+    "importPlaylists": true,
+    "importFavorites": true
+  },
+  "movies": [{ "tmdbId": 603, "imdbId": "tt0133093", "playCount": 2, "lastPlayed": "2026-08-14T21:32:00", "rating": 9 }],
+  "tvShows": [],
+  "episodes": [],
+  "playlists": [{ "name": "Marvel", "items": [{ "type": "movie", "tmdbId": 24428 }] }],
+  "favorites": []
+}
+```
 
 ---
 
@@ -248,7 +307,7 @@ class DejaVuChangeMonitor(xbmc.Monitor):
         self.refresh_item(payload.get("type"), payload.get("id"))
 ```
 
-Useful `action` values: `add_to_watchlist`, `remove_from_watchlist`, `add_to_favorites`, `remove_from_favorites`, `add_to_collection`, `remove_from_collection`, `rate`, `delete_rating`, `add_to_history`, `delete_history`, `watched`, `unwatched`, `scrobble`, `upnext`, `authenticated`, `auth`.
+Useful `action` values: `add_to_watchlist`, `remove_from_watchlist`, `add_to_favorites`, `remove_from_favorites`, `add_to_collection`, `remove_from_collection`, `rate`, `delete_rating`, `add_to_history`, `delete_history`, `watched`, `unwatched`, `scrobble`, `upnext`, `authenticated`, `auth`, `kodi_import`.
 
 At the end of an episode, dejaVu may also send `action: "upnext"` with `tvShowId`, `seasonNumber`, `episodeNumber`, `title` if you want to hook your own player.
 
@@ -393,6 +452,12 @@ while time.time() < deadline:
 | `delete_scrobble` | `type`, `id` |
 | `logout` | — |
 
+**Script (not RPC)** — use `RunScript` / `DejaVuClient` helpers, not `NotifyAll`:
+
+| Action | How |
+|---|---|
+| `import_kodi` | `DejaVuClient.import_kodi_library()` or `RunScript(script.dejavu,action=import_kodi)` |
+
 ### Checklist for a first integration
 
 1. Depend on `script.dejavu` ≥ 1.5.0 and import `DejaVuClient` behind `System.HasAddon`.
@@ -401,6 +466,7 @@ while time.time() < deadline:
 4. Call `get_media_status` in batches of 50 and paint badges from `data["movie:123"]`.
 5. Wire one write (watchlist toggle is enough) and listen for `script.dejavu.changed`.
 6. Treat `None` / missing addon / logged-out user as “no badges”, not as a crash.
+7. Optional: **Import my Kodi history** via `dv.import_kodi_library()` (`script.dejavu` ≥ 1.7.0). Do not send library playback as scrobbles.
 
 ## License
 

@@ -40,6 +40,9 @@ Supported actions (method format: 'script.dejavu.ACTION'):
     delete_scrobble       params: type, id
     logout                params: (none)
 
+  SCRIPT (not RPC — use RunScript / DejaVuClient.import_kodi_library)
+    import_kodi           Kodi library migration wizard; polls script.dejavu.import.status
+
 Data format for notification:
   {
     "result_property": "my.addon.result",   // optional, default: script.dejavu.<ACTION>.result

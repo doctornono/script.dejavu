@@ -308,6 +308,214 @@ msgctxt "#30118"
 msgid "Cancel"
 msgstr ""
 
+msgctxt "#30120"
+msgid "Import Kodi library"
+msgstr ""
+
+msgctxt "#30121"
+msgid "Import my Kodi history"
+msgstr ""
+
+msgctxt "#30122"
+msgid "Import history and keep syncing"
+msgstr ""
+
+msgctxt "#30123"
+msgid "Don't import for now"
+msgstr ""
+
+msgctxt "#30124"
+msgid "What would you like to import?"
+msgstr ""
+
+msgctxt "#30125"
+msgid "Watched movies"
+msgstr ""
+
+msgctxt "#30126"
+msgid "Watched TV shows and episodes"
+msgstr ""
+
+msgctxt "#30127"
+msgid "Kodi ratings"
+msgstr ""
+
+msgctxt "#30128"
+msgid "Watch dates"
+msgstr ""
+
+msgctxt "#30129"
+msgid "Unwatched library movies (watchlist)"
+msgstr ""
+
+msgctxt "#30130"
+msgid "Resume positions"
+msgstr ""
+
+msgctxt "#30131"
+msgid "Kodi playlists"
+msgstr ""
+
+msgctxt "#30132"
+msgid "Kodi favorites"
+msgstr ""
+
+msgctxt "#30133"
+msgid "Scanning Kodi library..."
+msgstr ""
+
+msgctxt "#30134"
+msgid "Import Kodi"
+msgstr ""
+
+msgctxt "#30135"
+msgid "We found:"
+msgstr ""
+
+msgctxt "#30136"
+msgid "%s movies"
+msgstr ""
+
+msgctxt "#30137"
+msgid "%s TV shows"
+msgstr ""
+
+msgctxt "#30138"
+msgid "%s episodes"
+msgstr ""
+
+msgctxt "#30139"
+msgid "Of which:"
+msgstr ""
+
+msgctxt "#30140"
+msgid "%s movies watched"
+msgstr ""
+
+msgctxt "#30141"
+msgid "%s TV shows started"
+msgstr ""
+
+msgctxt "#30142"
+msgid "%s episodes watched"
+msgstr ""
+
+msgctxt "#30143"
+msgid "Certain matches: %s"
+msgstr ""
+
+msgctxt "#30144"
+msgid "To verify: %s"
+msgstr ""
+
+msgctxt "#30145"
+msgid "Unidentified: %s"
+msgstr ""
+
+msgctxt "#30146"
+msgid "See details"
+msgstr ""
+
+msgctxt "#30147"
+msgid "Import %s items"
+msgstr ""
+
+msgctxt "#30148"
+msgid "Also import %s items that need verification?"
+msgstr ""
+
+msgctxt "#30149"
+msgid "Import only certain matches"
+msgstr ""
+
+msgctxt "#30150"
+msgid "Import certain and to-verify"
+msgstr ""
+
+msgctxt "#30151"
+msgid "Matches to verify / unidentified"
+msgstr ""
+
+msgctxt "#30152"
+msgid "You have %s unwatched movies in Kodi. Add them to your dejaVu watchlist?"
+msgstr ""
+
+msgctxt "#30153"
+msgid "Add to watchlist"
+msgstr ""
+
+msgctxt "#30154"
+msgid "Skip"
+msgstr ""
+
+msgctxt "#30155"
+msgid "Importing to dejaVu..."
+msgstr ""
+
+msgctxt "#30156"
+msgid "Import complete"
+msgstr ""
+
+msgctxt "#30157"
+msgid "Imported: %s movies, %s episodes, %s ratings"
+msgstr ""
+
+msgctxt "#30158"
+msgid "Could not import the Kodi library."
+msgstr ""
+
+msgctxt "#30159"
+msgid "No video library found."
+msgstr ""
+
+msgctxt "#30160"
+msgid "We detected your Kodi library."
+msgstr ""
+
+msgctxt "#30161"
+msgid "Later"
+msgstr ""
+
+msgctxt "#30162"
+msgid "Nothing to import with the selected options."
+msgstr ""
+
+msgctxt "#30163"
+msgid "Import cancelled."
+msgstr ""
+
+msgctxt "#30164"
+msgid "Watchlist: %s, lists: %s, favorites: %s, resume: %s"
+msgstr ""
+
+msgctxt "#30165"
+msgid "How do you want to import?"
+msgstr ""
+
+msgctxt "#30166"
+msgid "Scanning movies..."
+msgstr ""
+
+msgctxt "#30167"
+msgid "Scanning TV shows..."
+msgstr ""
+
+msgctxt "#30168"
+msgid "Scanning episodes..."
+msgstr ""
+
+msgctxt "#30169"
+msgid "Scanning playlists..."
+msgstr ""
+
+msgctxt "#30170"
+msgid "Scanning favorites..."
+msgstr ""
+
+msgctxt "#30171"
+msgid "Sending batch %s of %s..."
+msgstr ""
+
 # Settings labels
 msgctxt "#30099"
 msgid "Access Token"

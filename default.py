@@ -4,6 +4,7 @@ dejaVu default.py
 Handles all user-invoked actions:
   - action=login             → DejaVu Connect (QR + device code)
   - action=logout            → clear credentials
+  - action=import_kodi       → migrate Kodi video library into dejaVu
   - action=rate              → rating dialog (context menu, with remove + preselect)
   - action=toggle_watched    → mark as watched / unwatched
   - action=toggle_watchlist  → add or remove from watchlist
@@ -438,6 +439,7 @@ def main_menu():
         username = ADDON.getSetting("username") or "?"
         options = [
             f"{_ls(30003)} ({username})",   # Logout (username)
+            _ls(30120),                     # Import Kodi library
             _ls(30062),                     # Settings
         ]
         selected = xbmcgui.Dialog().select("dejaVu", options)
@@ -445,6 +447,9 @@ def main_menu():
             from resources.lib.auth_handler import logout
             logout()
         elif selected == 1:
+            from resources.lib.library_importer import run_import_wizard
+            run_import_wizard(allow_skip=True)
+        elif selected == 2:
             ADDON.openSettings()
     else:
         options = [_ls(30002), _ls(30062)]  # Login, Settings
@@ -470,6 +475,9 @@ def main():
     elif "action=logout" in params:
         from resources.lib.auth_handler import logout
         logout()
+    elif "action=import_kodi" in params:
+        from resources.lib.library_importer import run_import_wizard
+        run_import_wizard(allow_skip=True)
     elif "action=rate" in params:
         rate_dialog()
     elif "action=toggle_watched" in params:

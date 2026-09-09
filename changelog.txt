@@ -1,3 +1,8 @@
+v1.7.0 (2026-09-09)
+- Import Kodi library (migration, not scrobble): VideoLibrary scan, match preview, POST /kodi/import in chunks.
+- Optional watchlist for unwatched titles, resume positions, video playlists, and Kodi favorites.
+- Post-login offer, settings/Programs action, DejaVuClient.import_kodi_library() for alkoFlix.
+
 v1.5.0 (2026-09-09)
 - DejaVu Connect: QR pairing dialog, authenticate() / is_authenticated() / logout() for other addons.
 - Post-login welcome with watchlist / history / lists / favorites counts and Open dejaVu.

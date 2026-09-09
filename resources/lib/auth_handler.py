@@ -119,6 +119,11 @@ def _persist_login(token_data):
     _set_auth_status("success")
     notify_changed("authenticated")
     _show_welcome(username, me)
+    try:
+        from .library_importer import offer_after_login
+        offer_after_login()
+    except Exception as e:
+        xbmc.log(f"[dejaVu] Post-login Kodi import offer failed: {e}", xbmc.LOGWARNING)
     return True
 
 
@@ -227,6 +232,8 @@ def logout():
     ADDON.setSetting("access_token", "")
     ADDON.setSetting("refresh_token", "")
     ADDON.setSetting("username", "")
+    ADDON.setSetting("kodi_import_offered", "false")
+    ADDON.setSetting("kodi_import_at", "")
     _set_auth_status("")
     xbmc.log("[dejaVu] User logged out.", xbmc.LOGINFO)
     notify_changed("auth")
