@@ -93,21 +93,69 @@ def _show_welcome(username, me):
     )
 
 
-def _open_qr_dialog(display_code, verification_uri, qr_path):
-    try:
-        from .connect_dialog import ConnectDialog
-        dialog = ConnectDialog(
-            "script-dejavu-connect.xml",
-            ADDON.getAddonInfo("path"),
-            "Default",
-            "1080i",
+DISPLAY_URI = "dejavu.plus/device"
+
+
+def _persist_login(token_data):
+    access_token = token_data["access_token"]
+    ADDON.setSetting("access_token", access_token)
+    refresh_token = token_data.get("refresh_token")
+    if refresh_token:
+        ADDON.setSetting("refresh_token", refresh_token)
+
+    authed_api = DejaVuAPI(token=access_token)
+    me = authed_api.get_me()
+    username = "User"
+    if me and isinstance(me, dict):
+        user = me.get("user") if isinstance(me.get("user"), dict) else me
+        username = (
+            user.get("name")
+            or user.get("username")
+            or user.get("email")
+            or "User"
         )
-        dialog.setup(display_code, verification_uri, qr_path)
-        dialog.show()
-        return dialog
-    except Exception as e:
-        xbmc.log(f"[dejaVu] QR dialog unavailable: {e}", xbmc.LOGWARNING)
-        return None
+    ADDON.setSetting("username", username)
+    xbmc.log(f"[dejaVu] Login successful: {username}", xbmc.LOGINFO)
+    _set_auth_status("success")
+    notify_changed("authenticated")
+    _show_welcome(username, me)
+    return True
+
+
+def _login_with_progress(api, device_code, display_code, expires_in, interval):
+    """Built-in Kodi progress dialog: Cancel always works."""
+    progress = xbmcgui.DialogProgress()
+    progress.create(
+        _ls(30117) or _ls(30030),
+        f"[COLOR gold][B]{display_code}[/B][/COLOR]\n{DISPLAY_URI}\n{_ls(30031)}",
+    )
+    monitor = xbmc.Monitor()
+    expires_at = time.time() + expires_in
+    try:
+        while time.time() < expires_at:
+            if progress.iscanceled() or monitor.abortRequested():
+                _set_auth_status("cancelled")
+                return False
+            remaining = max(0, expires_at - time.time())
+            progress.update(
+                int((remaining / expires_in) * 100),
+                f"[COLOR gold][B]{display_code}[/B][/COLOR]\n{DISPLAY_URI}\n{_ls(30109)}",
+            )
+            token_data = api.poll_token(device_code)
+            if token_data and token_data.get("access_token"):
+                progress.close()
+                return _persist_login(token_data)
+            if monitor.waitForAbort(interval):
+                _set_auth_status("cancelled")
+                return False
+        _set_auth_status("expired")
+        xbmcgui.Dialog().ok(_ls(30030), _ls(30035))
+        return False
+    finally:
+        try:
+            progress.close()
+        except Exception:
+            pass
 
 
 def login():
@@ -127,116 +175,51 @@ def login():
 
     device_code = device_info.get("device_code", "")
     user_code = device_info.get("user_code", "")
-    verification_uri = device_info.get(
-        "verification_uri", "https://dejavu.plus/device"
-    )
     expires_in = int(device_info.get("expires_in", 300))
     interval = int(device_info.get("interval", 5))
     display_code = format_user_code(user_code)
 
     xbmc.log(
-        f"[dejaVu] Device code obtained. user_code={user_code} uri={verification_uri}",
+        f"[dejaVu] Device code obtained. user_code={user_code}",
         xbmc.LOGDEBUG,
     )
 
     qr_path = api.download_device_qr(user_code)
-    dialog = _open_qr_dialog(display_code, verification_uri, qr_path)
-    progress = None
-    if dialog is None:
-        progress = xbmcgui.DialogProgress()
-        progress.create(
-            _ls(30030),
-            f"{_ls(30031)}\n[B]{verification_uri}[/B]\n\n[COLOR gold][B]{display_code}[/B][/COLOR]",
-        )
-
-    expires_at = time.time() + expires_in
 
     try:
-        while time.time() < expires_at:
-            cancelled = False
-            if dialog is not None:
-                cancelled = bool(getattr(dialog, "cancelled", False))
-            elif progress is not None:
-                cancelled = progress.iscanceled()
+        from .connect_dialog import ConnectDialog
+        dialog = ConnectDialog(
+            "script-dejavu-connect.xml",
+            ADDON.getAddonInfo("path"),
+            "Default",
+            "1080i",
+        )
+        dialog.setup(display_code, qr_path, device_code, interval, expires_in, api)
+        dialog.doModal()
+        token_data = dialog.token_data
+        cancelled = dialog.cancelled
+        expired = dialog.expired
+        dialog.stop()
+        del dialog
+    except Exception as e:
+        xbmc.log(f"[dejaVu] QR dialog unavailable: {e}", xbmc.LOGWARNING)
+        return _login_with_progress(api, device_code, display_code, expires_in, interval)
 
-            if cancelled:
-                xbmc.log("[dejaVu] Login cancelled by user.", xbmc.LOGINFO)
-                _set_auth_status("cancelled")
-                return False
+    if cancelled:
+        xbmc.log("[dejaVu] Login cancelled by user.", xbmc.LOGINFO)
+        _set_auth_status("cancelled")
+        return False
 
-            remaining = max(0, expires_at - time.time())
-            pct = int((remaining / expires_in) * 100)
-            if dialog is not None:
-                dialog.set_percent(pct)
-            elif progress is not None:
-                progress.update(pct)
+    if token_data and token_data.get("access_token"):
+        return _persist_login(token_data)
 
-            token_data = api.poll_token(device_code)
-
-            if token_data and token_data.get("access_token"):
-                access_token = token_data["access_token"]
-                ADDON.setSetting("access_token", access_token)
-
-                refresh_token = token_data.get("refresh_token")
-                if refresh_token:
-                    ADDON.setSetting("refresh_token", refresh_token)
-
-                authed_api = DejaVuAPI(token=access_token)
-                me = authed_api.get_me()
-                username = "User"
-                if me and isinstance(me, dict):
-                    user = me.get("user") if isinstance(me.get("user"), dict) else me
-                    username = (
-                        user.get("name")
-                        or user.get("username")
-                        or user.get("email")
-                        or "User"
-                    )
-
-                ADDON.setSetting("username", username)
-                xbmc.log(f"[dejaVu] Login successful: {username}", xbmc.LOGINFO)
-                _set_auth_status("success")
-                notify_changed("authenticated")
-
-                if dialog is not None:
-                    dialog.close()
-                elif progress is not None:
-                    progress.close()
-
-                _show_welcome(username, me)
-                return True
-
-            for _ in range(interval):
-                if dialog is not None and getattr(dialog, "cancelled", False):
-                    _set_auth_status("cancelled")
-                    return False
-                if progress is not None and progress.iscanceled():
-                    _set_auth_status("cancelled")
-                    return False
-                time.sleep(1)
-                remaining = max(0, expires_at - time.time())
-                pct = int((remaining / expires_in) * 100)
-                if dialog is not None:
-                    dialog.set_percent(pct)
-                elif progress is not None:
-                    progress.update(pct)
-
+    if expired:
         _set_auth_status("expired")
         xbmcgui.Dialog().ok(_ls(30030), _ls(30035))
         return False
 
-    finally:
-        if dialog is not None:
-            try:
-                dialog.close()
-            except Exception:
-                pass
-            del dialog
-        if progress is not None:
-            try:
-                progress.close()
-            except Exception:
-                pass
+    _set_auth_status("cancelled")
+    return False
 
 
 def logout():

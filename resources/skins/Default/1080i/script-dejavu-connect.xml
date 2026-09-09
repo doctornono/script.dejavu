@@ -1,81 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <window>
     <defaultcontrol always="true">9000</defaultcontrol>
-    <coordinates>
-        <left>0</left>
-        <top>0</top>
-    </coordinates>
     <controls>
         <control type="image">
             <left>0</left>
             <top>0</top>
             <width>1920</width>
             <height>1080</height>
-            <texture colordiffuse="D0000000">white.png</texture>
+            <texture colordiffuse="C0000000">white.png</texture>
         </control>
 
         <control type="group">
-            <left>560</left>
-            <top>60</top>
-            <width>800</width>
-            <height>960</height>
+            <left>610</left>
+            <top>90</top>
+            <width>700</width>
+            <height>900</height>
 
             <control type="image">
                 <left>0</left>
                 <top>0</top>
-                <width>800</width>
-                <height>960</height>
-                <texture colordiffuse="E6181828" border="20">white.png</texture>
+                <width>700</width>
+                <height>900</height>
+                <texture colordiffuse="F01F2937">white.png</texture>
             </control>
 
             <control type="label" id="201">
-                <left>40</left>
-                <top>36</top>
-                <width>720</width>
-                <height>50</height>
+                <description>Title</description>
+                <left>30</left>
+                <top>28</top>
+                <width>640</width>
+                <height>48</height>
                 <align>center</align>
                 <aligny>center</aligny>
-                <font>font16</font>
+                <font>font14</font>
                 <textcolor>FFFFFFFF</textcolor>
-                <label>30117</label>
+                <label>$ADDON[script.dejavu 30117]</label>
             </control>
 
             <control type="label" id="202">
-                <left>40</left>
-                <top>100</top>
-                <width>720</width>
-                <height>70</height>
+                <description>Scan hint</description>
+                <left>30</left>
+                <top>84</top>
+                <width>640</width>
+                <height>40</height>
                 <align>center</align>
                 <aligny>center</aligny>
                 <font>font13</font>
-                <textcolor>FFCCCCCC</textcolor>
-                <wrapmultiline>true</wrapmultiline>
-                <label>30107</label>
+                <textcolor>FFD1D5DB</textcolor>
+                <label>$ADDON[script.dejavu 30107]</label>
             </control>
 
             <control type="image" id="100">
-                <left>200</left>
-                <top>180</top>
-                <width>400</width>
-                <height>400</height>
+                <description>QR code</description>
+                <left>175</left>
+                <top>140</top>
+                <width>350</width>
+                <height>350</height>
                 <aspectratio>keep</aspectratio>
+                <texture>white.png</texture>
             </control>
 
             <control type="label" id="207">
-                <left>40</left>
-                <top>600</top>
-                <width>720</width>
-                <height>36</height>
+                <description>Or visit</description>
+                <left>30</left>
+                <top>510</top>
+                <width>640</width>
+                <height>32</height>
                 <align>center</align>
-                <font>font12</font>
-                <textcolor>FFAAAAAA</textcolor>
-                <label>30108</label>
+                <font>font13</font>
+                <textcolor>FF9CA3AF</textcolor>
+                <label>$ADDON[script.dejavu 30108]</label>
             </control>
 
             <control type="label" id="203">
-                <left>40</left>
-                <top>636</top>
-                <width>720</width>
+                <description>Device URL</description>
+                <left>30</left>
+                <top>546</top>
+                <width>640</width>
                 <height>40</height>
                 <align>center</align>
                 <font>font13</font>
@@ -84,44 +85,51 @@
             </control>
 
             <control type="label" id="204">
-                <left>40</left>
-                <top>690</top>
-                <width>720</width>
+                <description>User code</description>
+                <left>30</left>
+                <top>600</top>
+                <width>640</width>
                 <height>70</height>
                 <align>center</align>
                 <aligny>center</aligny>
-                <font>font30</font>
-                <textcolor>FFFFD54F</textcolor>
+                <font>font37</font>
+                <textcolor>FFFBBF24</textcolor>
                 <label></label>
             </control>
 
             <control type="label" id="205">
-                <left>40</left>
-                <top>770</top>
-                <width>720</width>
-                <height>40</height>
+                <description>Waiting</description>
+                <left>30</left>
+                <top>680</top>
+                <width>640</width>
+                <height>36</height>
                 <align>center</align>
-                <font>font12</font>
-                <textcolor>FFAAAAAA</textcolor>
-                <label>30109</label>
+                <font>font13</font>
+                <textcolor>FF9CA3AF</textcolor>
+                <label>$ADDON[script.dejavu 30109]</label>
             </control>
 
             <control type="progress" id="206">
                 <left>80</left>
-                <top>830</top>
-                <width>640</width>
-                <height>12</height>
+                <top>730</top>
+                <width>540</width>
+                <height>10</height>
             </control>
 
             <control type="button" id="9000">
-                <left>250</left>
-                <top>870</top>
+                <description>Cancel</description>
+                <left>200</left>
+                <top>780</top>
                 <width>300</width>
-                <height>60</height>
+                <height>64</height>
                 <align>center</align>
                 <aligny>center</aligny>
                 <font>font13</font>
-                <label>30118</label>
+                <textcolor>FFFFFFFF</textcolor>
+                <focusedcolor>FFFFFFFF</focusedcolor>
+                <label>$ADDON[script.dejavu 30118]</label>
+                <texturefocus colordiffuse="FF2563EB">white.png</texturefocus>
+                <texturenofocus colordiffuse="FF4B5563">white.png</texturenofocus>
             </control>
         </control>
     </controls>

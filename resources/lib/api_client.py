@@ -124,8 +124,11 @@ class DejaVuAPI:
         try:
             r = requests.get(url, timeout=10)
             if r.status_code == 200 and r.content:
-                with open(dest, "wb") as handle:
-                    handle.write(r.content)
+                handle = xbmcvfs.File(dest, "w")
+                try:
+                    handle.write(bytearray(r.content))
+                finally:
+                    handle.close()
                 return dest
             _log(f"QR download HTTP {r.status_code}", xbmc.LOGWARNING)
         except Exception as e:
