@@ -1,3 +1,7 @@
+v1.7.3 (2026-09-09)
+- Fix DejaVuClient.call(): NotifyAll sender used xbmc.getAddonInfo("id"), which does not exist.
+  Other addons (plugin.video.dejavu, alkoFlix, vStream) crashed on authenticate() / is_authenticated().
+
 v1.7.0 (2026-09-09)
 - Import Kodi library (migration, not scrobble): VideoLibrary scan, match preview, POST /kodi/import in chunks.
 - Optional watchlist for unwatched titles, resume positions, video playlists, and Kodi favorites.

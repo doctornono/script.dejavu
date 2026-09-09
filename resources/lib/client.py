@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import xbmc
+import xbmcaddon
 import xbmcgui
 import json
 import time
@@ -38,7 +39,11 @@ class DejaVuClient:
         data = params if params else {}
         data["result_property"] = result_property
 
-        sender = xbmc.getAddonInfo("id")
+        # xbmc.getAddonInfo does not exist; the caller id is on xbmcaddon.Addon().
+        try:
+            sender = xbmcaddon.Addon().getAddonInfo("id") or "script.dejavu"
+        except Exception:
+            sender = "script.dejavu"
         payload = json.dumps(data)
 
         self._log(f"Calling {method} with {payload}")
