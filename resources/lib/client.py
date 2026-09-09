@@ -126,6 +126,41 @@ class DejaVuClient:
     def get_me(self):
         return self.call("get_me", {})
 
+    def is_authenticated(self):
+        result = self.call("is_authenticated", {})
+        if isinstance(result, dict):
+            return bool(result.get("authenticated"))
+        return False
+
+    def authenticate(self, timeout=300):
+        """
+        DejaVu Connect: if already logged in, return get_me().
+        Otherwise launch the pairing dialog (QR + code) and wait until
+        the user authorizes on dejavu.plus/device, cancels, or `timeout` seconds elapse.
+        """
+        if self.is_authenticated():
+            me = self.get_me()
+            if isinstance(me, dict) and (me.get("success") is True or me.get("user")):
+                return me
+
+        self.window.setProperty("script.dejavu.auth.status", "")
+        xbmc.executebuiltin("RunScript(script.dejavu,action=login)")
+
+        start = time.time()
+        monitor = xbmc.Monitor()
+        while time.time() - start < timeout:
+            if monitor.waitForAbort(0.5):
+                return {"success": False, "error": "aborted"}
+            status = self.window.getProperty("script.dejavu.auth.status")
+            if status == "success":
+                return self.get_me()
+            if status in ("cancelled", "expired", "error"):
+                return {"success": False, "error": status}
+        return {"success": False, "error": "timeout"}
+
+    def logout(self):
+        return self.call("logout", {})
+
     def resolve_media(self, imdb_id=None, tmdb_id=None, media_type=None, title=None, year=None):
         return self.call("resolve_media", {
             "imdb_id": imdb_id, "tmdb_id": tmdb_id, "type": media_type,

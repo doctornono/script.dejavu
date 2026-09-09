@@ -2,7 +2,7 @@
 """
 dejaVu default.py
 Handles all user-invoked actions:
-  - action=login             → device code login flow
+  - action=login             → DejaVu Connect (QR + device code)
   - action=logout            → clear credentials
   - action=rate              → rating dialog (context menu, with remove + preselect)
   - action=toggle_watched    → mark as watched / unwatched

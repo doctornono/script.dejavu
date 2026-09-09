@@ -15,7 +15,7 @@ msgstr ""
 
 msgctxt "#30002"
 msgid "Login with dejaVu"
-msgstr ""
+msgstr "Connect dejaVu"
 
 msgctxt "#30003"
 msgid "Logout"
@@ -62,7 +62,7 @@ msgstr ""
 
 msgctxt "#30031"
 msgid "Visit the URL below and enter the code:"
-msgstr ""
+msgstr "Visit dejavu.plus/device and enter the code:"
 
 msgctxt "#30032"
 msgid "Login successful! Welcome, %s."
@@ -258,6 +258,54 @@ msgstr ""
 
 msgctxt "#30106"
 msgid "Mirror watched status and ratings to the Kodi library"
+msgstr ""
+
+msgctxt "#30107"
+msgid "Scan this QR code with your phone"
+msgstr ""
+
+msgctxt "#30108"
+msgid "or visit"
+msgstr ""
+
+msgctxt "#30109"
+msgid "Waiting for connection..."
+msgstr ""
+
+msgctxt "#30110"
+msgid "Open dejaVu"
+msgstr ""
+
+msgctxt "#30111"
+msgid "Close"
+msgstr ""
+
+msgctxt "#30112"
+msgid "Your data is now synced."
+msgstr ""
+
+msgctxt "#30113"
+msgid "Watchlist: %s"
+msgstr ""
+
+msgctxt "#30114"
+msgid "History: %s"
+msgstr ""
+
+msgctxt "#30115"
+msgid "Lists: %s"
+msgstr ""
+
+msgctxt "#30116"
+msgid "Favorites: %s"
+msgstr ""
+
+msgctxt "#30117"
+msgid "Connect dejaVu"
+msgstr ""
+
+msgctxt "#30118"
+msgid "Cancel"
 msgstr ""
 
 # Settings labels

@@ -14,7 +14,7 @@ msgstr "Connecté en tant que"
 
 msgctxt "#30002"
 msgid "Login with dejaVu"
-msgstr "Se connecter à dejaVu"
+msgstr "Connecter dejaVu"
 
 msgctxt "#30003"
 msgid "Logout"
@@ -58,7 +58,7 @@ msgstr "Connexion dejaVu"
 
 msgctxt "#30031"
 msgid "Visit the URL below and enter the code:"
-msgstr "Rendez-vous à l'URL suivante et entrez le code :"
+msgstr "Rendez-vous sur dejavu.plus/device et entrez le code :"
 
 msgctxt "#30032"
 msgid "Login successful! Welcome, %s."
@@ -254,3 +254,51 @@ msgstr "Impossible de mettre à jour la liste."
 msgctxt "#30106"
 msgid "Mirror watched status and ratings to the Kodi library"
 msgstr "Répercuter le statut vu et les notes dans la bibliothèque Kodi"
+
+msgctxt "#30107"
+msgid "Scan this QR code with your phone"
+msgstr "Scannez ce QR code avec votre téléphone"
+
+msgctxt "#30108"
+msgid "or visit"
+msgstr "ou rendez-vous sur"
+
+msgctxt "#30109"
+msgid "Waiting for connection..."
+msgstr "En attente de connexion..."
+
+msgctxt "#30110"
+msgid "Open dejaVu"
+msgstr "Ouvrir dejaVu"
+
+msgctxt "#30111"
+msgid "Close"
+msgstr "Fermer"
+
+msgctxt "#30112"
+msgid "Your data is now synced."
+msgstr "Vos données sont maintenant synchronisées."
+
+msgctxt "#30113"
+msgid "Watchlist: %s"
+msgstr "Watchlist : %s"
+
+msgctxt "#30114"
+msgid "History: %s"
+msgstr "Historique : %s"
+
+msgctxt "#30115"
+msgid "Lists: %s"
+msgstr "Listes : %s"
+
+msgctxt "#30116"
+msgid "Favorites: %s"
+msgstr "Favoris : %s"
+
+msgctxt "#30117"
+msgid "Connect dejaVu"
+msgstr "Connecter dejaVu"
+
+msgctxt "#30118"
+msgid "Cancel"
+msgstr "Annuler"

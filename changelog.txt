@@ -1,3 +1,8 @@
+v1.5.0 (2026-09-09)
+- DejaVu Connect: QR pairing dialog, authenticate() / is_authenticated() / logout() for other addons.
+- Post-login welcome with watchlist / history / lists / favorites counts and Open dejaVu.
+- Live API token reload after login (no Kodi restart). Logout also clears refresh_token.
+
 v1.4.0 (2026-08-18)
 - Context menu grouped under a single dejaVu submenu (rate, watched, watchlist, favorites, collection, add to a list).
 - Custom list picker: add or remove the current movie/show from a user list.

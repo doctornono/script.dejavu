@@ -19,6 +19,7 @@ Supported actions (method format: 'script.dejavu.ACTION'):
     get_scrobbles         params: type, page, page_size, minimal
     get_media_status      params: items  (list of {type, id}, max 50)
     get_me                params: (none)
+    is_authenticated      params: (none)
     resolve_media         params: imdb_id, tmdb_id, type, title, year
 
   WRITE
@@ -37,6 +38,7 @@ Supported actions (method format: 'script.dejavu.ACTION'):
     delete_rating         params: type, id, tvShowId, seasonNumber
     scrobble              params: type, id, progress, duration, tvShowId, seasonNumber, episodeNumber
     delete_scrobble       params: type, id
+    logout                params: (none)
 
 Data format for notification:
   {
@@ -203,7 +205,14 @@ class DejaVuMonitor(xbmc.Monitor):
         return self.api.get_media_status(params.get("items") or [])
 
     def _handle_get_me(self, params):
+        from .auth_handler import is_logged_in
+        if not is_logged_in():
+            return {"success": False, "error": "not_authenticated"}
         return self.api.get_me()
+
+    def _handle_is_authenticated(self, params):
+        from .auth_handler import is_logged_in
+        return {"success": True, "authenticated": is_logged_in()}
 
     def _handle_resolve_media(self, params):
         return self.api.resolve_media(
@@ -366,6 +375,11 @@ class DejaVuMonitor(xbmc.Monitor):
         )
         self._broadcast_write("delete_scrobble", params, result)
         return result
+
+    def _handle_logout(self, params):
+        from .auth_handler import logout
+        logout()
+        return {"success": True}
 
     # ------------------------------------------------------------------
     # Result helper

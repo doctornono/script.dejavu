@@ -12,17 +12,50 @@ Addon id: `script.dejavu` (Kodi 19+ / Python 3).
 - Context submenu **dejaVu** on any video item (vStream, Elementum, library): rate, watched, watchlist, favorites, collection, add to a list
 - Optional mirror of watched status and ratings onto the Kodi library (`playcount` / `userrating`)
 - Device-code login (no password in Kodi)
+- **DejaVu Connect** — QR pairing so other addons only call `authenticate()`
 - RPC API so other addons can read/write dejaVu data without an API key
 
 ## Install and login
 
 1. Install from ZIP (or from the dejaVu repository).
-2. Open **Add-on settings** → **Login with dejaVu**.
-3. Open [dejavu.plus/activate](https://dejavu.plus/activate) and enter the code shown in Kodi.
+2. Open **Add-on settings** → **Login with dejaVu**, or have another addon call `DejaVuClient().authenticate()`.
+3. Scan the QR code (or open [dejavu.plus/device](https://dejavu.plus/device) and enter the code).
+4. Sign in or create an account on your phone (Google / GitHub / email code). Authorize Kodi.
+
+No email or password is typed in Kodi.
 
 Optional settings: watched %, resume, next episode, notifications, and mirroring watched/ratings to the Kodi library.
 
 On plugin lists (vStream, etc.) the context menu talks to dejaVu.plus. Kodi `playcount` / `userrating` are only written when the same title exists in the **Kodi video library**. Badges on vStream rows still require that addon to call `get_media_status`.
+
+---
+
+## DejaVu Connect (for alkoFlix, vStream, skins)
+
+The user never talks to Better Auth or the REST API. Your addon only uses `DejaVuClient`.
+
+```python
+from client import DejaVuClient
+
+dv = DejaVuClient()
+
+if not dv.is_authenticated():
+    result = dv.authenticate()  # QR dialog; waits up to 5 minutes
+    # { "success": true, "user": {...}, "stats": {...} }
+    # or { "success": false, "error": "cancelled"|"expired"|"timeout"|... }
+
+profile = dv.get_me()
+dv.get_watchlist()
+dv.logout()  # optional
+```
+
+Listen for `script.dejavu.changed` with `action: "authenticated"` (or `"auth"` on logout) to refresh your settings screen.
+
+`authenticate()` does **not** go through the 5-second RPC timeout. It launches `RunScript(script.dejavu,action=login)` and polls until the pairing finishes. If the user is already connected, it returns `get_me()` immediately.
+
+Suggested UI: a single **Connect dejaVu** button in your settings (next to Trakt). DejaVu is meant to coexist with Trakt.
+
+Depend on `script.dejavu` ≥ **1.5.0**.
 
 ---
 
@@ -46,7 +79,7 @@ In your `addon.xml`:
 ```xml
 <requires>
     <import addon="xbmc.python" version="3.0.0"/>
-    <import addon="script.dejavu" version="1.4.0"/>
+    <import addon="script.dejavu" version="1.5.0"/>
 </requires>
 ```
 
@@ -215,7 +248,7 @@ class DejaVuChangeMonitor(xbmc.Monitor):
         self.refresh_item(payload.get("type"), payload.get("id"))
 ```
 
-Useful `action` values: `add_to_watchlist`, `remove_from_watchlist`, `add_to_favorites`, `remove_from_favorites`, `add_to_collection`, `remove_from_collection`, `rate`, `delete_rating`, `add_to_history`, `delete_history`, `watched`, `unwatched`, `scrobble`, `upnext`.
+Useful `action` values: `add_to_watchlist`, `remove_from_watchlist`, `add_to_favorites`, `remove_from_favorites`, `add_to_collection`, `remove_from_collection`, `rate`, `delete_rating`, `add_to_history`, `delete_history`, `watched`, `unwatched`, `scrobble`, `upnext`, `authenticated`, `auth`.
 
 At the end of an episode, dejaVu may also send `action: "upnext"` with `tvShowId`, `seasonNumber`, `episodeNumber`, `title` if you want to hook your own player.
 
@@ -340,6 +373,7 @@ while time.time() < deadline:
 | `get_dashboard` | — |
 | `get_dashboard_widget` | `widget_type`, `list_id`, `page`, `page_size`, `minimal` |
 | `get_me` | — |
+| `is_authenticated` | — |
 | `resolve_media` | `imdb_id`, `tmdb_id`, `type`, `title`, `year` |
 
 **Write**
@@ -357,14 +391,16 @@ while time.time() < deadline:
 | `delete_rating` | `type`, `id`, `tvShowId`, `seasonNumber` |
 | `scrobble` | `type`, `id`, `progress`, `duration`, `tvShowId`, `seasonNumber`, `episodeNumber` |
 | `delete_scrobble` | `type`, `id` |
+| `logout` | — |
 
 ### Checklist for a first integration
 
-1. Depend on `script.dejavu` ≥ 1.4.0 and import `DejaVuClient` behind `System.HasAddon`.
-2. Map your items to TMDB (`resolve_media` if you only have IMDb or a title).
-3. Call `get_media_status` in batches of 50 and paint badges from `data["movie:123"]`.
-4. Wire one write (watchlist toggle is enough) and listen for `script.dejavu.changed`.
-5. Treat `None` / missing addon / logged-out user as “no badges”, not as a crash.
+1. Depend on `script.dejavu` ≥ 1.5.0 and import `DejaVuClient` behind `System.HasAddon`.
+2. Offer **Connect dejaVu** via `dv.authenticate()` (never collect a password in Kodi).
+3. Map your items to TMDB (`resolve_media` if you only have IMDb or a title).
+4. Call `get_media_status` in batches of 50 and paint badges from `data["movie:123"]`.
+5. Wire one write (watchlist toggle is enough) and listen for `script.dejavu.changed`.
+6. Treat `None` / missing addon / logged-out user as “no badges”, not as a crash.
 
 ## License
 

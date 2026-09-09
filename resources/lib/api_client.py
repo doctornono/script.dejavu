@@ -7,6 +7,7 @@ Authentication: x-api-key header with secret key (sk_...)
 
 import xbmc
 import xbmcaddon
+import xbmcvfs
 import json
 import requests
 from .util import get_accept_language
@@ -26,7 +27,17 @@ class DejaVuAPI:
             or ADDON.getSetting("api_url")
             or "https://dejavu.plus/api/v1"
         ).rstrip("/")
-        self.token = token or ADDON.getSetting("access_token") or ""
+        # None = re-read addon settings on every request (login/logout without restarting the service)
+        self._token_override = token
+
+    def _current_token(self):
+        if self._token_override is not None:
+            return self._token_override
+        return ADDON.getSetting("access_token") or ""
+
+    @property
+    def token(self):
+        return self._current_token()
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -38,8 +49,9 @@ class DejaVuAPI:
             "Accept": "application/json",
             "Accept-Language": get_accept_language(),
         }
-        if self.token:
-            h["x-api-key"] = self.token
+        token = self._current_token()
+        if token:
+            h["x-api-key"] = token
         return h
 
     def _get(self, path, params=None):
@@ -96,9 +108,29 @@ class DejaVuAPI:
     # Auth – Device Code Flow
     # ------------------------------------------------------------------
 
-    def get_device_code(self):
+    def get_device_code(self, client_id="dejavu-kodi", client_name=None):
         """Step 1: request a device code + user code from the server."""
-        return self._post("/auth/device/code", {"client_id": "dejavu-kodi"})
+        payload = {"client_id": client_id}
+        if client_name:
+            payload["client_name"] = client_name
+        return self._post("/auth/device/code", payload)
+
+    def download_device_qr(self, user_code):
+        """Download the pairing QR PNG to special://temp. Returns local path or empty string."""
+        if not user_code:
+            return ""
+        dest = xbmcvfs.translatePath("special://temp/dejavu_qr.png")
+        url = f"{self.api_url}/auth/device/qr?user_code={user_code}"
+        try:
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200 and r.content:
+                with open(dest, "wb") as handle:
+                    handle.write(r.content)
+                return dest
+            _log(f"QR download HTTP {r.status_code}", xbmc.LOGWARNING)
+        except Exception as e:
+            _log(f"QR download error: {e}", xbmc.LOGWARNING)
+        return ""
 
     def poll_token(self, device_code):
         """Step 2: poll until the user has authorized the device."""
