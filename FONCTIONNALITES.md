@@ -62,6 +62,8 @@ Le scrobble live **n’est pas** l’import bibliothèque. Ne pas envoyer un his
 
 À ≥ 90 % (réglable), un seul chemin « vu » : pas de double incrément.
 
+Pause et stop envoient la **dernière position réelle** et gardent l’item dans Reprendre la lecture. Stop ne retire plus la session (Kodi renvoie souvent `0` une fois le lecteur fermé). L’item sort de la liste seulement si le titre est **terminé** (fin de fichier / seuil « vu ») ou si la lecture a duré **moins de 30 s**. Même règle pour les films et les épisodes.
+
 ### 2.3 Menu contextuel **dejaVu**
 
 Visible sur un item vidéo qui a un TMDB, un IMDb, ou une propriété plugin (`TmdbId`, `tmdb_id`, `imdb_id`) — bibliothèque, vStream, Elementum, etc.

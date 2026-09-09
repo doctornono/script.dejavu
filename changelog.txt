@@ -1,3 +1,8 @@
+v1.7.7 (2026-09-09)
+- Stop keeps continue watching at the last real position (same as pause) for movies and episodes.
+- Kodi reports 0 after Stop; the scrobbler now caches playback time so Stop no longer wipes Reprendre la lecture.
+- Finished titles (end / watched threshold) still leave the list. Short plays under 30s are still dropped.
+
 v1.7.5 (2026-09-09)
 - RPC monitor accepts Other.script.dejavu.* (Kodi NotifyAll prefix). Other addons
   were timing out on is_authenticated / get_history because the service ignored the notification.

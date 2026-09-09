@@ -47,6 +47,10 @@ class DejaVuPlayer(xbmc.Player):
         self._watched_sent = False
         self._login_warned = False
         self._resumed = False
+        self._last_progress = 0
+        self._last_duration = 0
+        self._resume_from = 0
+        self._resume_target = 0
         self._api = None  # lazy: only created when logged in
 
     # ------------------------------------------------------------------
@@ -529,6 +533,58 @@ class DejaVuPlayer(xbmc.Player):
         return res
 
     # ------------------------------------------------------------------
+    # Playback position (Kodi reports 0 after Stop)
+    # ------------------------------------------------------------------
+
+    def _reset_playback_state(self):
+        self._active = False
+        self._meta = None
+        self._watched_sent = False
+        self._resumed = False
+        self._last_progress = 0
+        self._last_duration = 0
+        self._resume_from = 0
+        self._resume_target = 0
+        self._last_scrobble_ts = 0
+
+    def _read_player_times(self):
+        """(progress, duration) in seconds, or None if the player has no time."""
+        try:
+            progress = int(self.getTime())
+            duration = int(self.getTotalTime())
+        except Exception:
+            return None
+        if duration <= 0:
+            return None
+        return progress, duration
+
+    def _capture_player_times(self):
+        """
+        Refresh the last known position while the player still has a clock.
+        After Stop, getTime() is often 0 or throws — keep the cached value.
+        """
+        times = self._read_player_times()
+        if not times:
+            return self._last_progress, self._last_duration
+        progress, duration = times
+        if progress <= 0 and self._last_progress > 0:
+            return self._last_progress, self._last_duration or duration
+        if self._resume_target and progress + 5 < self._resume_target:
+            return self._last_progress, self._last_duration or duration
+        self._resume_target = 0
+        self._last_progress = progress
+        self._last_duration = duration
+        return progress, duration
+
+    def _notify_progress(self, action, meta):
+        notify_changed(
+            action,
+            media_type=meta.get("type"),
+            tmdb_id=meta.get("tmdb_id"),
+            extra={"tvShowId": meta.get("show_tmdb_id")},
+        )
+
+    # ------------------------------------------------------------------
     # Core scrobble helper
     # ------------------------------------------------------------------
 
@@ -566,14 +622,29 @@ class DejaVuPlayer(xbmc.Player):
         if not meta:
             return
 
-        try:
-            progress = int(self.getTime())
-            duration = int(self.getTotalTime())
-        except Exception:
-            return
-
+        progress, duration = self._capture_player_times()
         if duration <= 0:
             return
+
+        # Natural end of file: treat as completed so it leaves continue watching.
+        if action == "end" and duration > 0:
+            known = max(progress, self._last_progress)
+            if known / duration >= 0.5:
+                progress = duration
+                self._last_progress = duration
+
+        # Don't POST a near-zero position: that would wipe Reprendre la lecture
+        # (Stop often reports 0) and would create junk sessions at Start.
+        if action != "end" and progress < 30:
+            if action == "start" or self._resume_from:
+                _log(
+                    f"Scrobble {action} skipped at {progress}s "
+                    f"(protect continue-watching / wait for real progress).",
+                    xbmc.LOGINFO,
+                )
+                return
+            if action == "stop":
+                return
 
         try:
             watch_pct = ADDON.getSettingInt("watched_percent") or 90
@@ -608,6 +679,9 @@ class DejaVuPlayer(xbmc.Player):
 
         if result is None:
             _log(f"Scrobble API call failed (no response) [{action}].", xbmc.LOGWARNING)
+
+        if action in ("pause", "stop", "end"):
+            self._notify_progress("scrobble", meta)
 
         if action == "start" and ADDON.getSettingBool("show_notifications"):
             xbmcgui.Dialog().notification(
@@ -669,6 +743,11 @@ class DejaVuPlayer(xbmc.Player):
         self._last_scrobble_ts = 0
         self._watched_sent = False
         self._resumed = False
+        self._last_progress = 0
+        self._last_duration = 0
+        self._resume_from = 0
+        self._resume_target = 0
+        self._capture_player_times()
         self._maybe_resume()
         self._scrobble("start")
 
@@ -690,34 +769,56 @@ class DejaVuPlayer(xbmc.Player):
 
     def onPlayBackError(self):
         _log("onPlayBackError", xbmc.LOGWARNING)
-        self._active = False
-        self._meta = None
+        self._reset_playback_state()
 
     # ------------------------------------------------------------------
     # Stop / end logic
     # ------------------------------------------------------------------
 
+    def _delete_active_scrobble(self, meta):
+        tmdb_id = meta.get("tmdb_id")
+        if not tmdb_id or not str(tmdb_id).isdigit():
+            return False
+        self.api.delete_scrobble(meta["type"], tmdb_id)
+        self._notify_progress("delete_scrobble", meta)
+        return True
+
     def _handle_stop(self, reason):
         """
-        On stop/end: final scrobble, optional rating prompt, session cleanup
-        for very short plays, and up-next offer when an episode finishes.
+        Stop = leave continue watching at the last real position (same as pause).
+        End / watched = drop the scrobble so Reprendre la lecture is cleared.
+        Only delete incomplete sessions abandoned in the first 30 seconds.
         """
         meta = self._meta
-        progress = 0
+        progress, duration = self._capture_player_times()
         try:
-            progress = int(self.getTime())
+            if not ADDON.getSettingBool("enable_scrobble"):
+                self._reset_playback_state()
+                return
         except Exception:
             pass
 
         self._scrobble(reason)
         watched = self._watched_sent
+        progress = self._last_progress or progress
+        duration = self._last_duration or duration
 
-        # Drop junk sessions abandoned in the first 30 seconds
-        if meta and not watched and progress < 30:
-            tmdb_id = meta.get("tmdb_id")
-            if tmdb_id and str(tmdb_id).isdigit():
-                self.api.delete_scrobble(meta["type"], tmdb_id)
-                _log("Deleted short scrobble session (<30s).", xbmc.LOGDEBUG)
+        if meta:
+            finished = watched
+            if reason == "end" and duration > 0 and progress / duration >= 0.9:
+                finished = True
+            if finished:
+                if self._delete_active_scrobble(meta):
+                    _log("Removed finished item from continue watching.", xbmc.LOGINFO)
+            elif progress < 30 and not self._resume_from:
+                if self._delete_active_scrobble(meta):
+                    _log("Deleted short scrobble session (<30s).", xbmc.LOGDEBUG)
+            else:
+                _log(
+                    f"Keep continue watching at {progress}/{duration}s "
+                    f"(type={meta.get('type')}).",
+                    xbmc.LOGINFO,
+                )
 
         try:
             if ADDON.getSettingBool("prompt_rating") and self._watched_sent and meta:
@@ -731,10 +832,7 @@ class DejaVuPlayer(xbmc.Player):
             except Exception as e:
                 _log(f"upnext error: {e}", xbmc.LOGWARNING)
 
-        self._active = False
-        self._meta = None
-        self._watched_sent = False
-        self._resumed = False
+        self._reset_playback_state()
 
     def _prompt_rating(self, meta):
         # Give Kodi a moment to close the player UI
@@ -846,6 +944,72 @@ class DejaVuPlayer(xbmc.Player):
             _log(f"existing rating lookup failed: {e}", xbmc.LOGDEBUG)
             return None
 
+    def _scrobble_items(self, result):
+        items = unwrap_data(result) or []
+        if isinstance(items, dict):
+            items = (
+                items.get("movies") or items.get("episodes") or items.get("scrobbles")
+                or items.get("items") or items.get("results")
+            )
+            if not isinstance(items, list):
+                items = []
+        if not isinstance(items, list):
+            return []
+        return [item for item in items if isinstance(item, dict)]
+
+    def _item_tmdb_id(self, item):
+        return item.get("tmdbId") or item.get("tmdb_id") or item.get("id")
+
+    def _item_show_id(self, item):
+        info = item.get("info") if isinstance(item.get("info"), dict) else {}
+        return (
+            item.get("tvShowTmdbId") or item.get("tvShowId") or item.get("showTmdbId")
+            or item.get("tv_show_id") or item.get("show_tmdb_id")
+            or info.get("tvShowId") or info.get("tvshow.tmdb")
+        )
+
+    def _item_season_episode(self, item):
+        info = item.get("info") if isinstance(item.get("info"), dict) else {}
+        season = item.get("seasonNumber")
+        if season is None:
+            season = item.get("season")
+        if season is None:
+            season = info.get("seasonNumber", info.get("season"))
+        episode = item.get("episodeNumber")
+        if episode is None:
+            episode = item.get("episode")
+        if episode is None:
+            episode = info.get("episodeNumber", info.get("episode"))
+        return season, episode
+
+    def _match_scrobble(self, meta, items):
+        def _eq_id(left, right):
+            if left is None or right is None or left == "" or right == "":
+                return False
+            return str(left) == str(right)
+
+        def _eq_num(left, right):
+            try:
+                return int(left) == int(right)
+            except (TypeError, ValueError):
+                return False
+
+        for item in items:
+            if meta["type"] == "movie":
+                if _eq_id(self._item_tmdb_id(item), meta.get("tmdb_id")):
+                    return item
+                continue
+            same_id = _eq_id(self._item_tmdb_id(item), meta.get("tmdb_id"))
+            season, episode = self._item_season_episode(item)
+            same_ep = (
+                _eq_id(self._item_show_id(item), meta.get("show_tmdb_id"))
+                and _eq_num(season, meta.get("season"))
+                and _eq_num(episode, meta.get("episode"))
+            )
+            if same_id or same_ep:
+                return item
+        return None
+
     def _maybe_resume(self):
         """Seek to the last dejaVu scrobble position after playback starts."""
         if self._resumed or not self._meta:
@@ -860,40 +1024,25 @@ class DejaVuPlayer(xbmc.Player):
 
         meta = self._meta
         result = self.api.get_scrobbles(media_type=meta["type"], page_size=50, minimal=False)
-        items = unwrap_data(result) or []
-        if isinstance(items, dict):
-            items = items.get("movies") or items.get("episodes") or list(items.values())
-        if not isinstance(items, list):
-            return
-
-        match = None
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            if meta["type"] == "movie" and str(item.get("tmdbId")) == str(meta.get("tmdb_id")):
-                match = item
-                break
-            if meta["type"] == "episode":
-                info = item.get("info") or {}
-                same_id = meta.get("tmdb_id") and str(item.get("tmdbId")) == str(meta["tmdb_id"])
-                same_ep = (
-                    str(item.get("tvShowTmdbId")) == str(meta.get("show_tmdb_id"))
-                    and info.get("season") == meta.get("season")
-                    and info.get("episode") == meta.get("episode")
-                )
-                if same_id or same_ep:
-                    match = item
-                    break
-
+        items = self._scrobble_items(result)
+        match = self._match_scrobble(meta, items)
+        if not match:
+            result = self.api.get_scrobbles(page_size=50, minimal=False)
+            match = self._match_scrobble(meta, self._scrobble_items(result))
         if not match:
             return
 
-        progress = int(match.get("progress") or 0)
-        duration = int(match.get("duration") or 0)
+        try:
+            progress = int(float(match.get("progress") or 0))
+            duration = int(float(match.get("duration") or 0))
+        except (TypeError, ValueError):
+            return
         if progress < 30:
             return
         if duration > 0 and (progress / duration) >= 0.9:
             return
+
+        self._resume_from = progress
 
         minutes, seconds = divmod(progress, 60)
         label = f"{minutes:02d}:{seconds:02d}"
@@ -901,6 +1050,10 @@ class DejaVuPlayer(xbmc.Player):
             try:
                 self.seekTime(float(progress))
                 self._resumed = True
+                self._last_progress = progress
+                self._resume_target = progress
+                if duration > 0:
+                    self._last_duration = duration
                 _log(f"Resumed playback at {progress}s", xbmc.LOGINFO)
             except Exception as e:
                 _log(f"Player.seekTime failed: {e}", xbmc.LOGWARNING)
@@ -928,12 +1081,16 @@ class DejaVuPlayer(xbmc.Player):
         for item in items:
             if not isinstance(item, dict):
                 continue
-            if show_id and str(item.get("tvShowTmdbId")) != show_id:
+            item_show = str(self._item_show_id(item) or "")
+            if show_id and item_show != show_id:
                 continue
-            info = item.get("info") or {}
-            n_season = info.get("season")
-            n_episode = info.get("episode")
+            n_season, n_episode = self._item_season_episode(item)
             if n_season is None or n_episode is None:
+                continue
+            try:
+                n_season = int(n_season)
+                n_episode = int(n_episode)
+            except (TypeError, ValueError):
                 continue
             if n_season > current_season or (
                 n_season == current_season and n_episode > current_episode
@@ -944,18 +1101,20 @@ class DejaVuPlayer(xbmc.Player):
         if not nxt:
             return
 
-        info = nxt.get("info") or {}
-        n_season = info.get("season")
-        n_episode = info.get("episode")
-        show_title = info.get("tvshowtitle") or meta.get("show_title") or ""
+        info = nxt.get("info") if isinstance(nxt.get("info"), dict) else {}
+        n_season, n_episode = self._item_season_episode(nxt)
+        show_title = (
+            info.get("tvshowtitle") or info.get("showtitle")
+            or meta.get("show_title") or ""
+        )
         label = f"{show_title} S{int(n_season):02d}E{int(n_episode):02d}"
 
         notify_changed(
             "upnext",
             "episode",
-            nxt.get("tmdbId"),
+            self._item_tmdb_id(nxt),
             extra={
-                "tvShowId": nxt.get("tvShowTmdbId"),
+                "tvShowId": self._item_show_id(nxt),
                 "seasonNumber": n_season,
                 "episodeNumber": n_episode,
                 "title": label,
@@ -1028,6 +1187,7 @@ class DejaVuPlayer(xbmc.Player):
         """
         if not self._active or not self.isPlayingVideo():
             return
+        self._capture_player_times()
         try:
             interval = ADDON.getSettingInt("scrobble_interval") or 30
         except Exception:
