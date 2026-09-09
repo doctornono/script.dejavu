@@ -510,3 +510,7 @@ msgstr "Analyse des favoris..."
 msgctxt "#30171"
 msgid "Sending batch %s of %s..."
 msgstr "Envoi du lot %s sur %s..."
+
+msgctxt "#30173"
+msgid "Copy watch history, ratings, and dates from the Kodi video library."
+msgstr "Copier l'historique, les notes et les dates depuis la bibliothèque vidéo Kodi."

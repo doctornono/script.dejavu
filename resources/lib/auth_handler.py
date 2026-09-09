@@ -73,6 +73,37 @@ def _welcome_body(username, me):
 
 
 def _show_welcome(username, me):
+    """After Connect: offer Kodi import as the primary buttons when a library exists."""
+    try:
+        from .library_importer import (
+            _already_offered,
+            _mark_offered,
+            run_import_wizard,
+            video_library_totals,
+        )
+        movie_total, show_total = video_library_totals()
+        if (movie_total > 0 or show_total > 0) and not _already_offered():
+            body = "\n".join([
+                _welcome_body(username, me),
+                "",
+                _ls(30160),
+                _ls(30136) % movie_total,
+                _ls(30137) % show_total,
+            ])
+            import_now = xbmcgui.Dialog().yesno(
+                _ls(30117),
+                body,
+                yeslabel=_ls(30120),
+                nolabel=_ls(30161),
+            )
+            if import_now:
+                run_import_wizard(allow_skip=False)
+            else:
+                _mark_offered()
+            return
+    except Exception as e:
+        xbmc.log(f"[dejaVu] Welcome import prompt failed: {e}", xbmc.LOGWARNING)
+
     try:
         open_web = xbmcgui.Dialog().yesno(
             _ls(30117),
@@ -119,11 +150,6 @@ def _persist_login(token_data):
     _set_auth_status("success")
     notify_changed("authenticated")
     _show_welcome(username, me)
-    try:
-        from .library_importer import offer_after_login
-        offer_after_login()
-    except Exception as e:
-        xbmc.log(f"[dejaVu] Post-login Kodi import offer failed: {e}", xbmc.LOGWARNING)
     return True
 
 

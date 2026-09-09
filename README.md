@@ -66,7 +66,7 @@ This is **not** scrobble. Scrobble stays the live path after the user is connect
 
 `playcount`, `lastplayed`, `userrating`, TMDB/IMDb `uniqueid`, resume bookmarks, video playlists, and library favourites.
 
-After Connect, the script offers the import when a video library exists. The user can also start it from **Add-on settings**, the Programs menu, or another addon:
+After Connect, the script offers the import when a video library exists. The user can also start it from **Add-on settings → Import Kodi library** (button **Import my Kodi history**), the Programs menu (first item when logged in), or another addon:
 
 ```python
 dv = DejaVuClient()

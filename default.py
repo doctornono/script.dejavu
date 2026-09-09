@@ -438,19 +438,19 @@ def main_menu():
     if is_logged_in():
         username = ADDON.getSetting("username") or "?"
         options = [
-            f"{_ls(30003)} ({username})",   # Logout (username)
-            _ls(30120),                     # Import Kodi library
+            _ls(30120),                     # Import Kodi library (first — dedicated button)
             _ls(30062),                     # Settings
+            f"{_ls(30003)} ({username})",   # Logout (username)
         ]
         selected = xbmcgui.Dialog().select("dejaVu", options)
         if selected == 0:
-            from resources.lib.auth_handler import logout
-            logout()
-        elif selected == 1:
             from resources.lib.library_importer import run_import_wizard
             run_import_wizard(allow_skip=True)
-        elif selected == 2:
+        elif selected == 1:
             ADDON.openSettings()
+        elif selected == 2:
+            from resources.lib.auth_handler import logout
+            logout()
     else:
         options = [_ls(30002), _ls(30062)]  # Login, Settings
         selected = xbmcgui.Dialog().select("dejaVu", options)

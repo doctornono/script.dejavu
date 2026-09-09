@@ -7,9 +7,14 @@
         <setting id="access_token" type="text" label="30099" default="" visible="false"/>
         <setting id="action_login" type="action" label="30002" action="RunScript(script.dejavu,action=login)" visible="String.IsEmpty(Setting(access_token))"/>
         <setting id="action_logout" type="action" label="30003" action="RunScript(script.dejavu,action=logout)" visible="!String.IsEmpty(Setting(access_token))"/>
-        <setting id="action_import_kodi" type="action" label="30120" action="RunScript(script.dejavu,action=import_kodi)" visible="!String.IsEmpty(Setting(access_token))"/>
-        <setting id="kodi_import_offered" type="bool" label="30120" default="false" visible="false"/>
+        <setting id="kodi_import_offered" type="bool" default="false" visible="false"/>
         <setting id="kodi_import_at" type="text" default="" visible="false"/>
+    </category>
+
+    <!-- Import Kodi library — always listed so the action is findable after login -->
+    <category label="30120">
+        <setting id="import_kodi_help" type="lsep" label="30173"/>
+        <setting id="action_import_kodi" type="action" label="30121" action="RunScript(script.dejavu,action=import_kodi)" option="close" enable="!String.IsEmpty(Setting(access_token))"/>
     </category>
 
     <!-- Scrobbling -->
