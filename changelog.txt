@@ -1,3 +1,8 @@
+v1.7.5 (2026-09-09)
+- RPC monitor accepts Other.script.dejavu.* (Kodi NotifyAll prefix). Other addons
+  were timing out on is_authenticated / get_history because the service ignored the notification.
+- DejaVuClient quotes the NotifyAll JSON payload so commas are not builtin separators.
+
 v1.7.3 (2026-09-09)
 - Fix DejaVuClient.call(): NotifyAll sender used xbmc.getAddonInfo("id"), which does not exist.
   Other addons (plugin.video.dejavu, alkoFlix, vStream) crashed on authenticate() / is_authenticated().

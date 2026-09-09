@@ -45,9 +45,9 @@ class DejaVuClient:
         except Exception:
             sender = "script.dejavu"
         payload = json.dumps(data)
-
+        # Quote the JSON so commas are not treated as NotifyAll argument separators.
         self._log(f"Calling {method} with {payload}")
-        xbmc.executebuiltin(f"NotifyAll({sender}, {method}, {payload})")
+        xbmc.executebuiltin("NotifyAll(%s, %s, %s)" % (sender, method, json.dumps(payload)))
 
         start_time = time.time()
         while time.time() - start_time < self.timeout:

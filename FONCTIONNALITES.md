@@ -153,12 +153,12 @@ RunScript(script.dejavu,action=<nom>)
 
 Le « JSON-RPC » dejaVu n’est **pas** l’API JSON-RPC native de Kodi (`VideoLibrary.GetMovies`, etc.). C’est un protocole maison :
 
-1. L’appelant envoie `NotifyAll(<addon.id>, script.dejavu.<action>, <json>)`.
+1. L’appelant envoie `NotifyAll(<addon.id>, script.dejavu.<action>, "<json>")` (JSON **quoté** : les virgules casseraient le builtin).
 2. Le JSON peut contenir `result_property` (défaut : `script.dejavu.<action>.result`).
 3. Le service écrit la réponse JSON sur **Window 10000**.
 4. L’appelant lit cette propriété jusqu’à timeout (défaut **5 s**).
 
-`DejaVuClient` encapsule tout ça. Copier `resources/lib/client.py` est possible ; l’import Kodi est plus simple.
+Kodi livre la méthode sous `Other.script.dejavu.<action>` dans `onNotification`. Le service matche sur une sous-chaîne (pas `startswith`). `DejaVuClient` encapsule tout ça. Copier `resources/lib/client.py` est possible ; l’import Kodi est plus simple.
 
 ### 3.1 Dépendance
 

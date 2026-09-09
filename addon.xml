@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dejavu" name="dejaVu" version="1.7.4" provider-name="doctornono">
+<addon id="script.dejavu" name="dejaVu" version="1.7.6" provider-name="doctornono">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
@@ -59,6 +59,9 @@
         <disclaimer lang="en_GB">For full synchronization, ensure your dejaVu.plus account is active. Background scrobbling might be affected by power saving settings.</disclaimer>
         <disclaimer lang="fr_FR">Pour une synchronisation complète, assurez-vous que votre compte dejaVu.plus est actif. Le scrobbling en arrière-plan peut être affecté par les réglages d'économie d'énergie.</disclaimer>
         <news lang="en_GB">
+v1.7.5 (2026-09-09):
+- RPC: accept Other.script.dejavu.* (Kodi NotifyAll prefix) so other addons no longer time out.
+- DejaVuClient: quote NotifyAll JSON payload (commas were splitting the builtin).
 v1.7.3 (2026-09-09):
 - Fix DejaVuClient RPC sender: use xbmcaddon.Addon().getAddonInfo("id") (xbmc has no getAddonInfo).
 v1.7.0 (2026-09-09):
@@ -77,6 +80,9 @@ v1.3.0 (2026-08-17):
 - Accept-Language follows Kodi UI. client.py covers all RPC actions.
         </news>
         <news lang="fr_FR">
+v1.7.5 (2026-09-09) :
+- RPC : accepte Other.script.dejavu.* (préfixe NotifyAll Kodi) — plus de timeout côté autres addons.
+- DejaVuClient : payload JSON de NotifyAll quoté (les virgules cassaient le builtin).
 v1.7.3 (2026-09-09) :
 - Correctif DejaVuClient : l'émetteur RPC utilise xbmcaddon.Addon().getAddonInfo("id").
 v1.7.0 (2026-09-09) :

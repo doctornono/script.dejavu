@@ -379,10 +379,12 @@ On unknown RPC actions the service writes `{ "success": false, "error": "Unknown
 
 You do not need this if you use `DejaVuClient`. The protocol:
 
-1. Caller sends `NotifyAll(<your.addon.id>, script.dejavu.<action>, <json>)`.
+1. Caller sends `NotifyAll(<your.addon.id>, script.dejavu.<action>, "<json>")` (quote the JSON — commas would otherwise split the builtin).
 2. JSON may include `result_property` (default `script.dejavu.<action>.result`).
 3. The service writes the JSON result on **Window 10000**.
 4. Poll that property until it is set or you time out.
+
+Kodi delivers the method as `Other.script.dejavu.<action>` in `onNotification`. The service matches on substring, not `startswith`.
 
 ```python
 import json
@@ -397,7 +399,9 @@ payload = json.dumps({
     "result_property": prop,
     "items": [{"type": "movie", "id": 603}],
 })
-xbmc.executebuiltin("NotifyAll(plugin.video.myaddon, script.dejavu.get_media_status, %s)" % payload)
+xbmc.executebuiltin(
+    "NotifyAll(plugin.video.myaddon, script.dejavu.get_media_status, %s)" % json.dumps(payload)
+)
 
 deadline = time.time() + 5
 result = None

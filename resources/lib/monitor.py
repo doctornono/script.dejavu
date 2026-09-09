@@ -76,23 +76,28 @@ class DejaVuMonitor(xbmc.Monitor):
     def onNotification(self, sender, method, data):
         """
         Handles incoming notifications for RPC-like communication.
-        Method expected format: 'script.dejavu.ACTION'
-        Data expected format: JSON string with 'result_property' and optional params.
+
+        Method: 'script.dejavu.ACTION' or 'Other.script.dejavu.ACTION'
+        (Kodi prefixes NotifyAll with Other.). Match on substring, not startswith.
+        Data: JSON string with result_property and optional params.
         """
-        if not method.startswith("script.dejavu."):
+        if "script.dejavu." not in method:
             return
-        # Ignore our own change broadcasts
-        if method == "script.dejavu.changed":
+        action = method.split("script.dejavu.", 1)[-1]
+        if not action or action == "changed" or action.startswith("changed"):
             return
 
-        action = method.replace("script.dejavu.", "")
         _log(f"RPC request: {action} from {sender}", xbmc.LOGINFO)
 
         try:
             params = json.loads(data) if data else {}
+            if isinstance(params, str):
+                params = json.loads(params)
         except Exception as e:
             _log(f"Failed to parse notification data: {e}", xbmc.LOGERROR)
             return
+        if not isinstance(params, dict):
+            params = {}
 
         result_property = params.get(
             "result_property", f"script.dejavu.{action}.result"
