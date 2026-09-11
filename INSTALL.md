@@ -15,16 +15,16 @@ Guide d’installation de l’extension **dejaVu** (`script.dejavu`) depuis le d
 Kodi a besoin d’une source de fichiers pour télécharger le zip du dépôt.
 
 1. Aller dans `Paramètres > Gestionnaire de fichiers`.
+![Gestionnaire de fichiers](https://dejavu.plus/kodi/01-file-manager.png)
 2. Choisir `Ajouter une source`.
+![Ajouter une source](https://dejavu.plus/kodi/02-add-source.png)
+![URL et nom de la source](https://dejavu.plus/kodi/03-source-url.png)
 3. Saisir l’URL : `https://doctornono.github.io/`.
 4. Donner un nom à la source, par exemple : `dejaVu`.
 5. Valider.
 
-![Gestionnaire de fichiers](https://dejavu.plus/kodi/01-file-manager.png)
 
-![Ajouter une source](docs/screenshots/02-add-source.png)
 
-![URL et nom de la source](docs/screenshots/03-source-url.png)
 
 ### 2. Installer le dépôt
 
