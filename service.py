@@ -18,8 +18,7 @@ SESSION_SYNC_EVERY = 30
 _DBG_LOG = r"D:\Developpement\dejavu-kodi-addons\debug-762a00.log"
 _DBG_INGEST = "http://127.0.0.1:7403/ingest/793ea98b-2109-427e-9f7f-ba8b74480cc9"
 _DBG_VISIBLE = (
-    "String.IsEqual(System.AddonSetting(script.dejavu,enable_context_menu),true)"
-    " + [Window.IsVisible(Videos) | Window.IsVisible(VideoPlaylist) | Window.IsVisible(DialogVideoInfo)]"
+    "[Window.IsVisible(Videos) | Window.IsVisible(VideoPlaylist) | Window.IsVisible(DialogVideoInfo)]"
     " + !Container.Content(addons)"
     " + !String.StartsWith(ListItem.FolderPath,addons://)"
     " + !String.StartsWith(ListItem.FileNameAndPath,addons://)"
@@ -38,7 +37,7 @@ _dbg_last = ""
 
 def _agent_dbg_context_vis():
     global _dbg_n, _dbg_last
-    if _dbg_n >= 8:
+    if _dbg_n >= 16:
         return
     title = xbmc.getInfoLabel("ListItem.Title") or xbmc.getInfoLabel("ListItem.Label") or ""
     dbtype = xbmc.getInfoLabel("ListItem.DBType") or ""
@@ -67,6 +66,7 @@ def _agent_dbg_context_vis():
         "file_addons": xbmc.getCondVisibility("String.StartsWith(ListItem.FileNameAndPath,addons://)"),
         "dbtype_movie": xbmc.getCondVisibility("String.IsEqual(ListItem.DBType,movie)"),
         "full_xml_visible": xbmc.getCondVisibility(_DBG_VISIBLE),
+        "run": "post-fix",
         "dbtype": dbtype,
         "media_type_prop": xbmc.getInfoLabel("ListItem.Property(media_type)") or "",
         "title": title[:80],
@@ -80,7 +80,7 @@ def _agent_dbg_context_vis():
         "location": "service.py:_agent_dbg_context_vis",
         "message": "context visibility sample",
         "data": data,
-        "runId": "pre-fix",
+            "runId": "post-fix",
         "hypothesisId": "A-E",
     }
     try:

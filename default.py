@@ -145,7 +145,7 @@ def open_context_menu():
             "location": "default.py:open_context_menu",
             "message": "context menu script invoked",
             "data": {"enabled": _context_enabled()},
-            "runId": "pre-fix",
+            "runId": "post-fix",
             "hypothesisId": "XML",
         }
         with open(r"D:\Developpement\dejavu-kodi-addons\debug-762a00.log", "a", encoding="utf-8") as fh:
