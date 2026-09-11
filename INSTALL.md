@@ -20,7 +20,7 @@ Kodi a besoin d’une source de fichiers pour télécharger le zip du dépôt.
 4. Donner un nom à la source, par exemple : `dejaVu`.
 5. Valider.
 
-![Gestionnaire de fichiers](docs/screenshots/01-file-manager.png)
+![Gestionnaire de fichiers](https://dejavu.plus/kodi/01-file-manager.png)
 
 ![Ajouter une source](docs/screenshots/02-add-source.png)
 
