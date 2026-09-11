@@ -20,7 +20,7 @@ Kodi a besoin d’une source de fichiers pour télécharger le zip du dépôt.
    ![Ajouter une source](https://dejavu.plus/kodi/02-add-source.png)
 3. Saisir l’URL : `https://doctornono.github.io/`.
    ![URL et nom de la source](https://dejavu.plus/kodi/03-source-url.png)
-   ![URL et nom de la source](https://dejavu.plus/kodi/04-source-url.png)
+   ![URL et nom de la source](https://dejavu.plus/kodi/04-source-url-2.png)
 4. Donner un nom à la source, par exemple : `dejaVu`.
    ![URL et nom de la source](https://dejavu.plus/kodi/05-source-name.png)
 5. Valider.
