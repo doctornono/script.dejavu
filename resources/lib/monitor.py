@@ -20,7 +20,11 @@ Supported actions (method format: 'script.dejavu.ACTION'):
     get_media_status      params: items  (list of {type, id}, max 50)
     get_me                params: (none)
     is_authenticated      params: (none)
+    get_capabilities      params: (none)
+    get_last_activities   params: (none)
+    get_show_progress     params: ids
     resolve_media         params: imdb_id, tmdb_id, type, title, year
+    resolve_media_batch   params: items
 
   WRITE
     add_to_watchlist      params: type, id, priority, notes
@@ -54,14 +58,19 @@ so calling addons can refresh overlays (watched / rating / watchlist badges).
 """
 
 import json
+import time
 from collections import deque
 
 import xbmc
+import xbmcaddon
 import xbmcgui
 from .api_client import DejaVuAPI
-from .pure import sanitize_result_property
+from .pure import capabilities_payload, sanitize_result_property
 from .session import sync_settings_from_session
 from .util import notify_changed
+
+_IMMEDIATE_ACTIONS = frozenset(("is_authenticated", "get_capabilities"))
+_RPC_DRAIN_BUDGET = 0.2
 
 
 def _log(msg, level=xbmc.LOGDEBUG):
@@ -121,18 +130,31 @@ class DejaVuMonitor(xbmc.Monitor):
             self._set_result(result_property, {"success": False, "error": f"Unknown action: {action}"})
             return
 
-        if action == "is_authenticated":
+        if action in _IMMEDIATE_ACTIONS:
             self._run_rpc(action, handler, params, result_property)
             return
 
+        if action == "get_media_status":
+            try:
+                from .cache import cached_status
+                cached = cached_status(params.get("items") or [])
+            except Exception as exc:
+                _log("status cache read failed: %s" % exc, xbmc.LOGDEBUG)
+                cached = None
+            if cached is not None:
+                self._set_result(result_property, cached)
+                return
+
         self._rpc_queue.append((action, handler, params, result_property))
 
-    def drain_rpc(self):
-        """Process one queued RPC (HTTP) on the service thread."""
-        if not self._rpc_queue:
-            return
-        action, handler, params, result_property = self._rpc_queue.popleft()
-        self._run_rpc(action, handler, params, result_property)
+    def drain_rpc(self, budget_s=_RPC_DRAIN_BUDGET):
+        """Process queued HTTP RPCs on the service thread, up to budget_s."""
+        started = time.time()
+        while self._rpc_queue:
+            action, handler, params, result_property = self._rpc_queue.popleft()
+            self._run_rpc(action, handler, params, result_property)
+            if time.time() - started >= budget_s:
+                break
 
     def _run_rpc(self, action, handler, params, result_property):
         try:
@@ -236,7 +258,38 @@ class DejaVuMonitor(xbmc.Monitor):
         )
 
     def _handle_get_media_status(self, params):
-        return self.api.get_media_status(params.get("items") or [])
+        result = self.api.get_media_status(params.get("items") or [])
+        data = result.get("data") if isinstance(result, dict) else None
+        if isinstance(data, dict) and data:
+            try:
+                from .cache import upsert_status
+                upsert_status(data)
+            except Exception as exc:
+                _log("status cache upsert failed: %s" % exc, xbmc.LOGDEBUG)
+        return result
+
+    def _handle_get_capabilities(self, params):
+        version = ""
+        try:
+            version = xbmcaddon.Addon().getAddonInfo("version") or ""
+        except Exception:
+            version = ""
+        plus = []
+        try:
+            from .cache import plus_features_available
+            plus = plus_features_available()
+        except Exception:
+            plus = []
+        return capabilities_payload(version, plus)
+
+    def _handle_get_last_activities(self, params):
+        return self.api.get_last_activities()
+
+    def _handle_get_show_progress(self, params):
+        return self.api.get_show_progress(params.get("ids") or [])
+
+    def _handle_resolve_media_batch(self, params):
+        return self.api.resolve_media_batch(params.get("items") or [])
 
     def _handle_get_me(self, params):
         from .auth_handler import is_logged_in
@@ -422,6 +475,11 @@ class DejaVuMonitor(xbmc.Monitor):
     def _broadcast_write(self, action, params, result):
         if result is None:
             return
+        try:
+            from .cache import apply_write
+            apply_write(action, params)
+        except Exception as exc:
+            _log("cache write failed: %s" % exc, xbmc.LOGDEBUG)
         extra = {}
         if params.get("list_id"):
             extra["list_id"] = params["list_id"]

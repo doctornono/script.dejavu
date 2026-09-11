@@ -6,9 +6,11 @@ Instantiates the scrobbler and drives the tick loop.
 """
 
 import xbmc
+from resources.lib.cache import warm_tick
 from resources.lib.scrobbler import DejaVuPlayer
 from resources.lib.monitor import DejaVuMonitor
 from resources.lib.session import sync_settings_from_session
+from resources.lib.util import publish_auth_window
 
 SESSION_SYNC_EVERY = 30
 
@@ -19,6 +21,7 @@ def run():
     ticks = 0
 
     xbmc.log("[dejaVu] Service started.", xbmc.LOGINFO)
+    publish_auth_window()
 
     while not monitor.abortRequested():
         try:
@@ -26,9 +29,13 @@ def run():
         except Exception as exc:
             xbmc.log("[dejaVu] tick failed: %s" % exc, xbmc.LOGWARNING)
         try:
-            monitor.drain_rpc()
+            monitor.drain_rpc(budget_s=0.2)
         except Exception as exc:
             xbmc.log("[dejaVu] RPC drain failed: %s" % exc, xbmc.LOGWARNING)
+        try:
+            warm_tick(monitor.api)
+        except Exception as exc:
+            xbmc.log("[dejaVu] cache warm failed: %s" % exc, xbmc.LOGDEBUG)
         ticks += 1
         if ticks >= SESSION_SYNC_EVERY:
             ticks = 0

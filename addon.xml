@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dejavu" name="dejaVu" version="1.18.1" provider-name="doctornono">
+<addon id="script.dejavu" name="dejaVu" version="1.19.0" provider-name="doctornono">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
@@ -11,6 +11,11 @@
     <!-- Script principal (menu Programs) -->
     <extension point="xbmc.python.script" library="default.py">
         <provides>executable</provides>
+    </extension>
+
+    <!-- Skin widgets: identity listings only, no streams -->
+    <extension point="xbmc.python.pluginsource" library="plugin.py">
+        <provides>video</provides>
     </extension>
 
     <!-- Librairie partagée -->
@@ -33,8 +38,8 @@
         <source>https://github.com/doctornono/script.dejavu</source>
         <summary lang="en_GB">Everything you love to watch, whenever you want.</summary>
         <summary lang="fr_FR">Tout ce que vous aimez, quand vous le voulez.</summary>
-        <description lang="en_GB">Track movies and TV shows in Kodi with dejaVu.plus. Automatic scrobbling, watchlist, ratings, favorites, collection, and Kodi library import. Sign in with a QR code from the add-on settings — no password in Kodi. Requires a dejaVu.plus account. This add-on does not provide streams.</description>
-        <description lang="fr_FR">Suivez vos films et séries dans Kodi avec dejaVu.plus. Scrobbling automatique, liste de suivi, notes, favoris, collection et import de la bibliothèque Kodi. Connexion par QR code depuis les paramètres de l’extension — aucun mot de passe dans Kodi. Nécessite un compte dejaVu.plus. Cette extension ne fournit pas de flux.</description>
+        <description lang="en_GB">Track movies and TV shows in Kodi with dejaVu.plus. Automatic scrobbling, watchlist, ratings, favorites, collection, and Kodi library import. Skins can use plugin://script.dejavu/ widgets. Sign in with a QR code from the add-on settings — no password in Kodi. Requires a dejaVu.plus account. This add-on does not provide streams.</description>
+        <description lang="fr_FR">Suivez vos films et séries dans Kodi avec dejaVu.plus. Scrobbling automatique, liste de suivi, notes, favoris, collection et import de la bibliothèque Kodi. Les skins peuvent utiliser les widgets plugin://script.dejavu/. Connexion par QR code depuis les paramètres de l’extension — aucun mot de passe dans Kodi. Nécessite un compte dejaVu.plus. Cette extension ne fournit pas de flux.</description>
         <disclaimer lang="en_GB">For full synchronization, ensure your dejaVu.plus account is active. Background scrobbling might be affected by power saving settings.</disclaimer>
         <disclaimer lang="fr_FR">Pour une synchronisation complète, assurez-vous que votre compte dejaVu.plus est actif. Le scrobbling en arrière-plan peut être affecté par les réglages d'économie d'énergie.</disclaimer>
         <news lang="en_GB">

@@ -119,8 +119,19 @@ Le détail de ce que chaque case ajoute sur [dejaVu.plus](https://dejavu.plus) e
 
 ---
 
+## Widgets skins
+
+`plugin://script.dejavu/` expose des listes d’identité (liste de suivi, historique, favoris, reprendre, à suivre). Aucun flux : un clic joue le titre **s’il est dans la bibliothèque Kodi**, sinon une notification invite à utiliser un addon vidéo.
+
+Propriétés Window 10000 : `script.dejavu.authenticated`, `script.dejavu.username`.
+
+Les addons hôtes (vStream, alkoFlix) peuvent proposer **Connecter dejaVu** : une seule session, le même QR.
+
+---
+
 ## Pour aller plus loin
 
 - Tous les réglages, case par case : [PARAMETRES.md](PARAMETRES.md)
 - Installation pas à pas : [INSTALL.md](INSTALL.md)
 - Intégrer dejaVu dans un autre addon : [DEVELOPERS.md](DEVELOPERS.md)
+- Contrat ListItem : [LISTITEM.md](LISTITEM.md)

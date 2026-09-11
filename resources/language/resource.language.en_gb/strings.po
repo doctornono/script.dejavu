@@ -647,6 +647,50 @@ msgctxt "#30207"
 msgid "Add a new view (%d view, %s)"
 msgstr ""
 
+msgctxt "#30210"
+msgid "Watchlist"
+msgstr ""
+
+msgctxt "#30211"
+msgid "History"
+msgstr ""
+
+msgctxt "#30212"
+msgid "Favorites"
+msgstr ""
+
+msgctxt "#30213"
+msgid "Continue watching"
+msgstr ""
+
+msgctxt "#30214"
+msgid "Up next"
+msgstr ""
+
+msgctxt "#30215"
+msgid "Movies"
+msgstr ""
+
+msgctxt "#30216"
+msgid "TV shows"
+msgstr ""
+
+msgctxt "#30217"
+msgid "Episodes"
+msgstr ""
+
+msgctxt "#30218"
+msgid "Not in the Kodi library. Use your video addon to play this title."
+msgstr ""
+
+msgctxt "#30219"
+msgid "Sign in to dejaVu"
+msgstr ""
+
+msgctxt "#30221"
+msgid "Next page"
+msgstr ""
+
 # Settings labels
 msgctxt "#30099"
 msgid "Access Token"

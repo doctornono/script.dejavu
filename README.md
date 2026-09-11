@@ -21,6 +21,7 @@ Ce n’est **pas** un lecteur ni un scraper : l’extension ne fournit aucun flu
 - Miroir optionnel vers la bibliothèque Kodi (`playcount` / `userrating`)
 - Connexion par QR code (**DejaVu Connect**) — aucun mot de passe dans Kodi
 - Import one-shot de la bibliothèque Kodi (historique, notes, collection Digital, reprise, favoris)
+- Widgets skins : `plugin://script.dejavu/` (liste de suivi, historique, reprendre, à suivre) — aucun flux
 
 ### Installation
 
@@ -35,7 +36,7 @@ Paramètres (dont l’import Kodi) : **[PARAMETRES.md](docs/PARAMETRES.md)**.
 
 ### Connexion (paramètres du script)
 
-La connexion se fait **depuis dejaVu**, pas depuis un autre addon.
+Une **seule session**, dans dejaVu. Un addon hôte (vStream, alkoFlix) peut ouvrir le même dialogue QR via `authenticate()`.
 
 1. `Extensions > Mes extensions > Programmes > dejaVu > Configurer`.
 2. Onglet **Compte** → **Connecter dejaVu**.
@@ -59,21 +60,23 @@ Sur une liste plugin (vStream, etc.), le menu contextuel parle à dejaVu.plus. L
 dejaVu est une **couche d’identité** (comme Trakt) pour vStream, alkoFlix, les skins, etc. Les autres addons n’appellent jamais `dejavu.plus/api/v1` : ils utilisent `DejaVuClient`.
 
 ```python
-from client import DejaVuClient
+from helpers import get_dejavu, dejavu_flags
 
-dv = DejaVuClient()
-if not dv.is_authenticated():
+dv = get_dejavu()
+if dv and not dv.is_authenticated():
     dv.authenticate()  # dialogue QR
 
 status = dv.get_media_status([
     {"type": "movie", "id": 603},
     {"type": "tv", "id": 1396},
+    {"type": "episode", "id": 62085, "tmdbId": 1396, "seasonNumber": 1, "episodeNumber": 1},
 ])
 ```
 
 Documentation complète :
 
 - [DEVELOPERS.md](docs/DEVELOPERS.md) — guide développeur (RPC, Connect, import)
+- [LISTITEM.md](docs/LISTITEM.md) — contrat ListItem pour les addons hôtes
 - [FONCTIONNALITES.md](docs/FONCTIONNALITES.md) — guide utilisateur
 - [PARAMETRES.md](docs/PARAMETRES.md) — réglages et import Kodi
 
@@ -94,6 +97,7 @@ This is **not** a player or a scraper: the add-on does not provide streams. It w
 - Optional mirror of watched status and ratings onto the Kodi library (`playcount` / `userrating`)
 - QR sign-in (**DejaVu Connect**) — no password in Kodi
 - One-shot Kodi library import (history, ratings, Digital collection, resume, favorites)
+- Skin widgets: `plugin://script.dejavu/` (watchlist, history, continue watching, up next) — no streams
 
 ### Installation
 
@@ -108,7 +112,7 @@ Settings (including Kodi import): **[PARAMETRES.md](docs/PARAMETRES.md)**.
 
 ### Sign in (script settings)
 
-Sign in from **dejaVu itself**, not from another add-on.
+There is **one session**, in dejaVu. A host addon (vStream, alkoFlix) may open the same QR dialog via `authenticate()`.
 
 1. `Add-ons > My add-ons > Program add-ons > dejaVu > Configure`.
 2. **Account** tab → **Login with dejaVu**.
@@ -132,21 +136,23 @@ On plugin lists (vStream, etc.) the context menu talks to dejaVu.plus. Watched b
 dejaVu is an **identity layer** (like Trakt) for vStream, alkoFlix, skins, and others. Other addons never call `dejavu.plus/api/v1`: they use `DejaVuClient`.
 
 ```python
-from client import DejaVuClient
+from helpers import get_dejavu, dejavu_flags
 
-dv = DejaVuClient()
-if not dv.is_authenticated():
+dv = get_dejavu()
+if dv and not dv.is_authenticated():
     dv.authenticate()  # QR dialog
 
 status = dv.get_media_status([
     {"type": "movie", "id": 603},
     {"type": "tv", "id": 1396},
+    {"type": "episode", "id": 62085, "tmdbId": 1396, "seasonNumber": 1, "episodeNumber": 1},
 ])
 ```
 
 Full documentation:
 
 - [DEVELOPERS.md](docs/DEVELOPERS.md) — English developer guide (RPC, Connect, import)
+- [LISTITEM.md](docs/LISTITEM.md) — ListItem contract for host addons
 - [PARAMETRES.md](docs/PARAMETRES.md) — settings and Kodi library import
 - [FONCTIONNALITES.md](docs/FONCTIONNALITES.md) — French end-user guide
 

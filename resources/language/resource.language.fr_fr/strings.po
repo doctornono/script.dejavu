@@ -641,3 +641,47 @@ msgstr "Ajouter une nouvelle vue (%d vues, %s)"
 msgctxt "#30207"
 msgid "Add a new view (%d view, %s)"
 msgstr "Ajouter une nouvelle vue (%d vue, %s)"
+
+msgctxt "#30210"
+msgid "Watchlist"
+msgstr "Liste de suivi"
+
+msgctxt "#30211"
+msgid "History"
+msgstr "Historique"
+
+msgctxt "#30212"
+msgid "Favorites"
+msgstr "Favoris"
+
+msgctxt "#30213"
+msgid "Continue watching"
+msgstr "Reprendre la lecture"
+
+msgctxt "#30214"
+msgid "Up next"
+msgstr "Épisode suivant"
+
+msgctxt "#30215"
+msgid "Movies"
+msgstr "Films"
+
+msgctxt "#30216"
+msgid "TV shows"
+msgstr "Séries"
+
+msgctxt "#30217"
+msgid "Episodes"
+msgstr "Épisodes"
+
+msgctxt "#30218"
+msgid "Not in the Kodi library. Use your video addon to play this title."
+msgstr "Absent de la bibliothèque Kodi. Utilisez votre addon vidéo pour lire ce titre."
+
+msgctxt "#30219"
+msgid "Sign in to dejaVu"
+msgstr "Connecter dejaVu"
+
+msgctxt "#30221"
+msgid "Next page"
+msgstr "Page suivante"

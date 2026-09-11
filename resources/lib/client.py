@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import json
+import time
+import uuid
+
 import xbmc
 import xbmcaddon
 import xbmcgui
-import json
-import time
 
 
 class DejaVuClient:
@@ -19,6 +21,7 @@ class DejaVuClient:
         """
         self.timeout = timeout
         self.window = xbmcgui.Window(10000)
+        self._monitor = xbmc.Monitor()
 
     def _log(self, msg, level=xbmc.LOGDEBUG):
         xbmc.log(f"[script.dejavu.Client] {msg}", level)
@@ -32,7 +35,8 @@ class DejaVuClient:
         :return: The result (dict/list) or None if error/timeout.
         """
         method = f"script.dejavu.{action}"
-        result_property = f"{method}.result"
+        request_id = uuid.uuid4().hex[:12]
+        result_property = f"{method}.result.{request_id}"
 
         self.window.clearProperty(result_property)
 
@@ -51,7 +55,7 @@ class DejaVuClient:
 
         start_time = time.time()
         while time.time() - start_time < self.timeout:
-            if xbmc.Monitor().waitForAbort(0.1):
+            if self._monitor.waitForAbort(0.1):
                 return None
 
             result_raw = self.window.getProperty(result_property)
@@ -131,11 +135,47 @@ class DejaVuClient:
     def get_me(self):
         return self.call("get_me", {})
 
+    def _local_session_token(self):
+        try:
+            import xbmcvfs
+            path = xbmcvfs.translatePath(
+                "special://profile/addon_data/script.dejavu/session.json"
+            )
+            with open(path, "r", encoding="utf-8") as handle:
+                data = json.load(handle) or {}
+            token = data.get("access_token") or ""
+            if token:
+                return True
+            return False
+        except Exception:
+            pass
+        try:
+            token = xbmcaddon.Addon("script.dejavu").getSetting("access_token") or ""
+            return bool(token)
+        except Exception:
+            return None
+
     def is_authenticated(self):
+        """Read session.json first. An RPC timeout is not treated as logout."""
+        local = self._local_session_token()
+        if local is not None:
+            return bool(local)
         result = self.call("is_authenticated", {})
         if isinstance(result, dict):
             return bool(result.get("authenticated"))
         return False
+
+    def get_capabilities(self):
+        return self.call("get_capabilities", {})
+
+    def get_last_activities(self):
+        return self.call("get_last_activities", {})
+
+    def get_show_progress(self, ids):
+        return self.call("get_show_progress", {"ids": list(ids or [])})
+
+    def resolve_media_batch(self, items):
+        return self.call("resolve_media_batch", {"items": items or []})
 
     def authenticate(self, timeout=300):
         """

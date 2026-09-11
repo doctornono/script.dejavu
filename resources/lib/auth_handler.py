@@ -21,7 +21,7 @@ from .session import (
     reopen_settings_from_session,
     save_session,
 )
-from .util import notify_changed
+from .util import notify_changed, publish_auth_window
 
 ADDON = xbmcaddon.Addon()
 AUTH_STATUS_PROP = "script.dejavu.auth.status"
@@ -158,6 +158,12 @@ def _persist_login(token_data):
     })
     ADDON.setSetting("username", username)
     expire_local_session._notified = False
+    try:
+        from .cache import clear as clear_cache
+        clear_cache()
+    except Exception:
+        pass
+    publish_auth_window(True, username)
     xbmc.log(f"[dejaVu] Login successful: {username}", xbmc.LOGINFO)
     _set_auth_status("success")
     notify_changed("authenticated")
@@ -285,6 +291,12 @@ def expire_local_session():
     ADDON.setSetting("refresh_token", "")
     ADDON.setSetting("username", "")
     _set_auth_status("")
+    try:
+        from .cache import clear as clear_cache
+        clear_cache()
+    except Exception:
+        pass
+    publish_auth_window(False, "")
     notify_changed("auth")
     if getattr(expire_local_session, "_notified", False):
         return
@@ -307,6 +319,12 @@ def logout(reopen_settings=True):
     ADDON.setSetting("kodi_import_offered", "false")
     ADDON.setSetting("kodi_import_at", "")
     _set_auth_status("")
+    try:
+        from .cache import clear as clear_cache
+        clear_cache()
+    except Exception:
+        pass
+    publish_auth_window(False, "")
     xbmc.log("[dejaVu] User logged out.", xbmc.LOGINFO)
     notify_changed("auth")
     xbmcgui.Dialog().notification(

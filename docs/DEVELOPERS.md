@@ -15,7 +15,9 @@ Typical uses:
 IDs are **TMDB**. `get_media_status` covers **`movie`**, **`tv`** (the show), and **`episode`**. Overlay badges on list screens are still usually movie/show rows; the **dejaVu** context item is what users use on a focused title (including episodes).
 
 End-user docs: [README.md](../README.md) · [INSTALL.md](INSTALL.md) · [FONCTIONNALITES.md](FONCTIONNALITES.md) · [PARAMETRES.md](PARAMETRES.md).  
-Internal Kodi → dejaVu import mapping: [IMPORT_KODI.md](IMPORT_KODI.md).
+Internal Kodi → dejaVu import mapping: [IMPORT_KODI.md](IMPORT_KODI.md).  
+ListItem contract for host addons: [LISTITEM.md](LISTITEM.md).  
+Plus HTTP (script.dejavu only): [API_PLUS.md](API_PLUS.md).
 
 ---
 
@@ -24,9 +26,10 @@ Internal Kodi → dejaVu import mapping: [IMPORT_KODI.md](IMPORT_KODI.md).
 The user never talks to Better Auth or the REST API. Your addon only uses `DejaVuClient`.
 
 ```python
+from helpers import get_dejavu
 from client import DejaVuClient
 
-dv = DejaVuClient()
+dv = get_dejavu() or DejaVuClient()
 
 if not dv.is_authenticated():
     result = dv.authenticate()  # QR dialog; waits up to 5 minutes
@@ -44,11 +47,13 @@ Listen for `script.dejavu.changed` with `action: "authenticated"` (or `"auth"` o
 
 Suggested UI: a single **Connect dejaVu** button in your settings (next to Trakt). DejaVu is meant to coexist with Trakt.
 
-Depend on `script.dejavu` ≥ **1.5.0** for Connect. Library import requires ≥ **1.7.0**. Production builds should depend on ≥ **1.11.0**.
+Depend on `script.dejavu` ≥ **1.11.0**. Prefer the current listing-layer build (cache, `request_id`, `get_capabilities`, `plugin://` widgets).
 
-RPC runs **as the signed-in user**. Any installed Kodi addon can send `NotifyAll` with a spoofed sender: treat other addons as trusted at the Kodi layer. From 1.10.0, `result_property` must start with `script.dejavu.` (DejaVuClient already does). The REST `api_url` is pinned to `https://dejavu.plus` unless the user enables debug.
+RPC runs **as the signed-in user**. Any installed Kodi addon can send `NotifyAll` with a spoofed sender: treat other addons as trusted at the Kodi layer. From 1.10.0, `result_property` must start with `script.dejavu.` From this listing layer, `DejaVuClient` appends a unique `request_id` so concurrent calls do not overwrite Window 10000. The REST `api_url` is pinned to `https://dejavu.plus` unless the user enables debug.
 
-From **1.11.0**: HTTP RPC is queued (`onNotification` enqueues; the service drains **one** job after `tick()`). `is_authenticated` stays synchronous (disk/cache). `DejaVuClient` still uses a 5 s wait — a job that already took 10 s HTTP can still time out, as before. A **401/403** (except device pairing) clears the local session once and broadcasts `script.dejavu.changed` with `action: "auth"`. Playback start defers `/media/resolve` + scrobble start to the next `tick()`, so Kodi does not wait on resolve to begin playing.
+Host addons **may** offer a **Connect dejaVu** button via `authenticate()` (one session, next to Trakt). Do not collect a password in Kodi.
+
+From **1.11.0**: HTTP RPC is queued; `is_authenticated` is local (session.json). A **401/403** (except device pairing) clears the local session and the status cache, and broadcasts `script.dejavu.changed` with `action: "auth"`. The service drains queued HTTP jobs with a short time budget after `tick()`. `get_media_status` is served from the local SQLite cache when every requested key is present. Playback start defers `/media/resolve` + scrobble start to the next `tick()`.
 
 ---
 
@@ -122,44 +127,36 @@ In your `addon.xml`:
 ```xml
 <requires>
     <import addon="xbmc.python" version="3.0.0"/>
-    <import addon="script.dejavu" version="1.5.0"/>
+    <import addon="script.dejavu" version="1.11.0"/>
 </requires>
 ```
 
-Do not copy `api_client.py`. You may copy `resources/lib/client.py` if you prefer not to depend on the addon at import time; keeping the import is simpler.
+Do not copy `api_client.py`. Prefer `from helpers import get_dejavu, dejavu_flags, auth_state`. You may copy `resources/lib/helpers.py` if you prefer not to depend on the addon at import time.
 
 ## 2. Import the client
 
 `script.dejavu` exposes `resources/lib` as a Kodi Python module, so this works once the addon is installed:
 
 ```python
+from helpers import get_dejavu, auth_state, dejavu_flags
 from client import DejaVuClient
 ```
 
-That module export is for `DejaVuClient`. Importing `session.get_access_token` is **not** the public API — use `DejaVuClient.is_authenticated()` / RPC. The settings `access_token` mirror remains for addons that read it as a fallback (see plugin.video.dejavu).
+`DejaVuClient.is_authenticated()` reads `session.json` (no RPC). Importing `session.get_access_token` is **not** the public API. An RPC timeout is **not** a logout.
 
-Guard the import so your addon still runs if dejaVu is missing:
+Guard the import so your addon still runs if dejaVu is missing — `get_dejavu()` already does that.
 
-```python
-import xbmc
+The user must also be **logged in**. If they are not, calls return `None` or `{ "success": false, ... }`. Fail soft: hide badges, keep your UI working.
 
-def get_dejavu(timeout=5):
-    if not xbmc.getCondVisibility("System.HasAddon(script.dejavu)"):
-        return None
-    try:
-        from client import DejaVuClient
-        return DejaVuClient(timeout=timeout)
-    except Exception:
-        return None
-```
+`DejaVuClient(timeout=5)` waits up to 5 seconds on Window 10000. Cached `get_media_status` returns immediately. Use `timeout=8` only on a cold cache / large batch.
 
-The user must also be **logged in**. If they are not, calls return `None` or `{ "success": false, ... }` after timeout. Fail soft: hide badges, keep your UI working.
-
-`DejaVuClient(timeout=5)` waits up to 5 seconds on Window 10000 for the service reply. Use `timeout=8` for large `get_media_status` batches.
+`dv.get_capabilities()` (sync, no HTTP) returns `{ protocol, addonVersion, features }`. Feature-detect `episode_status`, `media_status_cache`, `show_progress`, `resolve_batch`, `sync_cursor`, `plugin_widgets`.
 
 ## Context menu
 
 Users already have a **dejaVu** item on movies, shows, seasons, and episodes (Videos, playlist, video info — not the add-on browser). Do **not** add a second dejaVu submenu. Make that item useful on *your* rows:
+
+Minimum ListItem fields: **[LISTITEM.md](LISTITEM.md)**.
 
 1. Set **`UniqueID(tmdb)`** (and `imdb` if you have it). Plugin query `tmdb_id=` / `/tmdb/123` also works. For episodes, set the episode TMDB id when you can, plus show id + season + episode.
 2. Set `DBType` / `mediatype` to `movie`, `tvshow`, `season`, or `episode` so the XML `<visible>` matches.
@@ -206,12 +203,17 @@ Response:
       "inCollection": false,
       "isFavorite": false,
       "rating": 8,
-      "watchlistPriority": 2
+      "watchlistPriority": 2,
+      "watchedEpisodes": 40,
+      "airedEpisodes": 62
     },
     "episode:62085": {
       "watched": true,
       "rewatchCount": 2,
-      "watchedAt": "2026-09-11T19:00:00.000Z"
+      "watchedAt": "2026-09-11T19:00:00.000Z",
+      "progress": 800,
+      "duration": 3000,
+      "inProgress": true
     }
   }
 }
@@ -240,6 +242,9 @@ Rules:
 - `type` is `"movie"`, `"tv"`, or `"episode"`. For show-level lists (watchlist, favorites), still use `"tv"` with the **show** TMDB id.
 - `id` must be a numeric TMDB id (movie, show, or episode). If you only have IMDb, call `resolve_media` first. Episodes may omit `id` and send `tmdbId` (show) + `seasonNumber` + `episodeNumber` instead.
 - Batch in chunks of 50. Prefer `minimal=True` on list endpoints when you only need ids.
+- Optional fields (`progress`, `duration`, `inProgress`, `watchedEpisodes`, `airedEpisodes`) appear when dejaVu.plus provides them; ignore if missing.
+- `get_show_progress([1396])` returns season/episode maps for « 4/10 » (404 → `{ "success": false, "error": "not_found" }`).
+- `resolve_media_batch([{ "imdbId": "tt0133093", "type": "movie" }])` resolves up to 50 ids (falls back to unitary resolve).
 
 ## 4. Resolve identifiers — `resolve_media`
 
@@ -387,8 +392,8 @@ On unknown RPC actions the service writes `{ "success": false, "error": "Unknown
 You do not need this if you use `DejaVuClient`. The protocol:
 
 1. Caller sends `NotifyAll(<your.addon.id>, script.dejavu.<action>, "<json>")` (quote the JSON — commas would otherwise split the builtin).
-2. JSON may include `result_property` (default `script.dejavu.<action>.result`). From 1.10.0 the name **must** start with `script.dejavu.`; anything else is ignored.
-3. From 1.11.0 the service queues the HTTP call and processes one job per loop tick (`is_authenticated` is still handled immediately).
+2. JSON may include `result_property` (default `script.dejavu.<action>.result`). From 1.10.0 the name **must** start with `script.dejavu.`; anything else is ignored. `DejaVuClient` uses `script.dejavu.<action>.result.<request_id>` so concurrent callers do not collide.
+3. Local handlers (`is_authenticated`, `get_capabilities`, cache-complete `get_media_status`) run immediately. Other HTTP RPCs are queued and drained with a short budget after `tick()`.
 4. The service writes the JSON result on **Window 10000**.
 5. Poll that property until it is set or you time out.
 
@@ -445,7 +450,11 @@ while time.time() < deadline:
 | `get_dashboard_widget` | `widget_type`, `list_id`, `page`, `page_size`, `minimal` |
 | `get_me` | — |
 | `is_authenticated` | — |
+| `get_capabilities` | — |
+| `get_last_activities` | — |
+| `get_show_progress` | `ids` — show TMDB ids, max 20 |
 | `resolve_media` | `imdb_id`, `tmdb_id`, `type`, `title`, `year` |
+| `resolve_media_batch` | `items` — `[{imdbId, type, title, year}, ...]` max 50 |
 
 **Write**
 
@@ -472,10 +481,11 @@ while time.time() < deadline:
 
 ## Checklist for a first integration
 
-1. Depend on `script.dejavu` ≥ 1.11.0 and import `DejaVuClient` behind `System.HasAddon`.
-2. Offer **Connect dejaVu** via `dv.authenticate()` (never collect a password in Kodi).
-3. Map your items to TMDB (`resolve_media` if you only have IMDb or a title). Set `UniqueID(tmdb)` (and `DBType`) so the native **dejaVu** context item can resolve the row.
-4. Call `get_media_status` in batches of 50 and paint badges from `data["movie:123"]` (optional `rewatchCount` / `watchedAt` when watched).
+1. Depend on `script.dejavu` ≥ 1.11.0 and import `from helpers import get_dejavu, dejavu_flags` behind `System.HasAddon`.
+2. Offer **Connect dejaVu** via `dv.authenticate()` (never collect a password in Kodi). One session — do not build a second login.
+3. Map your items to TMDB (`resolve_media` / `resolve_media_batch` if you only have IMDb or a title). Set the [ListItem contract](LISTITEM.md) so the native **dejaVu** context item can resolve the row.
+4. Call `get_media_status` in batches of 50 and paint badges from `data["movie:123"]` (optional `rewatchCount` / `watchedAt` / `progress` when present). Use `type: "episode"` on episode rows.
 5. Wire one write (watchlist toggle is enough) and listen for `script.dejavu.changed`.
-6. Treat `None` / missing addon / logged-out user as “no badges”, not as a crash.
-7. Optional: **Import my Kodi history** via `dv.import_kodi_library()` (`script.dejavu` ≥ 1.7.0). Do not send library playback as scrobbles.
+6. Treat `None` / missing addon / logged-out user as “no badges”, not as a crash. An RPC timeout is not a logout.
+7. Optional: **Import my Kodi history** via `dv.import_kodi_library()`. Do not send library playback as scrobbles.
+8. Skins: widgets at `plugin://script.dejavu/?action=watchlist` (also `history`, `favorites`, `scrobbles`, `up_next`). Window 10000: `script.dejavu.authenticated`, `script.dejavu.username`. These listings have **no streams** — play uses the Kodi library when the title exists.

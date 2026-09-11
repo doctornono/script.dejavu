@@ -86,6 +86,13 @@ class ResultPropertyTests(unittest.TestCase):
             "script.dejavu.get_me.result",
         )
 
+    def test_keeps_request_id_suffix(self):
+        prop = "script.dejavu.get_media_status.result.ab12cd34ef56"
+        self.assertEqual(
+            pure.sanitize_result_property("get_media_status", prop),
+            prop,
+        )
+
 
 class SessionMigrationTests(unittest.TestCase):
     def test_no_resurrection_when_session_json_exists(self):
@@ -293,6 +300,22 @@ class StatusFlagsTests(unittest.TestCase):
             2,
         )
 
+    def test_progress_fields_pass_through(self):
+        result = {
+            "data": {
+                "movie:603": {
+                    "watched": False,
+                    "inProgress": True,
+                    "progress": 120,
+                    "duration": 8000,
+                }
+            }
+        }
+        flags = pure.status_flags(result, "movie", 603)
+        self.assertTrue(flags.get("inProgress"))
+        self.assertEqual(flags.get("progress"), 120)
+        self.assertEqual(flags.get("duration"), 8000)
+
 
 class FormatWatchedAtTests(unittest.TestCase):
     def test_iso_to_dmy(self):
@@ -305,6 +328,87 @@ class FormatWatchedAtTests(unittest.TestCase):
         self.assertEqual(pure.format_watched_at(""), "")
         self.assertEqual(pure.format_watched_at(None), "")
         self.assertEqual(pure.format_watched_at("not-a-date"), "")
+
+
+class CapabilitiesAndKeysTests(unittest.TestCase):
+    def test_capabilities_core_and_plus(self):
+        payload = pure.capabilities_payload("1.18.1", ["sync_cursor", "unknown"])
+        self.assertTrue(payload["success"])
+        self.assertEqual(payload["protocol"], 2)
+        self.assertEqual(payload["addonVersion"], "1.18.1")
+        self.assertIn("request_id", payload["features"])
+        self.assertIn("media_status_cache", payload["features"])
+        self.assertIn("plugin_widgets", payload["features"])
+        self.assertIn("sync_cursor", payload["features"])
+        self.assertNotIn("unknown", payload["features"])
+
+    def test_is_not_found(self):
+        self.assertTrue(pure.is_not_found({"success": False, "error": "not_found"}))
+        self.assertFalse(pure.is_not_found({"success": True, "data": {}}))
+        self.assertFalse(pure.is_not_found(None))
+
+    def test_iso_newer(self):
+        self.assertTrue(pure.iso_newer("2026-09-11T20:00:00.000Z", ""))
+        self.assertTrue(pure.iso_newer("2026-09-11T20:00:00.000Z", "2026-09-11T19:00:00.000Z"))
+        self.assertFalse(pure.iso_newer("", "2026-09-11T19:00:00.000Z"))
+        self.assertFalse(pure.iso_newer("2026-09-11T18:00:00.000Z", "2026-09-11T19:00:00.000Z"))
+
+    def test_media_status_keys_movie_and_episode(self):
+        self.assertEqual(
+            pure.media_status_keys({"type": "movie", "id": 603}),
+            ["movie:603"],
+        )
+        keys = pure.media_status_keys({
+            "type": "episode",
+            "id": 62085,
+            "tmdbId": 1396,
+            "seasonNumber": 1,
+            "episodeNumber": 1,
+        })
+        self.assertEqual(keys, ["episode:62085", "episode:1396:1:1"])
+        self.assertEqual(pure.media_status_keys({"type": "season", "id": 1}), [])
+
+    def test_merge_status_flags_none_deletes(self):
+        merged = pure.merge_status_flags(
+            {"watched": True, "rating": 8},
+            {"rating": None, "inWatchlist": True},
+        )
+        self.assertTrue(merged["watched"])
+        self.assertTrue(merged["inWatchlist"])
+        self.assertNotIn("rating", merged)
+
+    def test_row_status_update_watchlist(self):
+        mapping = pure.row_status_update(
+            {"type": "movie", "tmdbId": 603, "priority": 2},
+            "watchlist",
+        )
+        self.assertEqual(mapping["movie:603"]["inWatchlist"], True)
+        self.assertEqual(mapping["movie:603"]["watchlistPriority"], 2)
+
+    def test_apply_write_flags(self):
+        mapping = pure.apply_write_flags(
+            "add_to_watchlist", {"type": "movie", "id": 603},
+        )
+        self.assertEqual(mapping["movie:603"]["inWatchlist"], True)
+        cleared = pure.apply_write_flags(
+            "delete_rating", {"type": "movie", "id": 603},
+        )
+        self.assertIsNone(cleared["movie:603"]["rating"])
+        scrobble = pure.apply_write_flags(
+            "scrobble",
+            {"type": "episode", "id": 62085, "tvShowId": 1396,
+             "seasonNumber": 1, "episodeNumber": 1, "progress": 10, "duration": 50},
+        )
+        self.assertTrue(scrobble["episode:62085"]["inProgress"])
+        self.assertIn("episode:1396:1:1", scrobble)
+
+    def test_list_rows_from_result(self):
+        rows, pagination = pure.list_rows_from_result({
+            "success": True,
+            "data": {"items": [{"id": 1}], "pagination": {"hasMore": True}},
+        })
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(pagination.get("hasMore"))
 
 
 if __name__ == "__main__":

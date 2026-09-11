@@ -5,6 +5,7 @@ import json
 import sys
 import xbmc
 import xbmcaddon
+import xbmcgui
 
 from .pure import (
     ids_from_plugin_path,
@@ -21,6 +22,8 @@ from .pure import (
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = "script.dejavu"
+AUTH_WINDOW_PROP = "script.dejavu.authenticated"
+USER_WINDOW_PROP = "script.dejavu.username"
 
 
 
@@ -45,6 +48,45 @@ def get_accept_language():
         parts = lang.split("-", 1)
         return f"{parts[0]}-{parts[1].upper()}"
     return lang
+
+
+def publish_auth_window(authenticated=None, username=None):
+    """Skin-readable Window 10000 properties for the current session."""
+    try:
+        from .session import get_access_token, get_username
+        token = get_access_token() if authenticated is None else authenticated
+        name = get_username() if username is None else username
+        window = xbmcgui.Window(10000)
+        window.setProperty(AUTH_WINDOW_PROP, "true" if token else "false")
+        window.setProperty(USER_WINDOW_PROP, name or "")
+    except Exception as exc:
+        _log("publish_auth_window failed: %s" % exc, xbmc.LOGDEBUG)
+
+
+def play_from_library(info):
+    """Play a title from MyVideos if a matching library row exists."""
+    if not info:
+        return False
+    dbtype = info.get("dbtype") or info.get("media_type") or ""
+    if dbtype in ("tvshow", "tv"):
+        lib_id = _find_library_tvshow(info)
+        if not lib_id:
+            return False
+        xbmc.executebuiltin(
+            "ActivateWindow(videos,videodb://tvshows/titles/%s/,return)" % int(lib_id)
+        )
+        return True
+    if dbtype == "episode" or info.get("history_type") == "episode":
+        lib_id = _find_library_episode(info)
+        if not lib_id:
+            return False
+        res = _jsonrpc("Player.Open", {"item": {"episodeid": int(lib_id)}})
+        return not res.get("error")
+    lib_id = _find_library_movie(info)
+    if not lib_id:
+        return False
+    res = _jsonrpc("Player.Open", {"item": {"movieid": int(lib_id)}})
+    return not res.get("error")
 
 
 def notify_changed(action, media_type=None, tmdb_id=None, extra=None):

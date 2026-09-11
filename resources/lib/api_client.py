@@ -89,28 +89,40 @@ class DejaVuAPI:
         from .auth_handler import expire_local_session
         expire_local_session()
 
-    def _get(self, path, params=None):
+    def _http_not_found(self, response, path, allow_404):
+        try:
+            status = int(response.status_code) if response is not None else 0
+        except Exception:
+            status = 0
+        if allow_404 and status == 404:
+            return {"success": False, "error": "not_found"}
+        self._expire_if_unauthorized(response, path)
+        _log(
+            f"HTTP {path} error: {status}{_http_error_detail(response)}",
+            xbmc.LOGERROR,
+        )
+        return None
+
+    def _get(self, path, params=None, allow_404=False):
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
             r = requests.get(url, headers=self._headers(), params=params, timeout=10)
             r.raise_for_status()
             return r.json()
         except requests.HTTPError as e:
-            self._expire_if_unauthorized(e.response, path)
-            _log(f"GET {path} HTTP error: {e.response.status_code}{_http_error_detail(e.response)}", xbmc.LOGERROR)
+            return self._http_not_found(e.response, path, allow_404)
         except Exception as e:
             _log(f"GET {path} error: {e}", xbmc.LOGERROR)
         return None
 
-    def _post(self, path, payload, timeout=10):
+    def _post(self, path, payload, timeout=10, allow_404=False):
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
             r = requests.post(url, headers=self._headers(), json=payload, timeout=timeout)
             r.raise_for_status()
             return r.json()
         except requests.HTTPError as e:
-            self._expire_if_unauthorized(e.response, path)
-            _log(f"POST {path} HTTP error: {e.response.status_code}{_http_error_detail(e.response)}", xbmc.LOGERROR)
+            return self._http_not_found(e.response, path, allow_404)
         except Exception as e:
             _log(f"POST {path} error: {e}", xbmc.LOGERROR)
         return None
@@ -807,6 +819,88 @@ class DejaVuAPI:
         if not payload:
             return None
         return self._post("/media/resolve", payload)
+
+    def get_last_activities(self):
+        """GET /sync/last_activities — 404 → {success: false, error: not_found}."""
+        result = self._get("/sync/last_activities", allow_404=True)
+        if result is None:
+            return None
+        from .cache import remember_plus_feature
+        remember_plus_feature("sync_cursor", result.get("error") != "not_found")
+        return result
+
+    def get_show_progress(self, ids):
+        """POST /media/show-progress — max 20 show TMDB ids. 404-safe."""
+        show_ids = []
+        for raw in ids or []:
+            if raw is not None and str(raw).isdigit():
+                show_ids.append(int(raw))
+            if len(show_ids) >= 20:
+                break
+        if not show_ids:
+            return {"success": True, "data": {}}
+        result = self._post("/media/show-progress", {"ids": show_ids}, allow_404=True)
+        if result is not None and result.get("error") != "not_found":
+            from .cache import remember_plus_feature
+            remember_plus_feature("show_progress", True)
+        elif result is not None:
+            from .cache import remember_plus_feature
+            remember_plus_feature("show_progress", False)
+        return result
+
+    def resolve_media_batch(self, items):
+        """POST /media/resolve/batch — 404 falls back to unitary resolve."""
+        payload_items = []
+        for item in items or []:
+            if not isinstance(item, dict):
+                continue
+            entry = {}
+            imdb_id = item.get("imdbId") or item.get("imdb_id")
+            if imdb_id:
+                entry["imdbId"] = str(imdb_id)
+            tmdb_id = item.get("tmdbId") or item.get("tmdb_id") or item.get("id")
+            if tmdb_id is not None and str(tmdb_id).isdigit():
+                entry["tmdbId"] = int(tmdb_id)
+            if item.get("type"):
+                entry["type"] = item.get("type")
+            if item.get("title"):
+                entry["title"] = str(item.get("title"))
+            year = item.get("year")
+            if year is not None and str(year).isdigit():
+                entry["year"] = int(year)
+            if entry:
+                payload_items.append(entry)
+            if len(payload_items) >= 50:
+                break
+        if not payload_items:
+            return {"success": True, "data": {}}
+        result = self._post(
+            "/media/resolve/batch", {"items": payload_items}, allow_404=True,
+        )
+        if result is None:
+            return None
+        if result.get("error") != "not_found":
+            from .cache import remember_plus_feature
+            remember_plus_feature("resolve_batch", True)
+            return result
+        from .cache import remember_plus_feature
+        remember_plus_feature("resolve_batch", False)
+        data = {}
+        for index, entry in enumerate(payload_items):
+            hit = self.resolve_media(
+                imdb_id=entry.get("imdbId"),
+                tmdb_id=entry.get("tmdbId"),
+                media_type=entry.get("type"),
+                title=entry.get("title"),
+                year=entry.get("year"),
+            )
+            from .pure import unwrap_data
+            resolved = unwrap_data(hit) if hit else None
+            if not isinstance(resolved, dict) or not resolved.get("tmdbId"):
+                continue
+            key = entry.get("imdbId") or str(index)
+            data[key] = resolved
+        return {"success": True, "data": data}
 
     # ------------------------------------------------------------------
     # Kodi library import (migration, not scrobble)

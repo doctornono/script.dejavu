@@ -321,3 +321,228 @@ def context_actions(dbtype, flags=None):
         actions.append({"id": _LIST, "label_id": 30101})
 
     return actions
+
+
+# Listing-layer protocol (DejaVuClient / cache / plus probes)
+
+PROTOCOL = 2
+CORE_FEATURES = (
+    "request_id",
+    "episode_status",
+    "local_auth",
+    "media_status_cache",
+    "plugin_widgets",
+)
+PLUS_FEATURES = ("show_progress", "resolve_batch", "sync_cursor")
+ACTIVITIES_TTL = 900
+NOT_FOUND_ERROR = "not_found"
+
+
+def capabilities_payload(addon_version, plus_features=None):
+    """Sync get_capabilities body. plus_features = names confirmed on dejaVu.plus."""
+    features = list(CORE_FEATURES)
+    allowed = set(PLUS_FEATURES)
+    for name in plus_features or []:
+        if name in allowed and name not in features:
+            features.append(name)
+    return {
+        "success": True,
+        "protocol": PROTOCOL,
+        "addonVersion": addon_version or "",
+        "features": features,
+    }
+
+
+def is_not_found(result):
+    return isinstance(result, dict) and result.get("error") == NOT_FOUND_ERROR
+
+
+def iso_newer(remote, local):
+    """True when remote ISO timestamp is newer than the local cursor."""
+    if not remote:
+        return False
+    if not local:
+        return True
+    return str(remote) > str(local)
+
+
+def media_status_keys(item):
+    """Cache / map keys for a get_media_status request item."""
+    if not isinstance(item, dict):
+        return []
+    media_type = str(item.get("type") or "").strip().lower()
+    if media_type not in ("movie", "tv", "episode"):
+        return []
+    keys = []
+    raw_id = item.get("id")
+    if raw_id is not None and str(raw_id).isdigit():
+        keys.append("%s:%s" % (media_type, int(raw_id)))
+    if media_type != "episode":
+        return keys
+    show = item.get("tmdbId") or item.get("tmdb_id") or item.get("show_tmdb_id")
+    season = item.get("seasonNumber", item.get("season"))
+    episode = item.get("episodeNumber", item.get("episode"))
+    if (
+        show is not None and str(show).isdigit()
+        and season is not None and str(season).lstrip("-").isdigit()
+        and episode is not None and str(episode).lstrip("-").isdigit()
+    ):
+        keys.append("episode:%s:%s:%s" % (int(show), int(season), int(episode)))
+    return keys
+
+
+def merge_status_flags(existing, incoming):
+    """Merge incoming flags into a cached row. None deletes the key."""
+    out = dict(existing) if isinstance(existing, dict) else {}
+    if not isinstance(incoming, dict):
+        return out
+    for key, value in incoming.items():
+        if value is None:
+            out.pop(key, None)
+        else:
+            out[key] = value
+    return out
+
+
+def list_rows_from_result(result):
+    """Normalize a paginated v1 list to (rows, pagination)."""
+    pagination = {}
+    if isinstance(result, dict):
+        pagination = result.get("pagination") or {}
+    data = unwrap_data(result)
+    if isinstance(data, list):
+        return data, pagination
+    if not isinstance(data, dict):
+        return [], pagination
+    pagination = data.get("pagination") or pagination
+    for key in (
+        "items", "results", "widgets", "lists", "history",
+        "movies", "shows", "entries", "scrobbles",
+    ):
+        value = data.get(key)
+        if isinstance(value, list):
+            return value, pagination
+    inner = data.get("data")
+    if isinstance(inner, list):
+        return inner, pagination
+    return [], pagination
+
+
+def _row_media(row):
+    if not isinstance(row, dict):
+        return "", None, {}
+    info = row.get("info") if isinstance(row.get("info"), dict) else {}
+    media_type = str(
+        row.get("type") or info.get("mediatype") or info.get("type") or ""
+    ).strip().lower()
+    if media_type in ("movie", "movies"):
+        media_type = "movie"
+    elif media_type in ("tv", "tvshow", "show", "series"):
+        media_type = "tv"
+    elif media_type != "episode":
+        media_type = ""
+    tmdb_id = (
+        row.get("tmdbId") or row.get("tmdb_id") or info.get("tmdbId")
+        or info.get("tmdb_id")
+    )
+    if tmdb_id is None:
+        raw_id = row.get("id")
+        if raw_id is not None and str(raw_id).isdigit():
+            tmdb_id = raw_id
+    extra = {
+        "tmdbId": (
+            row.get("tvShowId") or row.get("tvShowTmdbId")
+            or row.get("showTmdbId") or row.get("show_tmdb_id")
+            or info.get("tvShowId")
+        ),
+        "seasonNumber": row.get("seasonNumber") or row.get("season") or info.get("season"),
+        "episodeNumber": row.get("episodeNumber") or row.get("episode") or info.get("episode"),
+    }
+    return media_type, tmdb_id, extra
+
+
+def row_status_update(row, scope):
+    """Map a list/history/watchlist row to {status_key: flags}."""
+    media_type, tmdb_id, extra = _row_media(row)
+    item = {"type": media_type, "id": tmdb_id}
+    item.update(extra)
+    keys = media_status_keys(item)
+    if not keys:
+        return {}
+    flags = {}
+    if scope == "history":
+        flags = {
+            "watched": True,
+            "watchedAt": row.get("watchedAt") or row.get("watched_at"),
+            "rewatchCount": row.get("rewatchCount"),
+        }
+    elif scope == "watchlist":
+        flags = {
+            "inWatchlist": True,
+            "watchlistPriority": row.get("priority") or row.get("watchlistPriority"),
+        }
+    elif scope == "favorites":
+        flags = {"isFavorite": True}
+    elif scope == "collection":
+        flags = {"inCollection": True}
+    elif scope == "ratings":
+        flags = {"rating": row.get("rating") or row.get("userRating")}
+    elif scope == "scrobbles":
+        flags = {
+            "inProgress": True,
+            "progress": row.get("progress"),
+            "duration": row.get("duration") or (row.get("info") or {}).get("duration"),
+        }
+    else:
+        return {}
+    return {key: dict(flags) for key in keys}
+
+
+def apply_write_flags(action, params):
+    """Optimistic cache patch after a successful write RPC."""
+    params = params if isinstance(params, dict) else {}
+    media_type = params.get("type")
+    item = {
+        "type": media_type,
+        "id": params.get("id"),
+        "tmdbId": params.get("tvShowId"),
+        "seasonNumber": params.get("seasonNumber"),
+        "episodeNumber": params.get("episodeNumber"),
+    }
+    keys = media_status_keys(item)
+    flags = None
+    if action == "add_to_watchlist":
+        flags = {"inWatchlist": True}
+        if params.get("priority") is not None:
+            flags["watchlistPriority"] = params.get("priority")
+    elif action == "remove_from_watchlist":
+        flags = {"inWatchlist": False, "watchlistPriority": None}
+    elif action == "add_to_favorites":
+        flags = {"isFavorite": True}
+    elif action == "remove_from_favorites":
+        flags = {"isFavorite": False}
+    elif action == "add_to_collection":
+        flags = {"inCollection": True}
+    elif action == "remove_from_collection":
+        flags = {"inCollection": False}
+    elif action in ("add_to_history", "watched"):
+        flags = {"watched": True}
+        if params.get("watched_at"):
+            flags["watchedAt"] = params.get("watched_at")
+    elif action in ("delete_history", "unwatched"):
+        flags = {"watched": False, "rewatchCount": None}
+    elif action == "rate":
+        flags = {"rating": params.get("rating")}
+    elif action == "delete_rating":
+        flags = {"rating": None}
+    elif action == "scrobble":
+        flags = {
+            "inProgress": True,
+            "progress": params.get("progress"),
+            "duration": params.get("duration"),
+        }
+    elif action == "delete_scrobble":
+        flags = {"inProgress": False, "progress": None}
+    if not flags or not keys:
+        return {}
+    return {key: dict(flags) for key in keys}
