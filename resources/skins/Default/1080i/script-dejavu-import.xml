@@ -37,99 +37,20 @@
                 <label>$ADDON[script.dejavu 30134]</label>
             </control>
 
-            <control type="label" id="202">
-                <description>We found</description>
+            <control type="textbox" id="202">
+                <description>What will be imported</description>
                 <left>40</left>
                 <top>90</top>
                 <width>720</width>
-                <height>36</height>
-                <align>center</align>
-                <font>font13</font>
-                <textcolor>FFD1D5DB</textcolor>
-                <label>$ADDON[script.dejavu 30135]</label>
-            </control>
-
-            <control type="label" id="203">
-                <description>Movies total</description>
-                <left>40</left>
-                <top>140</top>
-                <width>720</width>
-                <height>36</height>
-                <align>center</align>
+                <height>420</height>
                 <font>font13</font>
                 <textcolor>FFFFFFFF</textcolor>
-            </control>
-
-            <control type="label" id="204">
-                <description>TV shows total</description>
-                <left>40</left>
-                <top>176</top>
-                <width>720</width>
-                <height>36</height>
-                <align>center</align>
-                <font>font13</font>
-                <textcolor>FFFFFFFF</textcolor>
-            </control>
-
-            <control type="label" id="205">
-                <description>Episodes total</description>
-                <left>40</left>
-                <top>212</top>
-                <width>720</width>
-                <height>36</height>
-                <align>center</align>
-                <font>font13</font>
-                <textcolor>FFFFFFFF</textcolor>
-            </control>
-
-            <control type="label" id="206">
-                <description>Of which</description>
-                <left>40</left>
-                <top>270</top>
-                <width>720</width>
-                <height>36</height>
-                <align>center</align>
-                <font>font13</font>
-                <textcolor>FFD1D5DB</textcolor>
-            </control>
-
-            <control type="label" id="207">
-                <description>Movies watched</description>
-                <left>40</left>
-                <top>316</top>
-                <width>720</width>
-                <height>36</height>
-                <align>center</align>
-                <font>font13</font>
-                <textcolor>FF86EFAC</textcolor>
-            </control>
-
-            <control type="label" id="208">
-                <description>Shows started</description>
-                <left>40</left>
-                <top>352</top>
-                <width>720</width>
-                <height>36</height>
-                <align>center</align>
-                <font>font13</font>
-                <textcolor>FF86EFAC</textcolor>
-            </control>
-
-            <control type="label" id="209">
-                <description>Episodes watched</description>
-                <left>40</left>
-                <top>388</top>
-                <width>720</width>
-                <height>36</height>
-                <align>center</align>
-                <font>font13</font>
-                <textcolor>FF86EFAC</textcolor>
             </control>
 
             <control type="label" id="210">
                 <description>Certain matches</description>
                 <left>40</left>
-                <top>460</top>
+                <top>530</top>
                 <width>720</width>
                 <height>36</height>
                 <align>center</align>
@@ -140,7 +61,7 @@
             <control type="label" id="211">
                 <description>To verify</description>
                 <left>40</left>
-                <top>496</top>
+                <top>566</top>
                 <width>720</width>
                 <height>36</height>
                 <align>center</align>
@@ -151,7 +72,7 @@
             <control type="label" id="212">
                 <description>Unidentified</description>
                 <left>40</left>
-                <top>532</top>
+                <top>602</top>
                 <width>720</width>
                 <height>36</height>
                 <align>center</align>
@@ -162,7 +83,7 @@
             <control type="button" id="8000">
                 <description>See details</description>
                 <left>80</left>
-                <top>620</top>
+                <top>670</top>
                 <width>640</width>
                 <height>64</height>
                 <align>center</align>
@@ -178,7 +99,7 @@
             <control type="button" id="8001">
                 <description>Import</description>
                 <left>80</left>
-                <top>704</top>
+                <top>754</top>
                 <width>640</width>
                 <height>72</height>
                 <align>center</align>
@@ -194,7 +115,7 @@
             <control type="button" id="9000">
                 <description>Cancel</description>
                 <left>80</left>
-                <top>796</top>
+                <top>846</top>
                 <width>640</width>
                 <height>64</height>
                 <align>center</align>

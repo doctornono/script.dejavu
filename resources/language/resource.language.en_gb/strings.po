@@ -313,11 +313,11 @@ msgid "Import Kodi library"
 msgstr ""
 
 msgctxt "#30121"
-msgid "Import my Kodi history"
+msgid "Import only (then turn off scrobbling)"
 msgstr ""
 
 msgctxt "#30122"
-msgid "Import history and keep syncing"
+msgid "Import and keep syncing (scrobbling stays on)"
 msgstr ""
 
 msgctxt "#30123"
@@ -329,15 +329,15 @@ msgid "What would you like to import?"
 msgstr ""
 
 msgctxt "#30125"
-msgid "Watched movies"
+msgid "Import your Kodi collection into your dejaVu collection (Digital)"
 msgstr ""
 
 msgctxt "#30126"
-msgid "Watched TV shows and episodes"
+msgid "Import your Kodi watches into your dejaVu watches"
 msgstr ""
 
 msgctxt "#30127"
-msgid "Kodi ratings"
+msgid "Import your Kodi ratings into dejaVu"
 msgstr ""
 
 msgctxt "#30128"
@@ -345,7 +345,7 @@ msgid "Watch dates"
 msgstr ""
 
 msgctxt "#30129"
-msgid "Unwatched library movies (watchlist)"
+msgid "Add unwatched items from your Kodi library to your dejaVu watchlist"
 msgstr ""
 
 msgctxt "#30130"
@@ -517,7 +517,7 @@ msgid "Sending batch %s of %s..."
 msgstr ""
 
 msgctxt "#30173"
-msgid "Copy watch history, ratings, and dates from the Kodi video library."
+msgid "Copy your Kodi video library (collection, watches, ratings) into dejaVu."
 msgstr ""
 
 msgctxt "#30174"
@@ -526,6 +526,54 @@ msgstr ""
 
 msgctxt "#30175"
 msgid "Show dejaVu context menu"
+msgstr ""
+
+msgctxt "#30176"
+msgid "Every movie and TV show in your scanned Kodi library, stored as Digital."
+msgstr ""
+
+msgctxt "#30177"
+msgid "Titles you already watched, including Kodi watch dates."
+msgstr ""
+
+msgctxt "#30178"
+msgid "Ratings from 1 to 10. Existing dejaVu ratings are left unchanged."
+msgstr ""
+
+msgctxt "#30179"
+msgid "Unwatched movies and TV shows never started go to your dejaVu watchlist."
+msgstr ""
+
+msgctxt "#30180"
+msgid "Resume where you left off, unless dejaVu already has an active scrobble."
+msgstr ""
+
+msgctxt "#30181"
+msgid "Kodi library favorites only (not addon or website favorites)."
+msgstr ""
+
+msgctxt "#30182"
+msgid "You will add %s movies and %s TV shows to your Digital collection."
+msgstr ""
+
+msgctxt "#30183"
+msgid "You will import %s watched movies, %s started TV shows and %s episodes into your watches."
+msgstr ""
+
+msgctxt "#30184"
+msgid "You will import %s ratings."
+msgstr ""
+
+msgctxt "#30185"
+msgid "You will add %s unwatched movies and %s unwatched TV shows to your watchlist."
+msgstr ""
+
+msgctxt "#30186"
+msgid "You will save %s resume positions."
+msgstr ""
+
+msgctxt "#30187"
+msgid "You will add %s favorites."
 msgstr ""
 
 # Settings labels

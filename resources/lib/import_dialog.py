@@ -36,14 +36,11 @@ class ImportPreviewDialog(xbmcgui.WindowXMLDialog):
         p = self.preview
         try:
             self.getControl(201).setLabel(_ls(30134))
-            self.getControl(202).setLabel(_ls(30135))
-            self.getControl(203).setLabel(_ls(30136) % p.get("movie_total", 0))
-            self.getControl(204).setLabel(_ls(30137) % p.get("show_total", 0))
-            self.getControl(205).setLabel(_ls(30138) % p.get("episode_total", 0))
-            self.getControl(206).setLabel(_ls(30139))
-            self.getControl(207).setLabel(_ls(30140) % p.get("movies_watched", 0))
-            self.getControl(208).setLabel(_ls(30141) % p.get("shows_started", 0))
-            self.getControl(209).setLabel(_ls(30142) % p.get("episodes_watched", 0))
+            action = p.get("action_text") or ""
+            try:
+                self.getControl(202).setText(action)
+            except Exception:
+                self.getControl(202).setLabel(action)
             self.getControl(210).setLabel(_ls(30143) % p.get("certain", 0))
             self.getControl(211).setLabel(_ls(30144) % p.get("review", 0))
             self.getControl(212).setLabel(_ls(30145) % p.get("unidentified", 0))

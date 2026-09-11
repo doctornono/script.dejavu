@@ -1,3 +1,8 @@
+v1.9.0 (2026-09-11)
+- Import wizard: Kodi library → Digital collection; watches+dates merged; playlists hidden.
+- Preview states what will be added (X movies / Y shows per destination).
+- Modes: import-only turns scrobble off; import-and-sync keeps it on.
+
 v1.8.0 (2026-09-11)
 - Quote script.dejavu.changed NotifyAll JSON so pause/stop no longer logs "failed to parse data".
 - Context submenu only on movie / tvshow / episode; setting to hide it (default on).

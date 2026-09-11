@@ -62,11 +62,11 @@ Depend on `script.dejavu` ≥ **1.5.0** for Connect. Library import requires ≥
 
 ## Import Kodi library (migration)
 
-User-facing walkthrough of every wizard option: **[IMPORT_KODI.md](IMPORT_KODI.md)**.
+Internal mapping (Kodi JSON-RPC sources → dejaVu destinations): **[IMPORT_KODI.md](IMPORT_KODI.md)**.
 
 This is **not** scrobble. Scrobble stays the live path after the user is connected. Import is a one-shot snapshot of the Kodi video library:
 
-`playcount`, `lastplayed`, `userrating`, TMDB/IMDb `uniqueid`, resume bookmarks, video playlists, and library favourites.
+`playcount`, `lastplayed`, `userrating`, TMDB/IMDb `uniqueid`, resume bookmarks, library favourites, and the full movie/show library as Digital collection.
 
 After Connect, the script offers the import when a video library exists. The user can also start it from **Add-on settings → Import Kodi library** (button **Import my Kodi history**), the Programs menu (first item when logged in), or another addon:
 
@@ -86,11 +86,12 @@ The client POSTs `https://dejavu.plus/api/v1/kodi/import` in chunks of ~200 item
 
 - Distinct from `POST /scrobble`
 - Idempotent on `importSessionId` + item (no extra `rewatchCount`)
-- History from `playCount` / `lastPlayed`; do not overwrite a newer dejaVu `watchedAt`
+- `importCollection` + `collectionFormat: "digital"` → every movie and TV show in MyVideos goes to the dejaVu collection as Digital
+- History from `playCount` / `lastPlayed` when `importWatched` (dates follow automatically via `importWatchDates`); do not overwrite a newer dejaVu `watchedAt`
 - Ratings 1–10 only if dejaVu has none
 - Unwatched movies / unstarted shows → watchlist when `unwatchedToWatchlist`
 - Resume → continue-watching only if no active scrobble
-- Playlists → private dejaVu lists of the same name
+- Playlists are not sent by the current wizard (`importPlaylists` is always false)
 - Kodi favourites → dejaVu favorites (not a custom list)
 
 Payload sketch:
@@ -102,18 +103,20 @@ Payload sketch:
   "chunk": 1,
   "totalChunks": 4,
   "options": {
+    "importCollection": true,
+    "collectionFormat": "digital",
     "importWatched": true,
     "importRatings": true,
     "importWatchDates": true,
     "unwatchedToWatchlist": false,
     "importResume": true,
-    "importPlaylists": true,
+    "importPlaylists": false,
     "importFavorites": true
   },
   "movies": [{ "tmdbId": 603, "imdbId": "tt0133093", "playCount": 2, "lastPlayed": "2026-08-14T21:32:00", "rating": 9 }],
   "tvShows": [],
   "episodes": [],
-  "playlists": [{ "name": "Marvel", "items": [{ "type": "movie", "tmdbId": 24428 }] }],
+  "playlists": [],
   "favorites": []
 }
 ```

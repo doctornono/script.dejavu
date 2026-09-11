@@ -7,7 +7,7 @@
         <setting id="access_token" type="text" label="30099" default="" visible="false"/>
         <setting id="action_login" type="action" label="30002" action="RunScript(script.dejavu,action=login)" option="close" visible="String.IsEmpty(Setting(username))"/>
         <setting id="action_logout" type="action" label="30003" action="RunScript(script.dejavu,action=logout)" option="close" visible="!String.IsEmpty(Setting(username))"/>
-        <setting id="action_import_kodi" type="action" label="30121" action="RunScript(script.dejavu,action=import_kodi)" option="close" visible="!String.IsEmpty(Setting(username))"/>
+        <setting id="action_import_kodi" type="action" label="30120" action="RunScript(script.dejavu,action=import_kodi)" option="close" visible="!String.IsEmpty(Setting(username))"/>
         <setting id="enable_context_menu" type="bool" label="30175" default="true"/>
         <setting id="kodi_import_offered" type="bool" default="false" visible="false"/>
         <setting id="kodi_import_at" type="text" default="" visible="false"/>
@@ -16,7 +16,7 @@
     <!-- Import Kodi library — no enable= on hidden token (Kodi greys it out) -->
     <category label="30120">
         <setting id="import_kodi_help" type="lsep" label="30173"/>
-        <setting id="action_import_kodi_tab" type="action" label="30121" action="RunScript(script.dejavu,action=import_kodi)" option="close"/>
+        <setting id="action_import_kodi_tab" type="action" label="30120" action="RunScript(script.dejavu,action=import_kodi)" option="close"/>
     </category>
 
     <!-- Scrobbling -->

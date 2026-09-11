@@ -487,10 +487,11 @@ def _scan_favorites(movies_by_id, episodes_by_id, shows_by_id, abort_cb=None, pr
     return items
 
 
-def scan_library(progress=None):
+def scan_library(progress=None, options=None):
     """
     Full library snapshot. Returns a dict or None if cancelled.
     progress: xbmcgui.DialogProgress or None
+    Playlists are not scanned (option hidden). Favorites only if selected.
     """
     monitor = xbmc.Monitor()
 
@@ -543,19 +544,16 @@ def scan_library(progress=None):
     episodes = [_episode_record(e, shows_by_id) for e in raw_episodes]
     episodes_by_id = {e["dbid"]: e for e in episodes if e.get("dbid") is not None}
 
-    playlists = _scan_playlists(
-        movies_by_id, episodes_by_id, shows_by_id,
-        abort_cb=abort_cb, progress_cb=progress_cb,
-    )
-    if playlists is None:
-        return None
-
-    favorites = _scan_favorites(
-        movies_by_id, episodes_by_id, shows_by_id,
-        abort_cb=abort_cb, progress_cb=progress_cb,
-    )
-    if favorites is None:
-        return None
+    options = options or {}
+    playlists = []
+    favorites = []
+    if options.get("favorites"):
+        favorites = _scan_favorites(
+            movies_by_id, episodes_by_id, shows_by_id,
+            abort_cb=abort_cb, progress_cb=progress_cb,
+        )
+        if favorites is None:
+            return None
 
     return {
         "movies": movies,
@@ -579,40 +577,85 @@ def _match_counts(records):
     return certain, review, unidentified
 
 
-def build_preview(scan):
+def _has_rating(rec):
+    return bool((rec.get("payload") or {}).get("rating"))
+
+
+def _has_resume(rec):
+    return bool((rec.get("payload") or {}).get("resume"))
+
+
+def build_preview(scan, options=None):
+    options = options or {}
     movies = scan.get("movies") or []
     shows = scan.get("tvshows") or []
     episodes = scan.get("episodes") or []
-    all_media = movies + shows + episodes
-    certain, review, unidentified = _match_counts(all_media)
+    favorites = scan.get("favorites") or [] if options.get("favorites") else []
+
+    included = (
+        [m for m in movies if _include_movie(m, options)]
+        + [s for s in shows if _include_show(s, options)]
+        + [e for e in episodes if _include_episode(e, options)]
+    )
+    certain, review, unidentified = _match_counts(included)
     detail_rows = []
-    for rec in all_media:
+    for rec in included:
         if rec.get("confidence") == "certain":
             continue
         tag = rec.get("confidence") or "unidentified"
         detail_rows.append(f"[{tag}] {rec.get('label') or '?'}")
+
+    movies_watched = sum(1 for m in movies if m.get("watched"))
+    shows_started = sum(1 for s in shows if s.get("watched"))
+    episodes_watched = sum(1 for e in episodes if e.get("watched"))
+    movies_unwatched = sum(1 for m in movies if not m.get("watched"))
+    shows_unwatched = sum(1 for s in shows if not s.get("watched"))
+    ratings_count = sum(1 for rec in movies + shows + episodes if _has_rating(rec))
+    resume_count = sum(1 for rec in movies + episodes if _has_resume(rec))
+
+    action_lines = []
+    if options.get("collection"):
+        action_lines.append(_ls(30182) % (len(movies), len(shows)))
+    if options.get("watched"):
+        action_lines.append(_ls(30183) % (movies_watched, shows_started, episodes_watched))
+    if options.get("ratings"):
+        action_lines.append(_ls(30184) % ratings_count)
+    if options.get("watchlist"):
+        action_lines.append(_ls(30185) % (movies_unwatched, shows_unwatched))
+    if options.get("resume"):
+        action_lines.append(_ls(30186) % resume_count)
+    if options.get("favorites"):
+        action_lines.append(_ls(30187) % len(favorites))
+
     return {
         "movie_total": len(movies),
         "show_total": len(shows),
         "episode_total": len(episodes),
-        "movies_watched": sum(1 for m in movies if m.get("watched")),
-        "shows_started": sum(1 for s in shows if s.get("watched")),
-        "episodes_watched": sum(1 for e in episodes if e.get("watched")),
-        "movies_unwatched": sum(1 for m in movies if not m.get("watched")),
+        "movies_watched": movies_watched,
+        "shows_started": shows_started,
+        "episodes_watched": episodes_watched,
+        "movies_unwatched": movies_unwatched,
+        "shows_unwatched": shows_unwatched,
+        "ratings_count": ratings_count,
+        "resume_count": resume_count,
         "certain": certain,
         "review": review,
         "unidentified": unidentified,
-        "importable": certain + review,
+        "importable": certain + review + len(favorites),
         "detail_rows": detail_rows[:400],
-        "playlist_count": len(scan.get("playlists") or []),
-        "favorite_count": len(scan.get("favorites") or []),
+        "playlist_count": 0,
+        "favorite_count": len(favorites),
+        "action_lines": action_lines,
+        "action_text": "\n".join(action_lines),
     }
 
 
 def _include_movie(rec, options):
     payload = rec.get("payload") or {}
     play_count = _int(payload.get("playCount"))
-    if options.get("watched_movies") and play_count > 0:
+    if options.get("collection"):
+        return True
+    if options.get("watched") and play_count > 0:
         return True
     if options.get("watchlist") and play_count == 0:
         return True
@@ -626,7 +669,9 @@ def _include_movie(rec, options):
 def _include_show(rec, options):
     payload = rec.get("payload") or {}
     watched_eps = _int(payload.get("watchedEpisodes"))
-    if options.get("watched_tv") and watched_eps > 0:
+    if options.get("collection"):
+        return True
+    if options.get("watched") and watched_eps > 0:
         return True
     if options.get("watchlist") and watched_eps == 0:
         return True
@@ -638,7 +683,7 @@ def _include_show(rec, options):
 def _include_episode(rec, options):
     payload = rec.get("payload") or {}
     play_count = _int(payload.get("playCount"))
-    if options.get("watched_tv") and play_count > 0:
+    if options.get("watched") and play_count > 0:
         return True
     if options.get("ratings") and payload.get("rating"):
         return True
@@ -675,15 +720,21 @@ def build_payload_lists(scan, options, include_review):
 
 
 def api_options(options):
-    return {
-        "importWatched": bool(options.get("watched_movies") or options.get("watched_tv")),
+    watched = bool(options.get("watched"))
+    collection = bool(options.get("collection"))
+    flags = {
+        "importCollection": collection,
+        "importWatched": watched,
+        "importWatchDates": watched,
         "importRatings": bool(options.get("ratings")),
-        "importWatchDates": bool(options.get("dates")),
         "unwatchedToWatchlist": bool(options.get("watchlist")),
         "importResume": bool(options.get("resume")),
-        "importPlaylists": bool(options.get("playlists")),
+        "importPlaylists": False,
         "importFavorites": bool(options.get("favorites")),
     }
+    if collection:
+        flags["collectionFormat"] = "digital"
+    return flags
 
 
 def chunk_payloads(movies, tvshows, episodes, playlists, favorites, options, session_id):
@@ -733,7 +784,7 @@ def _empty_totals():
     return {
         "imported": {
             "movies": 0, "episodes": 0, "ratings": 0, "watchlist": 0,
-            "scrobbles": 0, "lists": 0, "favorites": 0,
+            "scrobbles": 0, "lists": 0, "favorites": 0, "collection": 0,
         },
         "skipped": {"alreadyWatched": 0, "unresolved": 0},
         "unresolved": [],
@@ -762,18 +813,19 @@ def merge_import_result(acc, result):
 # Wizard
 # ---------------------------------------------------------------------------
 
-OPTION_KEYS = [
-    "watched_movies",
-    "watched_tv",
-    "ratings",
-    "dates",
-    "watchlist",
-    "resume",
-    "playlists",
-    "favorites",
+OPTION_DEFS = [
+    ("collection", 30125, 30176),
+    ("watched", 30126, 30177),
+    ("ratings", 30127, 30178),
+    ("watchlist", 30129, 30179),
+    ("resume", 30130, 30180),
+    ("favorites", 30132, 30181),
 ]
-OPTION_LABELS = [30125, 30126, 30127, 30128, 30129, 30130, 30131, 30132]
-OPTION_PRESELECT = [0, 1, 2, 3, 5]
+OPTION_PRESELECT = [0, 1, 2, 4]
+
+
+def _option_row(title_id, desc_id):
+    return "%s[CR][COLOR gray]%s[/COLOR]" % (_ls(title_id), _ls(desc_id))
 
 
 def _choose_mode(allow_skip):
@@ -791,32 +843,26 @@ def _choose_mode(allow_skip):
 
 
 def _choose_options():
-    labels = [_ls(sid) for sid in OPTION_LABELS]
+    labels = [_option_row(title_id, desc_id) for _, title_id, desc_id in OPTION_DEFS]
     selected = xbmcgui.Dialog().multiselect(_ls(30124), labels, preselect=list(OPTION_PRESELECT))
     if selected is None:
         return None
-    flags = {key: (index in selected) for index, key in enumerate(OPTION_KEYS)}
+    flags = {key: (index in selected) for index, (key, _, _) in enumerate(OPTION_DEFS)}
     if not any(flags.values()):
         return None
     return flags
 
 
 def _preview_body(preview):
-    return "\n".join([
-        _ls(30135),
-        _ls(30136) % preview["movie_total"],
-        _ls(30137) % preview["show_total"],
-        _ls(30138) % preview["episode_total"],
-        "",
-        _ls(30139),
-        _ls(30140) % preview["movies_watched"],
-        _ls(30141) % preview["shows_started"],
-        _ls(30142) % preview["episodes_watched"],
-        "",
-        _ls(30143) % preview["certain"],
-        _ls(30144) % preview["review"],
-        _ls(30145) % preview["unidentified"],
+    lines = list(preview.get("action_lines") or [])
+    if lines:
+        lines.append("")
+    lines.extend([
+        _ls(30143) % preview.get("certain", 0),
+        _ls(30144) % preview.get("review", 0),
+        _ls(30145) % preview.get("unidentified", 0),
     ])
+    return "\n".join(lines)
 
 
 def _show_details(preview):
@@ -970,7 +1016,7 @@ def run_import_wizard(allow_skip=True):
     progress = xbmcgui.DialogProgress()
     progress.create(_ls(30134), _ls(30133))
     try:
-        scan = scan_library(progress)
+        scan = scan_library(progress, options)
     finally:
         try:
             progress.close()
@@ -981,9 +1027,9 @@ def run_import_wizard(allow_skip=True):
         set_import_status("cancelled")
         return False
 
-    preview = build_preview(scan)
+    preview = build_preview(scan, options)
     if preview["movie_total"] == 0 and preview["show_total"] == 0 and preview["episode_total"] == 0:
-        if not (scan.get("playlists") or scan.get("favorites")):
+        if not scan.get("favorites"):
             set_import_status("empty")
             xbmcgui.Dialog().ok(_ls(30134), _ls(30159))
             return False
@@ -1000,16 +1046,6 @@ def run_import_wizard(allow_skip=True):
             yeslabel=_ls(30150),
             nolabel=_ls(30149),
         )
-
-    if not options.get("watchlist") and preview["movies_unwatched"] > 0:
-        add_watchlist = xbmcgui.Dialog().yesno(
-            _ls(30134),
-            _ls(30152) % preview["movies_unwatched"],
-            yeslabel=_ls(30153),
-            nolabel=_ls(30154),
-        )
-        if add_watchlist:
-            options["watchlist"] = True
 
     movies, tvshows, episodes, playlists, favorites = build_payload_lists(
         scan, options, include_review,

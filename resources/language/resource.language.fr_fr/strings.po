@@ -308,12 +308,12 @@ msgid "Import Kodi library"
 msgstr "Importer la bibliothèque Kodi"
 
 msgctxt "#30121"
-msgid "Import my Kodi history"
-msgstr "Importer mon historique Kodi"
+msgid "Import only (then turn off scrobbling)"
+msgstr "Importer uniquement (désactive le scrobble ensuite)"
 
 msgctxt "#30122"
-msgid "Import history and keep syncing"
-msgstr "Importer l'historique et continuer à synchroniser"
+msgid "Import and keep syncing (scrobbling stays on)"
+msgstr "Importer et continuer à synchroniser (le scrobble reste actif)"
 
 msgctxt "#30123"
 msgid "Don't import for now"
@@ -324,24 +324,24 @@ msgid "What would you like to import?"
 msgstr "Que souhaitez-vous importer ?"
 
 msgctxt "#30125"
-msgid "Watched movies"
-msgstr "Films vus"
+msgid "Import your Kodi collection into your dejaVu collection (Digital)"
+msgstr "Importer votre collection Kodi dans votre collection dejaVu (Digital)"
 
 msgctxt "#30126"
-msgid "Watched TV shows and episodes"
-msgstr "Séries et épisodes vus"
+msgid "Import your Kodi watches into your dejaVu watches"
+msgstr "Importer vos visionnages Kodi dans vos visionnages dejaVu"
 
 msgctxt "#30127"
-msgid "Kodi ratings"
-msgstr "Notes Kodi"
+msgid "Import your Kodi ratings into dejaVu"
+msgstr "Importer vos notes Kodi dans dejaVu"
 
 msgctxt "#30128"
 msgid "Watch dates"
 msgstr "Dates de visionnage"
 
 msgctxt "#30129"
-msgid "Unwatched library movies (watchlist)"
-msgstr "Films non vus (watchlist)"
+msgid "Add unwatched items from your Kodi library to your dejaVu watchlist"
+msgstr "Ajouter les éléments non vus de votre bibliothèque Kodi à votre liste de suivi dejaVu"
 
 msgctxt "#30130"
 msgid "Resume positions"
@@ -512,8 +512,8 @@ msgid "Sending batch %s of %s..."
 msgstr "Envoi du lot %s sur %s..."
 
 msgctxt "#30173"
-msgid "Copy watch history, ratings, and dates from the Kodi video library."
-msgstr "Copier l'historique, les notes et les dates depuis la bibliothèque vidéo Kodi."
+msgid "Copy your Kodi video library (collection, watches, ratings) into dejaVu."
+msgstr "Copier votre bibliothèque vidéo Kodi (collection, visionnages, notes) dans dejaVu."
 
 msgctxt "#30174"
 msgid "No account yet? Create one on your phone (Google, GitHub, or email)."
@@ -522,3 +522,51 @@ msgstr "Pas de compte ? Crée-le sur ton téléphone (Google, GitHub ou e-mail).
 msgctxt "#30175"
 msgid "Show dejaVu context menu"
 msgstr "Afficher le menu contextuel dejaVu"
+
+msgctxt "#30176"
+msgid "Every movie and TV show in your scanned Kodi library, stored as Digital."
+msgstr "Tous les films et séries de votre bibliothèque Kodi scannée, au format Digital."
+
+msgctxt "#30177"
+msgid "Titles you already watched, including Kodi watch dates."
+msgstr "Les titres déjà vus, avec les dates de visionnage Kodi."
+
+msgctxt "#30178"
+msgid "Ratings from 1 to 10. Existing dejaVu ratings are left unchanged."
+msgstr "Notes de 1 à 10. Une note dejaVu déjà présente n'est pas écrasée."
+
+msgctxt "#30179"
+msgid "Unwatched movies and TV shows never started go to your dejaVu watchlist."
+msgstr "Films jamais vus et séries jamais commencées → liste de suivi dejaVu."
+
+msgctxt "#30180"
+msgid "Resume where you left off, unless dejaVu already has an active scrobble."
+msgstr "Reprendre où vous vous êtes arrêté, sauf si dejaVu a déjà une lecture en cours."
+
+msgctxt "#30181"
+msgid "Kodi library favorites only (not addon or website favorites)."
+msgstr "Favoris de la bibliothèque Kodi uniquement (pas les addons ni les sites)."
+
+msgctxt "#30182"
+msgid "You will add %s movies and %s TV shows to your Digital collection."
+msgstr "Vous allez ajouter %s films et %s séries à votre collection Digital."
+
+msgctxt "#30183"
+msgid "You will import %s watched movies, %s started TV shows and %s episodes into your watches."
+msgstr "Vous allez importer %s films vus, %s séries commencées et %s épisodes dans vos visionnages."
+
+msgctxt "#30184"
+msgid "You will import %s ratings."
+msgstr "Vous allez importer %s notes."
+
+msgctxt "#30185"
+msgid "You will add %s unwatched movies and %s unwatched TV shows to your watchlist."
+msgstr "Vous allez ajouter %s films et %s séries non vus à votre liste de suivi."
+
+msgctxt "#30186"
+msgid "You will save %s resume positions."
+msgstr "Vous allez enregistrer %s positions de reprise."
+
+msgctxt "#30187"
+msgid "You will add %s favorites."
+msgstr "Vous allez ajouter %s favoris."

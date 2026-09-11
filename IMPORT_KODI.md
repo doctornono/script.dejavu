@@ -1,100 +1,71 @@
-# Importer l’historique Kodi vers dejaVu
+# Import Kodi → dejaVu (spec interne)
 
-Ce n’est **pas** un scrobble. L’import est un **snapshot unique** de la bibliothèque vidéo Kodi (MyVideos), envoyé à dejaVu.plus par paquets. Il ne gonfle pas `rewatchCount` (contrairement à un scrobble en boucle).
+Document **interne**. L’assistant part du principe que MyVideos (films / séries scrapés) = **collection personnelle** de l’utilisateur.
 
-Après connexion, l’addon propose l’import s’il détecte une bibliothèque. On peut aussi le lancer depuis :
+Le client envoie `POST /api/v1/kodi/import`. Ce n’est pas un scrobble (pas d’incrément de `rewatchCount`).
 
-- **Réglages → Compte → Importer mon historique Kodi**
-- **Réglages → Importer la bibliothèque Kodi**
-- le menu **Programmes** (premier item une fois connecté)
-- un autre addon via `DejaVuClient.import_kodi_library()`
+## Modes (étape 1)
 
----
+Les deux modes envoient **le même** payload. Seul l’après-coup change :
 
-## Étape 1 — Comment importer ?
-
-| Option à l’écran | Effet |
+| Mode | Effet |
 |---|---|
-| **Importer mon historique Kodi** | Copie l’historique (et les options choisies ensuite), puis **désactive le scrobble automatique**. Utile si tu ne veux plus que Kodi envoie la lecture en direct. |
-| **Importer l’historique et continuer à synchroniser** | Même copie, mais le **scrobble reste activé**. C’est le choix recommandé si tu continues à regarder dans Kodi. |
-| **Ne rien importer pour le moment** | Ferme l’assistant et mémorise que l’offre a déjà été faite. Tu pourras relancer l’import plus tard depuis les réglages. |
-
-Annuler le dialogue (retour / Escape) n’importe rien.
+| Importer uniquement (désactive le scrobble ensuite) | Snapshot, puis `enable_scrobble = false` |
+| Importer et continuer à synchroniser (le scrobble reste actif) | Snapshot, le scrobble live continue |
 
 ---
 
-## Étape 2 — Que souhaitez-vous importer ?
+## Cases (étape 2)
 
-Liste à choix multiples. Par défaut : films vus, séries/épisodes vus, notes, dates de visionnage, positions de reprise.
+### Importer votre collection Kodi dans votre collection dejaVu (Digital)
 
-### Films vus
+**Source Kodi :** tous les films (`GetMovies`) et toutes les séries (`GetTVShows`) de la bibliothèque scrapée. Pas les épisodes.
 
-Inclut les films Kodi avec `playcount > 0`.
+**Destination dejaVu :** **collection**, format **`digital`**. Flags : `importCollection`, `collectionFormat: "digital"`.
 
-Côté dejaVu : ils rejoignent l’**historique**. `playCount` et `lastPlayed` sont envoyés. Un `watchedAt` dejaVu **plus récent** n’est pas écrasé.
+### Importer vos visionnages Kodi dans vos visionnages dejaVu
 
-### Séries et épisodes vus
+**Source Kodi :** films `playcount > 0`, séries `watchedepisodes > 0`, épisodes `playcount > 0`, plus `lastplayed`.
 
-Inclut les séries avec au moins un épisode vu (`watchedEpisodes > 0`) et les épisodes avec `playcount > 0`.
+**Destination dejaVu :** **historique** + `watchedAt`. Flags : `importWatched` + `importWatchDates` (toujours ensemble).
 
-Même contrat que les films : historique, sans incrémenter `rewatchCount`.
+### Importer vos notes Kodi dans dejaVu
 
-### Notes Kodi
+**Source Kodi :** `userrating > 0` sur films, séries et épisodes.
 
-Inclut les fiches dont `userrating > 0` (échelle 1–10).
+**Destination dejaVu :** **notes** (si dejaVu n’en a pas déjà). Flag : `importRatings`.
 
-Côté dejaVu : la note n’est écrite **que s’il n’y en a pas déjà une**. Une note dejaVu existante n’est pas remplacée.
+### Ajouter les éléments non vus de votre bibliothèque Kodi à votre liste de suivi dejaVu
 
-### Dates de visionnage
+**Source Kodi :** films `playcount == 0` + séries `watchedepisodes == 0`.
 
-N’ajoute pas d’items à elle seule : c’est un **drapeau** (`importWatchDates`) appliqué aux médias déjà inclus (vus, notes, reprise, watchlist…).
-
-Côté dejaVu : conserve `lastPlayed` comme date de visionnage, sans écraser un `watchedAt` plus récent.
-
-### Films non vus (watchlist)
-
-Inclut les films avec `playcount == 0` et les séries jamais commencées (`watchedEpisodes == 0`).
-
-Côté dejaVu : ils vont dans la **watchlist** (`unwatchedToWatchlist`). Si tu laisses cette case décochée, l’assistant peut quand même te proposer d’ajouter les films non vus après l’aperçu.
+**Destination dejaVu :** **watchlist / liste de suivi**. Flag : `unwatchedToWatchlist`.
 
 ### Positions de reprise
 
-Inclut les films et épisodes qui ont un **signet de reprise** Kodi.
+**Source Kodi :** `resume.position > 0` sur films et épisodes.
 
-Côté dejaVu : alimente **Reprendre la lecture** seulement s’il n’y a **pas déjà un scrobble actif** pour ce titre.
-
-### Playlists Kodi
-
-Lit les playlists vidéo de `special://profile/playlists/video/`.
-
-Côté dejaVu : crée des **listes privées** du **même nom**, avec les items identifiés (TMDB).
+**Destination dejaVu :** **Reprendre la lecture**, sauf scrobble déjà actif. Flag : `importResume`.
 
 ### Favoris Kodi
 
-Lit les favoris Kodi mappés vers des titres vidéo (`videodb://`…).
+**Source Kodi :** `Favourites.GetFavourites`, chemins `videodb://` seulement.
 
-Côté dejaVu : ils rejoignent les **favoris** dejaVu (pas une liste perso).
+**Destination dejaVu :** **favoris**. Flag : `importFavorites`.
+
+### Masqué
+
+**Playlists Kodi** : code conservé, pas d’UI, pas de scan, `importPlaylists: false`.
 
 ---
 
-## Aperçu, correspondances, envoi
+## Récap
 
-L’addon scanne via JSON-RPC (`VideoLibrary.GetMovies` / `GetTVShows` / `GetEpisodes`, playlists, favoris) puis affiche un aperçu.
-
-| Confiance | Critère | Comportement |
+| Case | Source Kodi | Destination dejaVu |
 |---|---|---|
-| **Certaines** | ID TMDB présent (pour un épisode : série + saison + numéro) | Importées par défaut |
-| **À vérifier** | ID IMDb, ou titre + année seulement | Question oui/non avant envoi |
-| **Non identifiés** | Pas de métadonnée utilisable | Jamais envoyés |
-
-L’envoi se fait par lots d’environ **200** items (`POST /kodi/import`). L’opération est **idempotente** sur `importSessionId` + item : relancer le même import ne duplique pas l’historique.
-
----
-
-## Ce que l’import ne fait pas
-
-- Il ne remplace **pas** le scrobble en direct (sauf si tu as choisi « Importer mon historique Kodi », qui coupe le scrobble après coup).
-- Il n’écrit pas les `playcount` / notes **depuis** dejaVu vers Kodi (c’est le réglage **Miroir bibliothèque Kodi**, dans l’autre sens).
-- Il n’importe pas la musique, les images, ni les addons hors bibliothèque vidéo.
-
-Pour le contrat serveur et le payload JSON, voir aussi [README.md](README.md) (section *Import Kodi library*) et [FONCTIONNALITES.md](FONCTIONNALITES.md) §2.5.
+| Collection (Digital) | tous films + toutes séries MyVideos | Collection format `digital` |
+| Visionnages | films/épisodes vus, séries commencées, `lastplayed` | Historique + `watchedAt` |
+| Notes | `userrating > 0` | Notes |
+| Non vus → liste de suivi | films non vus + séries jamais commencées | Watchlist |
+| Positions de reprise | `resume` films / épisodes | Reprendre la lecture |
+| Favoris Kodi | favoris `videodb://` | Favoris |

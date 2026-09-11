@@ -87,15 +87,14 @@ Les badges sur une liste **plugin** (vStream, etc.) ne viennent **pas** de ce mi
 
 ### 2.5 Import de la bibliothèque Kodi (migration)
 
-Guide utilisateur (modes + chaque option) : **[IMPORT_KODI.md](IMPORT_KODI.md)**.
+Spec interne (sources Kodi → destinations dejaVu) : **[IMPORT_KODI.md](IMPORT_KODI.md)**.
 
 **Pas un scrobble.** Snapshot one-shot de MyVideos via JSON-RPC Kodi, puis `POST /kodi/import` par paquets d’environ 200 items.
 
 Sources Kodi :
 
 - `VideoLibrary.GetMovies` / `GetTVShows` / `GetEpisodes`
-- playlists vidéo `special://profile/playlists/video/`
-- `Favourites.GetFavourites`
+- `Favourites.GetFavourites` (si la case favoris est cochée)
 
 Champs lus : titre, année, `uniqueid` (TMDB/IMDb), `playcount`, `lastplayed`, `userrating`, reprise, etc.
 
@@ -104,23 +103,27 @@ Champs lus : titre, année, `uniqueid` (TMDB/IMDb), `playcount`, `lastplayed`, `
 Lancements :
 
 - après Connect, si une bibliothèque existe ;
-- **Réglages → Importer ma bibliothèque Kodi** ;
+- **Réglages → Importer la bibliothèque Kodi** ;
 - menu Programmes (premier item si connecté) ;
 - autre addon : `DejaVuClient.import_kodi_library()`.
+
+Modes (même POST, après-coup différent) :
+
+- importer uniquement → désactive le scrobble ;
+- importer et continuer à synchroniser → le scrobble reste actif.
 
 Options utilisateur (aperçu puis confirmation) :
 
 | Option | Effet côté serveur (contrat) |
 |---|---|
-| Historique | `playCount` / `lastPlayed` ; n’écrase pas un `watchedAt` dejaVu plus récent |
+| Collection | tous les films + séries MyVideos → collection dejaVu, format `digital` (`importCollection`) |
+| Visionnages | `playCount` / `lastPlayed` ; n’écrase pas un `watchedAt` dejaVu plus récent |
 | Notes | 1–10 seulement si dejaVu n’en a pas |
-| Dates de visionnage | conserve `lastPlayed` |
-| Non vus → watchlist | films non vus / séries jamais commencées |
+| Non vus → liste de suivi | films non vus / séries jamais commencées |
 | Reprise | continue-watching seulement s’il n’y a pas déjà un scrobble actif |
-| Playlists | listes privées dejaVu du même nom |
 | Favoris Kodi | favoris dejaVu (pas une liste perso) |
 
-Idempotent sur `importSessionId` + item.
+Playlists : masquées (`importPlaylists: false`). Idempotent sur `importSessionId` + item.
 
 ### 2.6 Menu Programmes
 
