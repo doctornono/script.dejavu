@@ -26,10 +26,18 @@ ADDON = xbmcaddon.Addon()
 
 FORMAT_LABELS = ["(none)", "Blu-ray", "DVD", "Digital", "4K UHD", "VHS"]
 FORMAT_VALUES = ["",       "bluray",  "dvd", "digital", "uhd",    "vhs"]
+FORMAT_STRING_IDS = [30188, 30189, 30190, 30191, 30192, 30193]
 
 
 def _ls(string_id):
     return ADDON.getLocalizedString(string_id)
+
+
+def _format_labels():
+    labels = []
+    for sid, fallback in zip(FORMAT_STRING_IDS, FORMAT_LABELS):
+        labels.append(_ls(sid) or fallback)
+    return labels
 
 
 def _context_enabled():
@@ -352,7 +360,7 @@ def toggle_collection():
         notify_changed("remove_from_collection", api_type, tmdb_id)
         return
 
-    sel = xbmcgui.Dialog().select(_ls(30091), FORMAT_LABELS)
+    sel = xbmcgui.Dialog().select(_ls(30091), _format_labels())
     if sel < 0:
         return
     fmt = FORMAT_VALUES[sel] or None

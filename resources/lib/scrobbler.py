@@ -17,15 +17,26 @@ from .auth_handler import is_logged_in
 from .util import notify_changed, unwrap_data, sync_kodi_library
 
 ADDON = xbmcaddon.Addon()
+SHIPPED_TMDB_KEY = "9c1662a033ca5210dc75b91e0aa9b49e"
+
+
+def _debug_enabled():
+    try:
+        return ADDON.getSettingBool("debug")
+    except Exception:
+        return False
 
 
 def _log(msg, level=xbmc.LOGDEBUG):
-    try:
-        debug = ADDON.getSettingBool("debug")
-    except Exception:
-        debug = False
-    if debug or level >= xbmc.LOGINFO:
+    if _debug_enabled() or level >= xbmc.LOGWARNING:
         xbmc.log(f"[dejaVu] {msg}", level)
+
+
+def _tmdb_api_key():
+    key = (ADDON.getSetting("tmdb_api_key") or "").strip()
+    if not key or key == SHIPPED_TMDB_KEY:
+        return ""
+    return key
 
 
 def _ls(string_id):
@@ -52,6 +63,7 @@ class DejaVuPlayer(xbmc.Player):
         self._resume_from = 0
         self._resume_target = 0
         self._api = None  # lazy: only created when logged in
+        self._pending_start = False
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -85,7 +97,7 @@ class DejaVuPlayer(xbmc.Player):
         data = unwrap_data(result)
         if isinstance(data, dict) and data.get("tmdbId"):
             new_id = str(data["tmdbId"])
-            _log(f"Resolved via dejaVu media/resolve → {new_id}", xbmc.LOGINFO)
+            _log(f"Resolved via dejaVu media/resolve → {new_id}")
             return new_id
         return None
 
@@ -100,7 +112,7 @@ class DejaVuPlayer(xbmc.Player):
             if resolved:
                 return resolved
 
-        api_key = ADDON.getSetting("tmdb_api_key")
+        api_key = _tmdb_api_key()
         if not api_key:
             _log("Resolution skipped: No TMDB API key configured.", xbmc.LOGDEBUG)
             return None
@@ -130,7 +142,7 @@ class DejaVuPlayer(xbmc.Player):
             results = data.get(results_key, [])
             if results:
                 new_id = str(results[0].get("id"))
-                _log(f"Successfully resolved {external_id} -> {new_id}", xbmc.LOGINFO)
+                _log(f"Successfully resolved {external_id} -> {new_id}")
                 return new_id
         except Exception as e:
             _log(f"External identifier resolution failed: {e}", xbmc.LOGERROR)
@@ -150,7 +162,7 @@ class DejaVuPlayer(xbmc.Player):
         if resolved:
             return resolved
 
-        api_key = ADDON.getSetting("tmdb_api_key")
+        api_key = _tmdb_api_key()
         if not api_key:
             _log("Search skipped: No TMDB API key configured.", xbmc.LOGDEBUG)
             return None
@@ -172,7 +184,7 @@ class DejaVuPlayer(xbmc.Player):
             results = data.get("results", [])
             if results:
                 new_id = str(results[0].get("id"))
-                _log(f"Search match found for '{title}': {new_id}", xbmc.LOGINFO)
+                _log(f"Search match found for '{title}': {new_id}")
                 return new_id
         except Exception as e:
             _log(f"TMDb search error for '{title}': {e}", xbmc.LOGERROR)
@@ -184,9 +196,6 @@ class DejaVuPlayer(xbmc.Player):
         Uses JSON-RPC Player.GetItem to dump all internal Kodi metadata.
         """
         try:
-            # Give Kodi a moment to populate the player metadata
-            xbmc.sleep(1000)
-            
             # Try to identify the correct active player ID
             player_req = '{"jsonrpc": "2.0", "method": "Player.GetActivePlayers", "id": 1}'
             player_resp_raw = xbmc.executeJSONRPC(player_req)
@@ -209,10 +218,10 @@ class DejaVuPlayer(xbmc.Player):
                 },
                 "id": 16,
             })
-            _log(f"Requesting Player.GetItem for playerid: {player_id}", xbmc.LOGINFO)
+            _log(f"Requesting Player.GetItem for playerid: {player_id}")
             resp = xbmc.executeJSONRPC(req)
-            _log(f"--- JSON-RPC Player.GetItem DUMP ---", xbmc.LOGINFO)
-            _log(resp, xbmc.LOGINFO)
+            _log("--- JSON-RPC Player.GetItem DUMP ---")
+            _log(resp)
         except Exception as e:
             _log(f"Failed to dump Player.GetItem: {e}", xbmc.LOGWARNING)
 
@@ -359,11 +368,11 @@ class DejaVuPlayer(xbmc.Player):
     def _resolve_episode_tmdb_id(self, show_id, season, episode):
         """
         Query TMDB API to get the specific episode TMDB ID.
-        Requires a valid 'tmdb_api_key' in settings.
+        Requires a user-supplied 'tmdb_api_key' (the shipped default is ignored).
         """
-        api_key = ADDON.getSetting("tmdb_api_key")
+        api_key = _tmdb_api_key()
         if not api_key:
-            _log("TMDB API Key missing in settings – resolution skipped.", xbmc.LOGWARNING)
+            _log("TMDB API Key missing in settings – resolution skipped.", xbmc.LOGDEBUG)
             return None
 
         _log(f"Querying TMDB for episode ID (Show: {show_id}, S{season}E{episode})", xbmc.LOGDEBUG)
@@ -375,7 +384,7 @@ class DejaVuPlayer(xbmc.Player):
             data = r.json()
             ep_id = data.get("id")
             if ep_id:
-                _log(f"Resolved episode TMDB ID via TMDB API: {ep_id}", xbmc.LOGINFO)
+                _log(f"Resolved episode TMDB ID via TMDB API: {ep_id}")
                 return str(ep_id)
         except Exception as e:
             _log(f"TMDB resolution error: {e}", xbmc.LOGERROR)
@@ -546,6 +555,7 @@ class DejaVuPlayer(xbmc.Player):
         self._resume_from = 0
         self._resume_target = 0
         self._last_scrobble_ts = 0
+        self._pending_start = False
 
     def _read_player_times(self):
         """(progress, duration) in seconds, or None if the player has no time."""
@@ -602,7 +612,7 @@ class DejaVuPlayer(xbmc.Player):
         except Exception:
             pass  # default: enabled
         if not is_logged_in():
-            _log("Scrobble skipped: not logged in.", xbmc.LOGINFO)
+            _log("Scrobble skipped: not logged in.", xbmc.LOGWARNING)
             if not self._login_warned:
                 try:
                     if ADDON.getSettingBool("show_notifications"):
@@ -640,7 +650,6 @@ class DejaVuPlayer(xbmc.Player):
                 _log(
                     f"Scrobble {action} skipped at {progress}s "
                     f"(protect continue-watching / wait for real progress).",
-                    xbmc.LOGINFO,
                 )
                 return
             if action == "stop":
@@ -663,7 +672,6 @@ class DejaVuPlayer(xbmc.Player):
             f"Sending Scrobble API Call: action={action}, type={meta['type']}, "
             f"tmdb_id={meta['tmdb_id']}, progress={send_progress}/{duration}s, "
             f"show_id={meta.get('show_tmdb_id')}, S{meta.get('season')}E{meta.get('episode')}",
-            xbmc.LOGINFO
         )
 
         result = self.api.scrobble(
@@ -694,7 +702,6 @@ class DejaVuPlayer(xbmc.Player):
             if not api_marked and (progress / duration) < 0.9:
                 _log(
                     f"Local threshold reached ({watch_pct}%) below API 90% – add_to_history.",
-                    xbmc.LOGINFO,
                 )
                 self.api.add_to_history(
                     media_type=meta["type"],
@@ -736,10 +743,12 @@ class DejaVuPlayer(xbmc.Player):
     # ------------------------------------------------------------------
 
     def onAVStarted(self):
-        _log("onAVStarted", xbmc.LOGINFO)
-        self._log_player_item_details()
-        self._meta = self._get_metadata()
+        _log("onAVStarted")
+        if _debug_enabled():
+            self._log_player_item_details()
+        self._meta = None
         self._active = True
+        self._pending_start = True
         self._last_scrobble_ts = 0
         self._watched_sent = False
         self._resumed = False
@@ -748,11 +757,9 @@ class DejaVuPlayer(xbmc.Player):
         self._resume_from = 0
         self._resume_target = 0
         self._capture_player_times()
-        self._maybe_resume()
-        self._scrobble("start")
 
     def onPlayBackPaused(self):
-        _log("onPlayBackPaused", xbmc.LOGINFO)
+        _log("onPlayBackPaused")
         self._scrobble("pause")
 
     def onPlayBackResumed(self):
@@ -760,11 +767,11 @@ class DejaVuPlayer(xbmc.Player):
         self._scrobble("resume")
 
     def onPlayBackStopped(self):
-        _log("onPlayBackStopped", xbmc.LOGINFO)
+        _log("onPlayBackStopped")
         self._handle_stop("stop")
 
     def onPlayBackEnded(self):
-        _log("onPlayBackEnded", xbmc.LOGINFO)
+        _log("onPlayBackEnded")
         self._handle_stop("end")
 
     def onPlayBackError(self):
@@ -809,7 +816,7 @@ class DejaVuPlayer(xbmc.Player):
                 finished = True
             if finished:
                 if self._delete_active_scrobble(meta):
-                    _log("Removed finished item from continue watching.", xbmc.LOGINFO)
+                    _log("Removed finished item from continue watching.")
             elif progress < 30 and not self._resume_from:
                 if self._delete_active_scrobble(meta):
                     _log("Deleted short scrobble session (<30s).", xbmc.LOGDEBUG)
@@ -817,7 +824,6 @@ class DejaVuPlayer(xbmc.Player):
                 _log(
                     f"Keep continue watching at {progress}/{duration}s "
                     f"(type={meta.get('type')}).",
-                    xbmc.LOGINFO,
                 )
 
         try:
@@ -1054,7 +1060,7 @@ class DejaVuPlayer(xbmc.Player):
                 self._resume_target = progress
                 if duration > 0:
                     self._last_duration = duration
-                _log(f"Resumed playback at {progress}s", xbmc.LOGINFO)
+                _log(f"Resumed playback at {progress}s")
             except Exception as e:
                 _log(f"Player.seekTime failed: {e}", xbmc.LOGWARNING)
 
@@ -1126,7 +1132,7 @@ class DejaVuPlayer(xbmc.Player):
 
         if self._play_library_episode(meta, n_season, n_episode):
             return
-        _log("Next episode is not in the Kodi library; notified other addons via upnext.", xbmc.LOGINFO)
+        _log("Next episode is not in the Kodi library; notified other addons via upnext.")
 
     def _play_library_episode(self, meta, season, episode):
         """Play the next episode from the Kodi library when the current item has a DBID."""
@@ -1186,6 +1192,12 @@ class DejaVuPlayer(xbmc.Player):
         Sends a periodic scrobble update according to scrobble_interval.
         """
         if not self._active or not self.isPlayingVideo():
+            return
+        if self._pending_start:
+            self._pending_start = False
+            self._meta = self._get_metadata()
+            self._maybe_resume()
+            self._scrobble("start")
             return
         self._capture_player_times()
         try:

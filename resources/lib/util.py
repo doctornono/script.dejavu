@@ -5,6 +5,8 @@ import json
 import xbmc
 import xbmcaddon
 
+from .pure import unwrap_data
+
 ADDON = xbmcaddon.Addon()
 ADDON_ID = "script.dejavu"
 
@@ -50,13 +52,6 @@ def notify_changed(action, media_type=None, tmdb_id=None, extra=None):
         )
     except Exception as e:
         _log(f"notify_changed failed: {e}", xbmc.LOGWARNING)
-
-
-def unwrap_data(result):
-    """Return the `data` payload from a v1 `{success, data}` response, or the value as-is."""
-    if isinstance(result, dict) and "data" in result:
-        return result.get("data")
-    return result
 
 
 def status_for(result, media_type, tmdb_id):

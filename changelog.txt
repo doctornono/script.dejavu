@@ -1,3 +1,21 @@
+v1.11.0 (2026-09-11)
+- Session: no refresh_token; settings token is not resurrected if session.json exists (even empty after logout).
+- 401/403 clears the local session once (one notification, no spam).
+- RPC HTTP is queued in onNotification and drained one job per service tick; is_authenticated stays sync.
+- onAVStarted defers resolve / resume / scrobble start to the next tick() so playback is not blocked.
+- i18n: gettext headers; collection format labels 30188–30193; expired session 30194.
+- Unit tests without xbmc (unwrap_data, extract_ids, api_url pin, result_property, no session resurrection).
+
+v1.10.0 (2026-09-11)
+- Production: wrap player.tick(), sync session every 30s (not every second), cache session.json.
+- No Player.GetItem file dump unless debug; INFO logs gated; ignore shipped TMDB key.
+- api_url locked to https://dejavu.plus unless debug + https; QR user_code quoted; HTTP bodies only in debug.
+- RPC result_property must start with script.dejavu.; logout via RPC does not reopen settings.
+- Connect QR: worker thread no longer touches GUI.
+
+v1.9.6 (2026-09-11)
+- Account settings show Log out (and the signed-in name) after Connect, not Login again.
+
 v1.9.0 (2026-09-11)
 - Import wizard: Kodi library → Digital collection; watches+dates merged; playlists hidden.
 - Preview states what will be added (X movies / Y shows per destination).

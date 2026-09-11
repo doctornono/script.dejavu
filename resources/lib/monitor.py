@@ -45,7 +45,7 @@ Supported actions (method format: 'script.dejavu.ACTION'):
 
 Data format for notification:
   {
-    "result_property": "my.addon.result",   // optional, default: script.dejavu.<ACTION>.result
+    "result_property": "script.dejavu.<ACTION>.result",   // optional; must start with script.dejavu.
     // ... action-specific params
   }
 
@@ -54,9 +54,13 @@ so calling addons can refresh overlays (watched / rating / watchlist badges).
 """
 
 import json
+from collections import deque
+
 import xbmc
 import xbmcgui
 from .api_client import DejaVuAPI
+from .pure import sanitize_result_property
+from .session import sync_settings_from_session
 from .util import notify_changed
 
 
@@ -68,6 +72,13 @@ class DejaVuMonitor(xbmc.Monitor):
     def __init__(self):
         super().__init__()
         self.api = DejaVuAPI()
+        self._rpc_queue = deque()
+
+    def onSettingsChanged(self):
+        try:
+            sync_settings_from_session()
+        except Exception as exc:
+            _log("session sync after settings change failed: %s" % exc, xbmc.LOGWARNING)
 
     # ------------------------------------------------------------------
     # Notification dispatcher
@@ -87,7 +98,7 @@ class DejaVuMonitor(xbmc.Monitor):
         if not action or action == "changed" or action.startswith("changed"):
             return
 
-        _log(f"RPC request: {action} from {sender}", xbmc.LOGINFO)
+        _log(f"RPC request: {action} from {sender}", xbmc.LOGDEBUG)
 
         try:
             params = json.loads(data) if data else {}
@@ -99,8 +110,9 @@ class DejaVuMonitor(xbmc.Monitor):
         if not isinstance(params, dict):
             params = {}
 
-        result_property = params.get(
-            "result_property", f"script.dejavu.{action}.result"
+        default_prop = f"script.dejavu.{action}.result"
+        result_property = sanitize_result_property(
+            action, params.get("result_property") or default_prop
         )
 
         handler = getattr(self, f"_handle_{action}", None)
@@ -109,6 +121,20 @@ class DejaVuMonitor(xbmc.Monitor):
             self._set_result(result_property, {"success": False, "error": f"Unknown action: {action}"})
             return
 
+        if action == "is_authenticated":
+            self._run_rpc(action, handler, params, result_property)
+            return
+
+        self._rpc_queue.append((action, handler, params, result_property))
+
+    def drain_rpc(self):
+        """Process one queued RPC (HTTP) on the service thread."""
+        if not self._rpc_queue:
+            return
+        action, handler, params, result_property = self._rpc_queue.popleft()
+        self._run_rpc(action, handler, params, result_property)
+
+    def _run_rpc(self, action, handler, params, result_property):
         try:
             result = handler(params)
             self._set_result(result_property, result)
@@ -386,7 +412,7 @@ class DejaVuMonitor(xbmc.Monitor):
 
     def _handle_logout(self, params):
         from .auth_handler import logout
-        logout()
+        logout(reopen_settings=False)
         return {"success": True}
 
     # ------------------------------------------------------------------

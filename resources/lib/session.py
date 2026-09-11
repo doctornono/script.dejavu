@@ -13,8 +13,12 @@ import xbmc
 import xbmcaddon
 import xbmcvfs
 
+from .pure import should_migrate_settings_token
+
 ADDON = xbmcaddon.Addon()
 ADDON_ID = "script.dejavu"
+
+_CACHE = None
 
 
 def session_path():
@@ -34,44 +38,59 @@ def _read_json(path):
         return {}
 
 
+def _invalidate_cache():
+    global _CACHE
+    _CACHE = None
+
+
 def save_session(data):
+    global _CACHE
     path = session_path()
     folder = os.path.dirname(path)
     payload = {
         "access_token": (data or {}).get("access_token") or "",
         "username": (data or {}).get("username") or "",
-        "refresh_token": (data or {}).get("refresh_token") or "",
     }
     try:
         xbmcvfs.mkdirs(folder)
         with open(path, "w", encoding="utf-8") as handle:
             json.dump(payload, handle)
+        _CACHE = dict(payload)
     except Exception as exc:
         xbmc.log("[dejaVu] session.json write failed: %s" % exc, xbmc.LOGERROR)
+        _invalidate_cache()
         return False
     return True
 
 
 def load_session():
-    data = _read_json(session_path())
+    global _CACHE
+    if _CACHE is not None:
+        return dict(_CACHE)
+
+    path = session_path()
+    exists = bool(path and os.path.exists(path))
+    data = _read_json(path) if exists else {}
     token = data.get("access_token") or ""
     username = data.get("username") or ""
-    refresh = data.get("refresh_token") or ""
-    if not token:
+    if not token and should_migrate_settings_token(exists, token):
         token = ADDON.getSetting("access_token") or ""
         if token:
             username = username or (ADDON.getSetting("username") or "")
-            refresh = refresh or (ADDON.getSetting("refresh_token") or "")
             save_session({
                 "access_token": token,
                 "username": username,
-                "refresh_token": refresh,
             })
-    return {
+            return dict(_CACHE) if _CACHE is not None else {
+                "access_token": token,
+                "username": username,
+            }
+    payload = {
         "access_token": token,
         "username": username,
-        "refresh_token": refresh,
     }
+    _CACHE = dict(payload)
+    return dict(payload)
 
 
 def clear_session():
@@ -97,9 +116,28 @@ def apply_session_to_settings(data=None):
     data = data or load_session()
     ADDON.setSetting("access_token", data.get("access_token") or "")
     ADDON.setSetting("username", data.get("username") or "")
-    refresh = data.get("refresh_token") or ""
-    if refresh:
-        ADDON.setSetting("refresh_token", refresh)
+
+
+def wait_settings_closed(timeout=5.0):
+    """Wait until Addon Settings has closed and flushed its snapshot."""
+    monitor = xbmc.Monitor()
+    elapsed = 0.0
+    step = 0.2
+    while settings_dialog_open() and elapsed < timeout:
+        if monitor.waitForAbort(step):
+            return False
+        elapsed += step
+    if monitor.waitForAbort(0.5):
+        return False
+    return True
+
+
+def reopen_settings_from_session():
+    """Restore session.json after the settings snapshot, then reopen Account."""
+    if not wait_settings_closed():
+        return
+    apply_session_to_settings()
+    xbmc.executebuiltin("Addon.OpenSettings(%s)" % ADDON_ID)
 
 
 def sync_settings_from_session():

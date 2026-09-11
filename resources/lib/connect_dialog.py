@@ -14,7 +14,7 @@ CLOSE_ACTIONS = (9, 10, 13, 92, 101, 110, 216)
 
 
 class ConnectDialog(xbmcgui.WindowXMLDialog):
-    """QR pairing dialog. Use setup() then doModal() so Back/Cancel work."""
+    """QR pairing dialog. GUI updates must run on the main thread via pump()."""
 
     def __init__(self, *args, **kwargs):
         super().__init__()
@@ -28,7 +28,9 @@ class ConnectDialog(xbmcgui.WindowXMLDialog):
         self.interval = 5
         self.expires_in = 300
         self.api = None
+        self.progress_pct = 100
         self._stop = threading.Event()
+        self._closed = False
 
     def setup(self, display_code, qr_path, device_code, interval, expires_in, api):
         self.display_code = display_code or ""
@@ -40,6 +42,8 @@ class ConnectDialog(xbmcgui.WindowXMLDialog):
         self.cancelled = False
         self.expired = False
         self.token_data = None
+        self.progress_pct = 100
+        self._closed = False
         self._stop.clear()
 
     def onInit(self):
@@ -75,13 +79,8 @@ class ConnectDialog(xbmcgui.WindowXMLDialog):
             remaining = expires_at - time.time()
             if remaining <= 0:
                 self.expired = True
-                self.close()
                 return
-            try:
-                pct = int((remaining / self.expires_in) * 100)
-                self.getControl(206).setPercent(max(0, min(100, pct)))
-            except Exception:
-                pass
+            self.progress_pct = int((remaining / self.expires_in) * 100)
             try:
                 token = self.api.poll_token(self.device_code)
             except Exception as e:
@@ -89,9 +88,26 @@ class ConnectDialog(xbmcgui.WindowXMLDialog):
                 token = None
             if token and token.get("access_token"):
                 self.token_data = token
-                self.close()
                 return
             self._stop.wait(self.interval)
+
+    def pump(self):
+        """Main-thread GUI: progress bar and close when the worker is done."""
+        if not self.ready or self._closed:
+            return
+        try:
+            self.getControl(206).setPercent(max(0, min(100, int(self.progress_pct))))
+        except Exception:
+            pass
+        if self.token_data or self.expired or self.cancelled:
+            self._closed = True
+            try:
+                self.close()
+            except Exception:
+                pass
+
+    def done(self):
+        return bool(self.cancelled or self.expired or self.token_data)
 
     def onAction(self, action):
         try:
@@ -108,7 +124,11 @@ class ConnectDialog(xbmcgui.WindowXMLDialog):
     def _cancel(self):
         self.cancelled = True
         self._stop.set()
-        self.close()
+        self._closed = True
+        try:
+            self.close()
+        except Exception:
+            pass
 
     def stop(self):
         self._stop.set()

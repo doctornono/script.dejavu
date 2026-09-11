@@ -45,7 +45,11 @@ Listen for `script.dejavu.changed` with `action: "authenticated"` (or `"auth"` o
 
 Suggested UI: a single **Connect dejaVu** button in your settings (next to Trakt). DejaVu is meant to coexist with Trakt.
 
-Depend on `script.dejavu` ≥ **1.5.0** for Connect. Library import requires ≥ **1.7.0**.
+Depend on `script.dejavu` ≥ **1.5.0** for Connect. Library import requires ≥ **1.7.0**. Production builds should depend on ≥ **1.11.0**.
+
+RPC runs **as the signed-in user**. Any installed Kodi addon can send `NotifyAll` with a spoofed sender: treat other addons as trusted at the Kodi layer. From 1.10.0, `result_property` must start with `script.dejavu.` (DejaVuClient already does). The REST `api_url` is pinned to `https://dejavu.plus` unless the user enables debug.
+
+From **1.11.0**: HTTP RPC is queued (`onNotification` enqueues; the service drains **one** job after `tick()`). `is_authenticated` stays synchronous (disk/cache). `DejaVuClient` still uses a 5 s wait — a job that already took 10 s HTTP can still time out, as before. A **401/403** (except device pairing) clears the local session once and broadcasts `script.dejavu.changed` with `action: "auth"`. Playback start defers `/media/resolve` + scrobble start to the next `tick()`, so Kodi does not wait on resolve to begin playing.
 
 ---
 
@@ -132,6 +136,8 @@ Do not copy `api_client.py`. You may copy `resources/lib/client.py` if you prefe
 ```python
 from client import DejaVuClient
 ```
+
+That module export is for `DejaVuClient`. Importing `session.get_access_token` is **not** the public API — use `DejaVuClient.is_authenticated()` / RPC. The settings `access_token` mirror remains for addons that read it as a fallback (see plugin.video.dejavu).
 
 Guard the import so your addon still runs if dejaVu is missing:
 
@@ -361,9 +367,10 @@ On unknown RPC actions the service writes `{ "success": false, "error": "Unknown
 You do not need this if you use `DejaVuClient`. The protocol:
 
 1. Caller sends `NotifyAll(<your.addon.id>, script.dejavu.<action>, "<json>")` (quote the JSON — commas would otherwise split the builtin).
-2. JSON may include `result_property` (default `script.dejavu.<action>.result`).
-3. The service writes the JSON result on **Window 10000**.
-4. Poll that property until it is set or you time out.
+2. JSON may include `result_property` (default `script.dejavu.<action>.result`). From 1.10.0 the name **must** start with `script.dejavu.`; anything else is ignored.
+3. From 1.11.0 the service queues the HTTP call and processes one job per loop tick (`is_authenticated` is still handled immediately).
+4. The service writes the JSON result on **Window 10000**.
+5. Poll that property until it is set or you time out.
 
 Kodi delivers the method as `Other.script.dejavu.<action>` in `onNotification`. The service matches on substring, not `startswith`.
 
@@ -374,7 +381,7 @@ import xbmc
 import xbmcgui
 
 window = xbmcgui.Window(10000)
-prop = "my.addon.media_status"
+prop = "script.dejavu.get_media_status.result"
 window.clearProperty(prop)
 payload = json.dumps({
     "result_property": prop,
@@ -445,7 +452,7 @@ while time.time() < deadline:
 
 ## Checklist for a first integration
 
-1. Depend on `script.dejavu` ≥ 1.5.0 and import `DejaVuClient` behind `System.HasAddon`.
+1. Depend on `script.dejavu` ≥ 1.11.0 and import `DejaVuClient` behind `System.HasAddon`.
 2. Offer **Connect dejaVu** via `dv.authenticate()` (never collect a password in Kodi).
 3. Map your items to TMDB (`resolve_media` if you only have IMDb or a title).
 4. Call `get_media_status` in batches of 50 and paint badges from `data["movie:123"]`.

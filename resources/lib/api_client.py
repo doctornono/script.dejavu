@@ -10,6 +10,8 @@ import xbmcaddon
 import xbmcvfs
 import json
 import requests
+from urllib.parse import quote
+from .pure import DEFAULT_API_URL, effective_api_url
 from .util import get_accept_language
 
 ADDON = xbmcaddon.Addon()
@@ -20,13 +22,30 @@ def _log(msg, level=xbmc.LOGDEBUG):
     xbmc.log(f"[dejaVu] {msg}", level)
 
 
+def _debug_enabled():
+    try:
+        return ADDON.getSettingBool("debug")
+    except Exception:
+        return False
+
+
+def _http_error_detail(response):
+    if response is None:
+        return ""
+    if _debug_enabled():
+        text = (response.text or "")[:500]
+        return " – %s" % text if text else ""
+    return ""
+
+
+def _effective_api_url(api_url=None):
+    raw = api_url or ADDON.getSetting("api_url") or DEFAULT_API_URL
+    return effective_api_url(raw, debug=_debug_enabled(), default=DEFAULT_API_URL)
+
+
 class DejaVuAPI:
     def __init__(self, api_url=None, token=None):
-        self.api_url = (
-            api_url
-            or ADDON.getSetting("api_url")
-            or "https://dejavu.plus/api/v1"
-        ).rstrip("/")
+        self.api_url = _effective_api_url(api_url)
         # None = re-read addon settings on every request (login/logout without restarting the service)
         self._token_override = token
 
@@ -55,6 +74,21 @@ class DejaVuAPI:
             h["x-api-key"] = token
         return h
 
+    def _expire_if_unauthorized(self, response, path):
+        if response is None:
+            return
+        try:
+            status = int(response.status_code)
+        except Exception:
+            return
+        if status not in (401, 403):
+            return
+        route = path or ""
+        if "auth/device" in route:
+            return
+        from .auth_handler import expire_local_session
+        expire_local_session()
+
     def _get(self, path, params=None):
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
@@ -62,7 +96,8 @@ class DejaVuAPI:
             r.raise_for_status()
             return r.json()
         except requests.HTTPError as e:
-            _log(f"GET {path} HTTP error: {e.response.status_code} – {e.response.text}", xbmc.LOGERROR)
+            self._expire_if_unauthorized(e.response, path)
+            _log(f"GET {path} HTTP error: {e.response.status_code}{_http_error_detail(e.response)}", xbmc.LOGERROR)
         except Exception as e:
             _log(f"GET {path} error: {e}", xbmc.LOGERROR)
         return None
@@ -74,7 +109,8 @@ class DejaVuAPI:
             r.raise_for_status()
             return r.json()
         except requests.HTTPError as e:
-            _log(f"POST {path} HTTP error: {e.response.status_code} – {e.response.text}", xbmc.LOGERROR)
+            self._expire_if_unauthorized(e.response, path)
+            _log(f"POST {path} HTTP error: {e.response.status_code}{_http_error_detail(e.response)}", xbmc.LOGERROR)
         except Exception as e:
             _log(f"POST {path} error: {e}", xbmc.LOGERROR)
         return None
@@ -87,7 +123,8 @@ class DejaVuAPI:
             r.raise_for_status()
             return r.json() if r.content else {}
         except requests.HTTPError as e:
-            _log(f"DELETE {path} HTTP error: {e.response.status_code} – {e.response.text}", xbmc.LOGERROR)
+            self._expire_if_unauthorized(e.response, path)
+            _log(f"DELETE {path} HTTP error: {e.response.status_code}{_http_error_detail(e.response)}", xbmc.LOGERROR)
         except Exception as e:
             _log(f"DELETE {path} error: {e}", xbmc.LOGERROR)
         return None
@@ -100,7 +137,8 @@ class DejaVuAPI:
             r.raise_for_status()
             return r.json() if r.content else {}
         except requests.HTTPError as e:
-            _log(f"DELETE {path} HTTP error: {e.response.status_code} – {e.response.text}", xbmc.LOGERROR)
+            self._expire_if_unauthorized(e.response, path)
+            _log(f"DELETE {path} HTTP error: {e.response.status_code}{_http_error_detail(e.response)}", xbmc.LOGERROR)
         except Exception as e:
             _log(f"DELETE {path} error: {e}", xbmc.LOGERROR)
         return None
@@ -121,7 +159,10 @@ class DejaVuAPI:
         if not user_code:
             return ""
         dest = xbmcvfs.translatePath("special://temp/dejavu_qr.png")
-        url = f"{self.api_url}/auth/device/qr?user_code={user_code}"
+        url = "%s/auth/device/qr?user_code=%s" % (
+            self.api_url,
+            quote(str(user_code), safe=""),
+        )
         try:
             r = requests.get(url, timeout=10)
             if r.status_code == 200 and r.content:
@@ -153,7 +194,10 @@ class DejaVuAPI:
                 # authorization_pending or slow_down – normal, keep polling
                 return None
             # Any other error: log and bail
-            _log(f"poll_token unexpected {r.status_code}: {r.text}", xbmc.LOGERROR)
+            _log(
+                "poll_token unexpected %s%s" % (r.status_code, _http_error_detail(r)),
+                xbmc.LOGERROR,
+            )
         except Exception as e:
             _log(f"poll_token error: {e}", xbmc.LOGERROR)
         return None

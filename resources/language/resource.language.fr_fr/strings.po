@@ -3,6 +3,12 @@
 # Addon id: script.dejavu
 msgid ""
 msgstr ""
+"Project-Id-Version: script.dejavu\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 msgctxt "#30000"
 msgid "Account"
@@ -570,3 +576,31 @@ msgstr "Vous allez enregistrer %s positions de reprise."
 msgctxt "#30187"
 msgid "You will add %s favorites."
 msgstr "Vous allez ajouter %s favoris."
+
+msgctxt "#30188"
+msgid "(none)"
+msgstr "(aucun)"
+
+msgctxt "#30189"
+msgid "Blu-ray"
+msgstr "Blu-ray"
+
+msgctxt "#30190"
+msgid "DVD"
+msgstr "DVD"
+
+msgctxt "#30191"
+msgid "Digital"
+msgstr "Digital"
+
+msgctxt "#30192"
+msgid "4K UHD"
+msgstr "4K UHD"
+
+msgctxt "#30193"
+msgid "VHS"
+msgstr "VHS"
+
+msgctxt "#30194"
+msgid "Session expired. Please sign in again."
+msgstr "Session expirée. Veuillez vous reconnecter."

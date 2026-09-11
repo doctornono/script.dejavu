@@ -15,6 +15,7 @@ import xbmcaddon
 import xbmcgui
 
 from .api_client import DejaVuAPI
+from .pure import extract_ids
 from .util import _jsonrpc, notify_changed, unwrap_data
 
 ADDON = xbmcaddon.Addon()
@@ -56,32 +57,6 @@ def _window():
 
 def set_import_status(status):
     _window().setProperty(IMPORT_STATUS_PROP, status)
-
-
-def extract_ids(uniqueids, imdbnumber=None):
-    """Return (tmdb_id:int|None, imdb_id:str|None) from Kodi uniqueid + imdbnumber."""
-    uniqueids = uniqueids if isinstance(uniqueids, dict) else {}
-    tmdb_raw = uniqueids.get("tmdb") or uniqueids.get("themoviedb") or ""
-    imdb_raw = uniqueids.get("imdb") or ""
-    unknown = uniqueids.get("unknown") or ""
-
-    tmdb_id = None
-    if str(tmdb_raw).isdigit():
-        tmdb_id = int(tmdb_raw)
-    elif str(unknown).isdigit():
-        tmdb_id = int(unknown)
-
-    imdb_id = None
-    for candidate in (imdb_raw, imdbnumber, unknown):
-        val = str(candidate or "").strip()
-        if val.startswith("tt"):
-            imdb_id = val
-            break
-
-    if tmdb_id is None and imdbnumber and str(imdbnumber).isdigit():
-        tmdb_id = int(imdbnumber)
-
-    return tmdb_id, imdb_id
 
 
 def kodi_datetime_to_iso(value):

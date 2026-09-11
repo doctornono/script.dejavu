@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dejavu" name="dejaVu" version="1.9.5" provider-name="doctornono">
+<addon id="script.dejavu" name="dejaVu" version="1.11.0" provider-name="doctornono">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
@@ -63,6 +63,12 @@
         <disclaimer lang="en_GB">For full synchronization, ensure your dejaVu.plus account is active. Background scrobbling might be affected by power saving settings.</disclaimer>
         <disclaimer lang="fr_FR">Pour une synchronisation complète, assurez-vous que votre compte dejaVu.plus est actif. Le scrobbling en arrière-plan peut être affecté par les réglages d'économie d'énergie.</disclaimer>
         <news lang="en_GB">
+v1.11.0 (2026-09-11):
+- 401/403 clears the local session once. refresh_token is no longer stored. RPC HTTP is queued (one job per tick). Playback start no longer waits on /media/resolve.
+v1.10.0 (2026-09-11):
+- Production hardening: quieter logs, no Player.GetItem dump, no shipped TMDB key, API URL locked to HTTPS dejavu.plus (debug override), RPC result_property prefix, thread-safe Connect UI, service loop cannot die on tick().
+v1.9.6 (2026-09-11):
+- Account settings show Log out (and the signed-in name) after Connect, not Login again.
 v1.7.7 (2026-09-09):
 - Stop keeps continue watching at the last position (pause and stop are the same). Only a finished title or a &lt;30s start leaves the list. Same for episodes.
 v1.7.5 (2026-09-09):
@@ -86,6 +92,12 @@ v1.3.0 (2026-08-17):
 - Accept-Language follows Kodi UI. client.py covers all RPC actions.
         </news>
         <news lang="fr_FR">
+v1.11.0 (2026-09-11) :
+- 401/403 vide la session locale une fois. Plus de refresh_token stocké. File RPC (un job par tick). Le démarrage de lecture n’attend plus /media/resolve.
+v1.10.0 (2026-09-11) :
+- Durcissement production : logs calmes, plus de dump Player.GetItem, plus de clé TMDB shippée, api_url figée sur HTTPS dejavu.plus (sauf debug), préfixe RPC result_property, Connect thread-safe, tick() ne tue plus le service.
+v1.9.6 (2026-09-11) :
+- Une fois connecté, les paramètres Compte affichent Se déconnecter (et le nom), plus Connecter dejaVu.
 v1.7.7 (2026-09-09) :
 - Stop conserve Reprendre la lecture à la dernière position (pause et stop identiques). Seule une fin de titre ou un départ &lt; 30 s retire l’item. Idem pour les épisodes.
 v1.7.5 (2026-09-09) :

@@ -15,7 +15,12 @@ import xbmc
 import xbmcgui
 import xbmcaddon
 from .api_client import DejaVuAPI
-from .session import apply_session_to_settings, clear_session, get_access_token, save_session
+from .session import (
+    clear_session,
+    get_access_token,
+    reopen_settings_from_session,
+    save_session,
+)
 from .util import notify_changed
 
 ADDON = xbmcaddon.Addon()
@@ -130,15 +135,11 @@ DISPLAY_URI = "dejavu.plus/device"
 
 def _persist_login(token_data):
     access_token = token_data["access_token"]
-    refresh_token = token_data.get("refresh_token") or ""
     save_session({
         "access_token": access_token,
         "username": "",
-        "refresh_token": refresh_token,
     })
     ADDON.setSetting("access_token", access_token)
-    if refresh_token:
-        ADDON.setSetting("refresh_token", refresh_token)
 
     authed_api = DejaVuAPI(token=access_token)
     me = authed_api.get_me()
@@ -154,15 +155,14 @@ def _persist_login(token_data):
     save_session({
         "access_token": access_token,
         "username": username,
-        "refresh_token": refresh_token,
     })
     ADDON.setSetting("username", username)
+    expire_local_session._notified = False
     xbmc.log(f"[dejaVu] Login successful: {username}", xbmc.LOGINFO)
     _set_auth_status("success")
     notify_changed("authenticated")
     _show_welcome(username, me)
-    apply_session_to_settings()
-    xbmc.executebuiltin("Addon.OpenSettings(script.dejavu)")
+    reopen_settings_from_session()
     return True
 
 
@@ -224,7 +224,7 @@ def login():
     display_code = format_user_code(user_code)
 
     xbmc.log(
-        f"[dejaVu] Device code obtained. user_code={user_code}",
+        "[dejaVu] Device code obtained.",
         xbmc.LOGDEBUG,
     )
 
@@ -239,11 +239,21 @@ def login():
             "1080i",
         )
         dialog.setup(display_code, qr_path, device_code, interval, expires_in, api)
-        dialog.doModal()
+        dialog.show()
+        monitor = xbmc.Monitor()
+        while not monitor.abortRequested() and not dialog.done():
+            dialog.pump()
+            if monitor.waitForAbort(0.2):
+                break
+        dialog.pump()
         token_data = dialog.token_data
         cancelled = dialog.cancelled
         expired = dialog.expired
         dialog.stop()
+        try:
+            dialog.close()
+        except Exception:
+            pass
         del dialog
     except Exception as e:
         xbmc.log(f"[dejaVu] QR dialog unavailable: {e}", xbmc.LOGWARNING)
@@ -266,7 +276,29 @@ def login():
     return False
 
 
-def logout():
+def expire_local_session():
+    """Clear local credentials after 401/403. Notify at most once until next login."""
+    if not get_access_token():
+        return
+    clear_session()
+    ADDON.setSetting("access_token", "")
+    ADDON.setSetting("refresh_token", "")
+    ADDON.setSetting("username", "")
+    _set_auth_status("")
+    notify_changed("auth")
+    if getattr(expire_local_session, "_notified", False):
+        return
+    expire_local_session._notified = True
+    xbmc.log("[dejaVu] Session expired (401/403).", xbmc.LOGWARNING)
+    xbmcgui.Dialog().notification(
+        "dejaVu",
+        _ls(30194) or "Session expired. Please sign in again.",
+        xbmcgui.NOTIFICATION_WARNING,
+        4000,
+    )
+
+
+def logout(reopen_settings=True):
     """Clears stored credentials."""
     clear_session()
     ADDON.setSetting("access_token", "")
@@ -283,6 +315,8 @@ def logout():
         xbmcgui.NOTIFICATION_INFO,
         3000,
     )
+    if reopen_settings:
+        reopen_settings_from_session()
 
 
 def is_logged_in():
