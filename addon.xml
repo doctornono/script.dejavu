@@ -16,38 +16,13 @@
     <!-- Librairie partagée -->
     <extension point="xbmc.python.module" library="resources/lib"/>
 
-    <!-- Sous-menu contextuel dejaVu (vStream, Elementum, bibliothèque, …) -->
+    <!-- Menu contextuel dejaVu (vStream, Elementum, bibliothèque, …) -->
     <extension point="kodi.context.item">
         <menu id="kodi.core.main">
-            <menu>
+            <item library="context_menu.py">
                 <label>30100</label>
-                <visible>String.IsEqual(System.AddonSetting(script.dejavu,enable_context_menu),true) + [!String.IsEmpty(ListItem.UniqueID(tmdb)) | !String.IsEmpty(ListItem.Property(TmdbId)) | !String.IsEmpty(ListItem.Property(tmdb_id)) | !String.IsEmpty(ListItem.IMDBNumber) | !String.IsEmpty(ListItem.Property(imdb_id))] + [String.IsEqual(ListItem.DBType,movie) | String.IsEqual(ListItem.DBType,tvshow) | String.IsEqual(ListItem.DBType,episode) | String.IsEqual(ListItem.Property(DBType),movie) | String.IsEqual(ListItem.Property(DBType),tvshow) | String.IsEqual(ListItem.Property(DBType),episode) | String.IsEqual(ListItem.Property(media_type),movie) | String.IsEqual(ListItem.Property(media_type),tv) | String.IsEqual(ListItem.Property(media_type),episode) | String.IsEqual(ListItem.Property(sCat),1) | String.IsEqual(ListItem.Property(sCat),2) | String.IsEqual(ListItem.Property(sCat),3) | String.IsEqual(ListItem.Property(sCat),9)]</visible>
-
-                <item library="context_rate.py">
-                    <label>30016</label>
-                    <visible>true</visible>
-                </item>
-                <item library="context_watched.py">
-                    <label>30078</label>
-                    <visible>true</visible>
-                </item>
-                <item library="context_watchlist.py">
-                    <label>30089</label>
-                    <visible>true</visible>
-                </item>
-                <item library="context_favorites.py">
-                    <label>30090</label>
-                    <visible>true</visible>
-                </item>
-                <item library="context_collection.py">
-                    <label>30091</label>
-                    <visible>true</visible>
-                </item>
-                <item library="context_list.py">
-                    <label>30101</label>
-                    <visible>true</visible>
-                </item>
-            </menu>
+                <visible>String.IsEqual(System.AddonSetting(script.dejavu,enable_context_menu),true) + [Window.IsVisible(Videos) | Window.IsVisible(VideoPlaylist) | Window.IsVisible(DialogVideoInfo)] + !Container.Content(addons) + !String.StartsWith(ListItem.FolderPath,addons://) + !String.StartsWith(ListItem.FileNameAndPath,addons://) + [String.IsEqual(ListItem.DBType,movie) | String.IsEqual(ListItem.DBType,tvshow) | String.IsEqual(ListItem.DBType,season) | String.IsEqual(ListItem.DBType,episode) | String.IsEqual(ListItem.Property(DBType),movie) | String.IsEqual(ListItem.Property(DBType),tvshow) | String.IsEqual(ListItem.Property(DBType),season) | String.IsEqual(ListItem.Property(DBType),episode) | String.IsEqual(ListItem.Property(media_type),movie) | String.IsEqual(ListItem.Property(media_type),tv) | String.IsEqual(ListItem.Property(media_type),tvshow) | String.IsEqual(ListItem.Property(media_type),episode) | String.IsEqual(ListItem.Property(sCat),1) | String.IsEqual(ListItem.Property(sCat),2) | String.IsEqual(ListItem.Property(sCat),3) | String.IsEqual(ListItem.Property(sCat),9)]</visible>
+            </item>
         </menu>
     </extension>
 

@@ -12,6 +12,7 @@ Handles all user-invoked actions:
   - action=toggle_collection → add (format picker) or remove from collection
   - action=add_to_list       → pick a custom list (add or remove)
   - action=add_to_*          → aliases kept for compatibility
+  - context_menu.py          → dynamic dejaVu context menu
   - action=settings          → open addon settings
   - (no args)                → Programs menu
 """
@@ -64,11 +65,13 @@ def _notify_err(msg_id):
 
 def _api_and_info():
     from resources.lib.api_client import DejaVuAPI
-    from resources.lib.util import get_listitem_media_info, resolve_listitem_tmdb
+    from resources.lib.util import get_listitem_media_info, is_context_media, resolve_listitem_tmdb
 
+    info = get_listitem_media_info()
+    if not is_context_media(info):
+        return None, None
     api = DejaVuAPI()
-    info = resolve_listitem_tmdb(api, get_listitem_media_info())
-    return api, info
+    return api, resolve_listitem_tmdb(api, info)
 
 
 def _require_tmdb(info):
@@ -105,14 +108,75 @@ def _list_target(info):
     return api_type, tmdb_id
 
 
+def _load_context(api=None, info=None):
+    if info is None:
+        api, info = _api_and_info()
+    return api, info
+
+
+def _action_label(action):
+    text = _ls(action["label_id"])
+    if "label_arg" in action:
+        try:
+            text = text % action["label_arg"]
+        except Exception:
+            pass
+    return text
+
+
+def _show_context_labels(labels):
+    dialog = xbmcgui.Dialog()
+    try:
+        return dialog.contextmenu(labels)
+    except (AttributeError, TypeError):
+        return dialog.select("dejaVu", labels)
+
+
+def open_context_menu():
+    """Single dejaVu context item: build a dynamic menu from type + status."""
+    from resources.lib.pure import context_actions
+
+    if not _context_enabled():
+        return
+    api, info = _api_and_info()
+    if not info:
+        return
+    status, _, _ = _status_entry(api, info)
+    actions = context_actions(info.get("dbtype"), status)
+    if not actions:
+        return
+    labels = [_action_label(action) for action in actions]
+    selected = _show_context_labels(labels)
+    if selected < 0 or selected >= len(actions):
+        return
+    action_id = actions[selected]["id"]
+    if action_id == "rate":
+        rate_dialog(api, info, status)
+    elif action_id == "watched":
+        toggle_watched(api, info, status, mark_watched=True)
+    elif action_id == "unwatched":
+        toggle_watched(api, info, status, mark_watched=False)
+    elif action_id == "watchlist":
+        toggle_watchlist(api, info, status)
+    elif action_id == "favorites":
+        toggle_favorites(api, info, status)
+    elif action_id == "collection":
+        toggle_collection(api, info, status)
+    elif action_id == "list":
+        add_to_list_dialog(api, info)
+
+
 # ---------------------------------------------------------------------------
 # Rating dialog (triggered from context menu on a video item)
 # ---------------------------------------------------------------------------
 
-def rate_dialog():
+def rate_dialog(api=None, info=None, status=None):
     """Shows a 1-10 rating dialog, pre-filled, with an option to remove the rating."""
-    api, info = _api_and_info()
-    status, api_type, status_id = _status_entry(api, info)
+    api, info = _load_context(api, info)
+    if not info:
+        return
+    if status is None:
+        status, _, _ = _status_entry(api, info)
 
     dbtype = info.get("dbtype") or ""
     tmdb_id = info.get("tmdb_id")
@@ -204,8 +268,10 @@ def rate_dialog():
 # Context menu — Watched toggle
 # ---------------------------------------------------------------------------
 
-def toggle_watched():
-    api, info = _api_and_info()
+def toggle_watched(api=None, info=None, status=None, mark_watched=None):
+    api, info = _load_context(api, info)
+    if not info:
+        return
     from resources.lib.util import notify_changed, sync_kodi_library, status_for
 
     dbtype = info.get("dbtype") or ""
@@ -218,10 +284,11 @@ def toggle_watched():
         if not (tmdb_id or (show_tmdb and season and episode)):
             _notify_err(30019)
             return
-        choice = xbmcgui.Dialog().select(_ls(30078), [_ls(30092), _ls(30093)])
-        if choice < 0:
-            return
-        mark_watched = choice == 0
+        if mark_watched is None:
+            choice = xbmcgui.Dialog().select(_ls(30078), [_ls(30092), _ls(30093)])
+            if choice < 0:
+                return
+            mark_watched = choice == 0
         if mark_watched:
             result = api.add_to_history(
                 "episode",
@@ -252,15 +319,16 @@ def toggle_watched():
         _notify_err(30097)
         return
 
-    result = api.get_media_status([{"type": "movie", "id": int(tmdb_id)}])
-    watched = bool(status_for(result, "movie", tmdb_id).get("watched"))
+    if mark_watched is None:
+        if status is None:
+            result = api.get_media_status([{"type": "movie", "id": int(tmdb_id)}])
+            status = status_for(result, "movie", tmdb_id)
+        mark_watched = not bool(status.get("watched"))
 
-    if watched:
-        result = api.delete_history("movie", tmdb_id)
-        mark_watched = False
-    else:
+    if mark_watched:
         result = api.add_to_history("movie", tmdb_id=tmdb_id)
-        mark_watched = True
+    else:
+        result = api.delete_history("movie", tmdb_id)
     if result is None:
         _notify_err(30097)
         return
@@ -273,21 +341,25 @@ def toggle_watched():
 # Context menu — Watchlist / Favorites / Collection toggles
 # ---------------------------------------------------------------------------
 
-def toggle_watchlist():
-    api, info = _api_and_info()
+def toggle_watchlist(api=None, info=None, status=None):
+    api, info = _load_context(api, info)
+    if not info:
+        return
     from resources.lib.util import notify_changed
 
-    status, api_type, tmdb_id = _status_entry(api, info)
+    api_type, tmdb_id = _list_target(info)
+    if status is None:
+        status, api_type, tmdb_id = _status_entry(api, info)
+        if info.get("dbtype") == "episode":
+            api_type = "tv"
+            tmdb_id = info.get("show_tmdb_id") or tmdb_id
+            if not tmdb_id:
+                _notify_err(30019)
+                return
+            status, _, _ = _status_entry(api, {**info, "api_type": "tv", "tmdb_id": tmdb_id})
     if not tmdb_id:
         _notify_err(30019)
         return
-    if info.get("dbtype") == "episode":
-        api_type = "tv"
-        tmdb_id = info.get("show_tmdb_id") or tmdb_id
-        if not tmdb_id:
-            _notify_err(30019)
-            return
-        status, _, _ = _status_entry(api, {**info, "api_type": "tv", "tmdb_id": tmdb_id})
 
     if status.get("inWatchlist"):
         result = api.remove_from_watchlist(api_type, tmdb_id)
@@ -304,21 +376,25 @@ def toggle_watchlist():
     notify_changed(action, api_type, tmdb_id)
 
 
-def toggle_favorites():
-    api, info = _api_and_info()
+def toggle_favorites(api=None, info=None, status=None):
+    api, info = _load_context(api, info)
+    if not info:
+        return
     from resources.lib.util import notify_changed
 
-    status, api_type, tmdb_id = _status_entry(api, info)
+    api_type, tmdb_id = _list_target(info)
+    if status is None:
+        status, api_type, tmdb_id = _status_entry(api, info)
+        if info.get("dbtype") == "episode":
+            api_type = "tv"
+            tmdb_id = info.get("show_tmdb_id") or tmdb_id
+            if not tmdb_id:
+                _notify_err(30019)
+                return
+            status, _, _ = _status_entry(api, {**info, "api_type": "tv", "tmdb_id": tmdb_id})
     if not tmdb_id:
         _notify_err(30019)
         return
-    if info.get("dbtype") == "episode":
-        api_type = "tv"
-        tmdb_id = info.get("show_tmdb_id") or tmdb_id
-        if not tmdb_id:
-            _notify_err(30019)
-            return
-        status, _, _ = _status_entry(api, {**info, "api_type": "tv", "tmdb_id": tmdb_id})
 
     if status.get("isFavorite"):
         result = api.remove_from_favorites(api_type, tmdb_id)
@@ -335,21 +411,25 @@ def toggle_favorites():
     notify_changed(action, api_type, tmdb_id)
 
 
-def toggle_collection():
-    api, info = _api_and_info()
+def toggle_collection(api=None, info=None, status=None):
+    api, info = _load_context(api, info)
+    if not info:
+        return
     from resources.lib.util import notify_changed
 
-    status, api_type, tmdb_id = _status_entry(api, info)
+    api_type, tmdb_id = _list_target(info)
+    if status is None:
+        status, api_type, tmdb_id = _status_entry(api, info)
+        if info.get("dbtype") == "episode":
+            api_type = "tv"
+            tmdb_id = info.get("show_tmdb_id") or tmdb_id
+            if not tmdb_id:
+                _notify_err(30019)
+                return
+            status, _, _ = _status_entry(api, {**info, "api_type": "tv", "tmdb_id": tmdb_id})
     if not tmdb_id:
         _notify_err(30019)
         return
-    if info.get("dbtype") == "episode":
-        api_type = "tv"
-        tmdb_id = info.get("show_tmdb_id") or tmdb_id
-        if not tmdb_id:
-            _notify_err(30019)
-            return
-        status, _, _ = _status_entry(api, {**info, "api_type": "tv", "tmdb_id": tmdb_id})
 
     if status.get("inCollection"):
         result = api.remove_from_collection(api_type, tmdb_id)
@@ -376,9 +456,11 @@ def toggle_collection():
 # Context menu — custom lists
 # ---------------------------------------------------------------------------
 
-def add_to_list_dialog():
+def add_to_list_dialog(api=None, info=None):
     """Add or remove the focused item from a user list."""
-    api, info = _api_and_info()
+    api, info = _load_context(api, info)
+    if not info:
+        return
     from resources.lib.util import notify_changed, unwrap_data
 
     api_type, tmdb_id = _list_target(info)

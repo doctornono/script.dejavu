@@ -614,6 +614,23 @@ msgctxt "#30195"
 msgid "Kodi"
 msgstr ""
 
+# Context menu — stateful labels (30200-30203)
+msgctxt "#30200"
+msgid "Rating: %s/10..."
+msgstr ""
+
+msgctxt "#30201"
+msgid "Remove from Watchlist (dejaVu)"
+msgstr ""
+
+msgctxt "#30202"
+msgid "Remove from Favorites (dejaVu)"
+msgstr ""
+
+msgctxt "#30203"
+msgid "Remove from Collection (dejaVu)"
+msgstr ""
+
 # Settings labels
 msgctxt "#30099"
 msgid "Access Token"

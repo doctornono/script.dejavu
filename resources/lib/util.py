@@ -2,10 +2,19 @@
 """Shared helpers for language, media info, Kodi playcount, and change notifications."""
 
 import json
+import sys
 import xbmc
 import xbmcaddon
 
-from .pure import unwrap_data
+from .pure import (
+    is_addons_path,
+    is_context_media,
+    listitem_api_type,
+    listitem_history_type,
+    normalize_dbtype,
+    parse_optional_int,
+    unwrap_data,
+)
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = "script.dejavu"
@@ -241,83 +250,253 @@ def set_kodi_playcount(dbid, dbtype, watched=True):
     sync_kodi_library({"dbid": dbid, "dbtype": dbtype}, watched=watched)
 
 
-def get_listitem_media_info():
-    """
-    Extract identifiers from the currently focused ListItem.
+def _empty_media_info():
+    return {
+        "dbtype": "",
+        "api_type": "",
+        "history_type": "",
+        "tmdb_id": "",
+        "imdb_id": "",
+        "show_tmdb_id": "",
+        "season": None,
+        "episode": None,
+        "dbid": "",
+        "title": "",
+        "year": None,
+        "s_cat": "",
+    }
 
-    Returns a dict with:
-      dbtype, api_type, history_type, tmdb_id, show_tmdb_id,
-      season, episode, dbid, title
-    """
-    db_type = (
-        xbmc.getInfoLabel("ListItem.DBType")
-        or xbmc.getInfoLabel("ListItem.Property(DBType)")
-        or xbmc.getInfoLabel("ListItem.Property(media_type)")
-        or ""
-    )
-    if not db_type:
-        s_cat = xbmc.getInfoLabel("ListItem.Property(sCat)")
-        if s_cat == "1":
-            db_type = "movie"
-        elif s_cat in ("2", "3", "9"):
-            db_type = "tvshow"
 
-    tmdb_id = (
-        xbmc.getInfoLabel("ListItem.UniqueID(tmdb)")
-        or xbmc.getInfoLabel("ListItem.Property(tmdb_id)")
-        or xbmc.getInfoLabel("ListItem.Property(TmdbId)")
-        or xbmc.getInfoLabel("ListItem.Property(tmdbid)")
-        or ""
-    )
-    imdb_id = (
-        xbmc.getInfoLabel("ListItem.UniqueID(imdb)")
-        or xbmc.getInfoLabel("ListItem.IMDBNumber")
-        or xbmc.getInfoLabel("ListItem.Property(imdb_id)")
-        or ""
-    )
+def _tag_unique_id(tag, key):
+    if tag is None:
+        return ""
+    try:
+        val = tag.getUniqueID(key)
+        if val:
+            return str(val)
+    except Exception:
+        pass
+    try:
+        ids = tag.getUniqueIDs() or {}
+        val = ids.get(key)
+        if val:
+            return str(val)
+    except Exception:
+        pass
+    return ""
 
-    show_tmdb = (
-        xbmc.getInfoLabel("ListItem.TVShowUniqueID(tmdb)")
-        or xbmc.getInfoLabel("ListItem.UniqueID(tvshow_tmdb)")
-        or xbmc.getInfoLabel("ListItem.Property(tvshow_tmdb_id)")
-        or xbmc.getInfoLabel("ListItem.Property(TVShowID)")
-        or ""
-    )
 
-    season_raw = xbmc.getInfoLabel("ListItem.Season")
-    episode_raw = xbmc.getInfoLabel("ListItem.Episode")
-    season = int(season_raw) if season_raw and str(season_raw).lstrip("-").isdigit() else None
-    episode = int(episode_raw) if episode_raw and str(episode_raw).lstrip("-").isdigit() else None
-    dbid = xbmc.getInfoLabel("ListItem.DBID") or ""
+def _item_path(item, tag=None):
+    path = ""
+    if item is not None:
+        try:
+            path = item.getPath() or ""
+        except Exception:
+            path = ""
+    if not path and tag is not None:
+        for attr in ("getFilenameAndPath", "getPath", "getFile"):
+            getter = getattr(tag, attr, None)
+            if not getter:
+                continue
+            try:
+                path = getter() or ""
+            except Exception:
+                path = ""
+            if path:
+                break
+    return path or ""
 
-    if tmdb_id and str(tmdb_id).startswith("tt"):
+
+def _prop(item, key):
+    if item is not None:
+        try:
+            return item.getProperty(key) or ""
+        except Exception:
+            return ""
+    return xbmc.getInfoLabel("ListItem.Property(%s)" % key) or ""
+
+
+def _label(name):
+    return xbmc.getInfoLabel("ListItem.%s" % name) or ""
+
+
+def _assemble_media_info(
+    db_type,
+    s_cat,
+    tmdb_id,
+    imdb_id,
+    show_tmdb,
+    season,
+    episode,
+    dbid,
+    title,
+    year,
+    path,
+):
+    if is_addons_path(path):
+        return _empty_media_info()
+
+    db_type = normalize_dbtype(db_type, s_cat)
+    tmdb_id = str(tmdb_id or "")
+    imdb_id = str(imdb_id or "")
+    show_tmdb = str(show_tmdb or "")
+    if tmdb_id.startswith("tt"):
         imdb_id = imdb_id or tmdb_id
         tmdb_id = ""
 
-    api_type = ""
-    if db_type in ("tvshow", "tv", "season"):
-        api_type = "tv"
-    elif db_type == "episode":
-        api_type = "tv"
-    elif db_type == "movie":
-        api_type = "movie"
-    elif tmdb_id:
-        api_type = "movie"
-
-    history_type = "episode" if db_type == "episode" else ("movie" if api_type == "movie" else "tv")
+    year = parse_optional_int(year)
+    dbid = str(dbid or "")
+    if dbid in ("-1", "0"):
+        dbid = ""
 
     return {
         "dbtype": db_type,
-        "api_type": api_type,
-        "history_type": history_type,
-        "tmdb_id": str(tmdb_id) if tmdb_id else "",
-        "imdb_id": str(imdb_id) if imdb_id else "",
-        "show_tmdb_id": str(show_tmdb) if show_tmdb else "",
-        "season": season,
-        "episode": episode,
+        "api_type": listitem_api_type(db_type),
+        "history_type": listitem_history_type(db_type),
+        "tmdb_id": tmdb_id,
+        "imdb_id": imdb_id,
+        "show_tmdb_id": show_tmdb,
+        "season": parse_optional_int(season),
+        "episode": parse_optional_int(episode),
         "dbid": dbid,
-        "title": xbmc.getInfoLabel("ListItem.Title") or "",
+        "title": title or "",
+        "year": year,
+        "s_cat": str(s_cat or ""),
     }
+
+
+def _media_info_from_listitem(item):
+    tag = None
+    try:
+        tag = item.getVideoInfoTag()
+    except Exception:
+        tag = None
+
+    path = _item_path(item, tag)
+    db_type = ""
+    tmdb_id = ""
+    imdb_id = ""
+    show_tmdb = ""
+    season = None
+    episode = None
+    dbid = ""
+    title = ""
+    year = None
+
+    if tag is not None:
+        try:
+            db_type = tag.getMediaType() or ""
+        except Exception:
+            db_type = ""
+        tmdb_id = _tag_unique_id(tag, "tmdb")
+        imdb_id = _tag_unique_id(tag, "imdb")
+        if not imdb_id:
+            try:
+                imdb_id = tag.getIMDBNumber() or ""
+            except Exception:
+                imdb_id = ""
+        show_tmdb = (
+            _tag_unique_id(tag, "tvshow.tmdb")
+            or _tag_unique_id(tag, "tvshow_tmdb")
+            or _tag_unique_id(tag, "tvshow")
+        )
+        try:
+            season = tag.getSeason()
+        except Exception:
+            season = None
+        try:
+            episode = tag.getEpisode()
+        except Exception:
+            episode = None
+        try:
+            raw_dbid = tag.getDbId()
+            if raw_dbid is not None and int(raw_dbid) > 0:
+                dbid = str(int(raw_dbid))
+        except Exception:
+            dbid = ""
+        try:
+            title = tag.getTitle() or ""
+        except Exception:
+            title = ""
+        try:
+            year = tag.getYear()
+        except Exception:
+            year = None
+
+    if not title:
+        try:
+            title = item.getLabel() or ""
+        except Exception:
+            title = ""
+
+    if not db_type:
+        db_type = _prop(item, "DBType") or _prop(item, "media_type")
+    s_cat = _prop(item, "sCat")
+    tmdb_id = (
+        tmdb_id
+        or _prop(item, "tmdb_id")
+        or _prop(item, "TmdbId")
+        or _prop(item, "tmdbid")
+    )
+    imdb_id = imdb_id or _prop(item, "imdb_id")
+    show_tmdb = (
+        show_tmdb
+        or _prop(item, "tvshow_tmdb_id")
+        or _prop(item, "TVShowID")
+    )
+
+    return _assemble_media_info(
+        db_type,
+        s_cat,
+        tmdb_id,
+        imdb_id,
+        show_tmdb,
+        season,
+        episode,
+        dbid,
+        title,
+        year,
+        path,
+    )
+
+
+def _media_info_from_infolabels():
+    path = _label("FileNameAndPath") or _label("FolderPath")
+    db_type = _label("DBType") or _label("Property(DBType)") or _label("Property(media_type)")
+    return _assemble_media_info(
+        db_type,
+        _label("Property(sCat)"),
+        _label("UniqueID(tmdb)")
+        or _label("Property(tmdb_id)")
+        or _label("Property(TmdbId)")
+        or _label("Property(tmdbid)"),
+        _label("UniqueID(imdb)") or _label("IMDBNumber") or _label("Property(imdb_id)"),
+        _label("TVShowUniqueID(tmdb)")
+        or _label("UniqueID(tvshow_tmdb)")
+        or _label("Property(tvshow_tmdb_id)")
+        or _label("Property(TVShowID)"),
+        _label("Season"),
+        _label("Episode"),
+        _label("DBID"),
+        _label("Title"),
+        _label("Year"),
+        path,
+    )
+
+
+def get_listitem_media_info(listitem=None):
+    """
+    Extract identifiers from the context-menu ListItem (sys.listitem).
+
+    Falls back to ListItem.* infolabels when sys.listitem is missing.
+    Returns a dict with dbtype, api_type, history_type, tmdb_id,
+    show_tmdb_id, season, episode, dbid, title, year.
+    """
+    if listitem is None:
+        listitem = getattr(sys, "listitem", None)
+    if listitem is not None:
+        return _media_info_from_listitem(listitem)
+    return _media_info_from_infolabels()
 
 
 def resolve_listitem_tmdb(api, info):
@@ -332,11 +511,14 @@ def resolve_listitem_tmdb(api, info):
     if info.get("imdb_id"):
         result = api.resolve_media(imdb_id=info["imdb_id"], media_type=payload_type)
     if not result and info.get("title"):
-        year = xbmc.getInfoLabel("ListItem.Year") or None
+        year = info.get("year")
+        if year is None:
+            year_raw = xbmc.getInfoLabel("ListItem.Year") or None
+            year = int(year_raw) if year_raw and str(year_raw).isdigit() else None
         result = api.resolve_media(
             title=info["title"],
             media_type=payload_type,
-            year=int(year) if year and str(year).isdigit() else None,
+            year=int(year) if year is not None else None,
         )
 
     data = unwrap_data(result) if result else None

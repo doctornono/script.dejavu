@@ -70,3 +70,132 @@ def should_migrate_settings_token(session_file_exists, session_token):
     if session_file_exists:
         return False
     return not bool(session_token)
+
+
+_DBTYPE_ALIASES = {
+    "movie": "movie",
+    "movies": "movie",
+    "tvshow": "tvshow",
+    "tv": "tvshow",
+    "show": "tvshow",
+    "series": "tvshow",
+    "season": "season",
+    "episode": "episode",
+}
+
+_SCAT_DBTYPE = {
+    "1": "movie",
+    "2": "tvshow",
+    "3": "tvshow",
+    "9": "tvshow",
+}
+
+CONTEXT_DBTYPES = frozenset(("movie", "tvshow", "season", "episode"))
+
+
+def normalize_dbtype(db_type, s_cat=""):
+    """Canonical Kodi dbtype: movie / tvshow / season / episode, or empty."""
+    key = str(db_type or "").strip().lower()
+    if key in _DBTYPE_ALIASES:
+        return _DBTYPE_ALIASES[key]
+    return _SCAT_DBTYPE.get(str(s_cat or "").strip(), "")
+
+
+def is_context_media(info):
+    """True when the focused item is a movie, show, season, or episode."""
+    if not isinstance(info, dict):
+        return False
+    return normalize_dbtype(info.get("dbtype"), info.get("s_cat")) in CONTEXT_DBTYPES
+
+
+def listitem_api_type(db_type):
+    db = normalize_dbtype(db_type)
+    if db == "movie":
+        return "movie"
+    if db in ("tvshow", "season", "episode"):
+        return "tv"
+    return ""
+
+
+def listitem_history_type(db_type):
+    db = normalize_dbtype(db_type)
+    if db == "episode":
+        return "episode"
+    if db == "movie":
+        return "movie"
+    if db in ("tvshow", "season"):
+        return "tv"
+    return ""
+
+
+def is_addons_path(path):
+    """True for Kodi addon-browser rows (not plugin:// video listings)."""
+    text = (path or "").replace("\\", "/").lower()
+    return text.startswith("addons://")
+
+
+def parse_optional_int(value):
+    """Non-negative int, or None when missing / unknown (-1)."""
+    if value is None or value == "":
+        return None
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        text = str(value).strip()
+        if not text.lstrip("-").isdigit():
+            return None
+        number = int(text)
+    return number if number >= 0 else None
+
+
+# Context-menu action ids + string ids (see strings.po 30016 / 30080+ / 30200+).
+_RATE = "rate"
+_WATCHED = "watched"
+_UNWATCHED = "unwatched"
+_WATCHLIST = "watchlist"
+_FAVORITES = "favorites"
+_COLLECTION = "collection"
+_LIST = "list"
+
+
+def context_actions(dbtype, flags=None):
+    """Return [{id, label_id, label_arg?}, ...] for the Python context menu."""
+    db = normalize_dbtype(dbtype)
+    flags = flags if isinstance(flags, dict) else {}
+    actions = []
+
+    if db not in CONTEXT_DBTYPES:
+        return actions
+
+    rating = parse_optional_int(flags.get("rating"))
+    if db in ("movie", "tvshow") and rating:
+        actions.append({"id": _RATE, "label_id": 30200, "label_arg": rating})
+    else:
+        actions.append({"id": _RATE, "label_id": 30016})
+
+    if db == "movie":
+        if flags.get("watched"):
+            actions.append({"id": _UNWATCHED, "label_id": 30093})
+        else:
+            actions.append({"id": _WATCHED, "label_id": 30092})
+    elif db == "episode":
+        # get_media_status is movie/tv only — offer both watched actions.
+        actions.append({"id": _WATCHED, "label_id": 30092})
+        actions.append({"id": _UNWATCHED, "label_id": 30093})
+
+    if db in ("movie", "tvshow"):
+        if flags.get("inWatchlist"):
+            actions.append({"id": _WATCHLIST, "label_id": 30201})
+        else:
+            actions.append({"id": _WATCHLIST, "label_id": 30083})
+        if flags.get("isFavorite"):
+            actions.append({"id": _FAVORITES, "label_id": 30202})
+        else:
+            actions.append({"id": _FAVORITES, "label_id": 30086})
+        if flags.get("inCollection"):
+            actions.append({"id": _COLLECTION, "label_id": 30203})
+        else:
+            actions.append({"id": _COLLECTION, "label_id": 30080})
+        actions.append({"id": _LIST, "label_id": 30101})
+
+    return actions

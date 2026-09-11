@@ -608,3 +608,20 @@ msgstr "Session expirée. Veuillez vous reconnecter."
 msgctxt "#30195"
 msgid "Kodi"
 msgstr "Kodi"
+
+# Menu contextuel — libellés d'état (30200-30203)
+msgctxt "#30200"
+msgid "Rating: %s/10..."
+msgstr "Note : %s/10…"
+
+msgctxt "#30201"
+msgid "Remove from Watchlist (dejaVu)"
+msgstr "Retirer de la liste à voir (dejaVu)"
+
+msgctxt "#30202"
+msgid "Remove from Favorites (dejaVu)"
+msgstr "Retirer des favoris (dejaVu)"
+
+msgctxt "#30203"
+msgid "Remove from Collection (dejaVu)"
+msgstr "Retirer de la collection (dejaVu)"
