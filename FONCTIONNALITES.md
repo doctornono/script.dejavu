@@ -4,6 +4,9 @@ Addon : `script.dejavu` (Kodi 19+, Python 3).
 Site : [dejavu.plus](https://dejavu.plus)  
 Version documentée : **1.8.x**
 
+Usage quotidien et installation : [README.md](README.md) · [INSTALL.md](INSTALL.md).  
+Guide développeur anglais : [DEVELOPERS.md](DEVELOPERS.md).
+
 Ce document décrit :
 
 1. **Ce que l’addon fait dans Kodi** (utilisateur final).
