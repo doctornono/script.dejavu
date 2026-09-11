@@ -47,6 +47,9 @@ class ConnectDialog(xbmcgui.WindowXMLDialog):
         try:
             self.getControl(201).setLabel(ls(30117) or "Connect dejaVu")
             self.getControl(202).setLabel(ls(30107) or "Scan this QR code with your phone")
+            self.getControl(208).setLabel(
+                ls(30174) or "No account yet? Create one on your phone (Google, GitHub, or email)."
+            )
             self.getControl(207).setLabel(ls(30108) or "or visit")
             self.getControl(203).setLabel("dejavu.plus/device")
             self.getControl(204).setLabel(self.display_code)

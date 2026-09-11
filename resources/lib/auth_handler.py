@@ -158,7 +158,7 @@ def _login_with_progress(api, device_code, display_code, expires_in, interval):
     progress = xbmcgui.DialogProgress()
     progress.create(
         _ls(30117) or _ls(30030),
-        f"[COLOR gold][B]{display_code}[/B][/COLOR]\n{DISPLAY_URI}\n{_ls(30031)}",
+        f"[COLOR gold][B]{display_code}[/B][/COLOR]\n{DISPLAY_URI}\n{_ls(30174)}\n{_ls(30031)}",
     )
     monitor = xbmc.Monitor()
     expires_at = time.time() + expires_in

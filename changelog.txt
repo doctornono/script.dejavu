@@ -1,3 +1,10 @@
+v1.8.0 (2026-09-11)
+- Quote script.dejavu.changed NotifyAll JSON so pause/stop no longer logs "failed to parse data".
+- Context submenu only on movie / tvshow / episode; setting to hide it (default on).
+- Settings: Login/Logout visibility follows username and closes the dialog; logout label is "Log out of dejaVu".
+- QR connect dialog: hint to create an account on the phone.
+- IMPORT_KODI.md documents every import wizard option.
+
 v1.7.7 (2026-09-09)
 - Stop keeps continue watching at the last real position (same as pause) for movies and episodes.
 - Kodi reports 0 after Stop; the scrobbler now caches playback time so Stop no longer wipes Reprendre la lecture.

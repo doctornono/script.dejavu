@@ -5,9 +5,10 @@
     <category label="30000">
         <setting id="username" type="text" label="30001" default="" enable="false"/>
         <setting id="access_token" type="text" label="30099" default="" visible="false"/>
-        <setting id="action_login" type="action" label="30002" action="RunScript(script.dejavu,action=login)" visible="String.IsEmpty(Setting(access_token))"/>
-        <setting id="action_logout" type="action" label="30003" action="RunScript(script.dejavu,action=logout)" visible="!String.IsEmpty(Setting(access_token))"/>
-        <setting id="action_import_kodi" type="action" label="30121" action="RunScript(script.dejavu,action=import_kodi)" option="close" visible="!String.IsEmpty(Setting(access_token))"/>
+        <setting id="action_login" type="action" label="30002" action="RunScript(script.dejavu,action=login)" option="close" visible="String.IsEmpty(Setting(username))"/>
+        <setting id="action_logout" type="action" label="30003" action="RunScript(script.dejavu,action=logout)" option="close" visible="!String.IsEmpty(Setting(username))"/>
+        <setting id="action_import_kodi" type="action" label="30121" action="RunScript(script.dejavu,action=import_kodi)" option="close" visible="!String.IsEmpty(Setting(username))"/>
+        <setting id="enable_context_menu" type="bool" label="30175" default="true"/>
         <setting id="kodi_import_offered" type="bool" default="false" visible="false"/>
         <setting id="kodi_import_at" type="text" default="" visible="false"/>
     </category>

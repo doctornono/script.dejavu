@@ -9,7 +9,7 @@ Addon id: `script.dejavu` (Kodi 19+ / Python 3).
 - Automatic scrobbling with a configurable watched threshold (default 90%)
 - Resume from the last dejaVu position
 - Next-episode prompt at the end of playback
-- Context submenu **dejaVu** on any video item (vStream, Elementum, library): rate, watched, watchlist, favorites, collection, add to a list
+- Context submenu **dejaVu** on movies, TV shows, and episodes (vStream, Elementum, library): rate, watched, watchlist, favorites, collection, add to a list. Can be turned off in settings (default on).
 - Optional mirror of watched status and ratings onto the Kodi library (`playcount` / `userrating`)
 - Device-code login (no password in Kodi)
 - **DejaVu Connect** — QR pairing so other addons only call `authenticate()`
@@ -21,7 +21,7 @@ Addon id: `script.dejavu` (Kodi 19+ / Python 3).
 1. Install from ZIP (or from the dejaVu repository).
 2. Open **Add-on settings** → **Login with dejaVu**, or have another addon call `DejaVuClient().authenticate()`.
 3. Scan the QR code (or open [dejavu.plus/device](https://dejavu.plus/device) and enter the code).
-4. Sign in or create an account on your phone (Google / GitHub / email code). Authorize Kodi.
+4. Sign in or create an account on your phone (Google / GitHub / email code). Authorize Kodi. The QR dialog reminds you that you can create the account on the phone.
 
 No email or password is typed in Kodi.
 
@@ -61,6 +61,8 @@ Depend on `script.dejavu` ≥ **1.5.0** for Connect. Library import requires ≥
 ---
 
 ## Import Kodi library (migration)
+
+User-facing walkthrough of every wizard option: **[IMPORT_KODI.md](IMPORT_KODI.md)**.
 
 This is **not** scrobble. Scrobble stays the live path after the user is connected. Import is a one-shot snapshot of the Kodi video library:
 

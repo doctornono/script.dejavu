@@ -2,7 +2,7 @@
 
 Addon : `script.dejavu` (Kodi 19+, Python 3).  
 Site : [dejavu.plus](https://dejavu.plus)  
-Version documentée : **1.7.x**
+Version documentée : **1.8.x**
 
 Ce document décrit :
 
@@ -35,13 +35,13 @@ Identifiants canoniques : **TMDB**. Les overlays (`get_media_status`) portent su
 Pas de mot de passe dans Kodi. Device-code OAuth (RFC 8628) :
 
 1. L’utilisateur lance **Se connecter avec dejaVu** (réglages, menu Programmes, ou `authenticate()` depuis un autre addon).
-2. Un dialogue affiche un **QR code** + un code court.
+2. Un dialogue affiche un **QR code** + un code court, et un rappel : le compte se crée sur le téléphone.
 3. Scan / ouverture de [dejavu.plus/device](https://dejavu.plus/device) sur le téléphone.
-4. Connexion Google / GitHub / code e-mail, puis autorisation de Kodi.
+4. Connexion Google / GitHub / code e-mail (ou **création de compte**), puis autorisation de Kodi.
 
 Après succès : écran d’accueil avec stats (watchlist, historique, listes, favoris) et proposition d’**importer la bibliothèque Kodi** s’il y en a une.
 
-Déconnexion : réglages, menu Programmes, ou RPC `logout`.
+Déconnexion : réglages (**Se déconnecter de dejaVu**, visible une fois connecté), menu Programmes, ou RPC `logout`.
 
 ### 2.2 Scrobble automatique
 
@@ -66,7 +66,7 @@ Pause et stop envoient la **dernière position réelle** et gardent l’item dan
 
 ### 2.3 Menu contextuel **dejaVu**
 
-Visible sur un item vidéo qui a un TMDB, un IMDb, ou une propriété plugin (`TmdbId`, `tmdb_id`, `imdb_id`) — bibliothèque, vStream, Elementum, etc.
+Réglage **Afficher le menu contextuel dejaVu** (défaut : activé). Visible seulement sur **film**, **série** ou **épisode** qui a un TMDB, un IMDb, ou une propriété plugin (`TmdbId`, `tmdb_id`, `imdb_id`, `sCat` vStream) — bibliothèque, vStream, Elementum, etc. Pas sur les saisons, personnes, dossiers.
 
 | Entrée | Comportement |
 |---|---|
@@ -86,6 +86,8 @@ Optionnel (défaut : activé). Quand l’utilisateur note ou marque vu **depuis 
 Les badges sur une liste **plugin** (vStream, etc.) ne viennent **pas** de ce miroir : l’addon listeur doit appeler `get_media_status`.
 
 ### 2.5 Import de la bibliothèque Kodi (migration)
+
+Guide utilisateur (modes + chaque option) : **[IMPORT_KODI.md](IMPORT_KODI.md)**.
 
 **Pas un scrobble.** Snapshot one-shot de MyVideos via JSON-RPC Kodi, puis `POST /kodi/import` par paquets d’environ 200 items.
 

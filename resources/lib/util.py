@@ -43,8 +43,10 @@ def notify_changed(action, media_type=None, tmdb_id=None, extra=None):
     if extra:
         payload.update(extra)
     try:
+        # Quote the JSON so commas are not treated as NotifyAll argument separators.
+        payload_json = json.dumps(payload)
         xbmc.executebuiltin(
-            f"NotifyAll({ADDON_ID}, {ADDON_ID}.changed, {json.dumps(payload)})"
+            "NotifyAll(%s, %s, %s)" % (ADDON_ID, f"{ADDON_ID}.changed", json.dumps(payload_json))
         )
     except Exception as e:
         _log(f"notify_changed failed: {e}", xbmc.LOGWARNING)

@@ -32,6 +32,20 @@ def _ls(string_id):
     return ADDON.getLocalizedString(string_id)
 
 
+def _context_enabled():
+    try:
+        return ADDON.getSettingBool("enable_context_menu")
+    except Exception:
+        val = (ADDON.getSetting("enable_context_menu") or "true").lower()
+        return val not in ("false", "0")
+
+
+def _run_context(fn):
+    if not _context_enabled():
+        return
+    fn()
+
+
 def _notify_ok(msg_id):
     xbmcgui.Dialog().notification("dejaVu", _ls(msg_id), xbmcgui.NOTIFICATION_INFO, 3000)
 
@@ -479,17 +493,17 @@ def main():
         from resources.lib.library_importer import run_import_wizard
         run_import_wizard(allow_skip=True)
     elif "action=rate" in params:
-        rate_dialog()
+        _run_context(rate_dialog)
     elif "action=toggle_watched" in params:
-        toggle_watched()
+        _run_context(toggle_watched)
     elif "action=toggle_watchlist" in params or "action=add_to_watchlist" in params:
-        toggle_watchlist()
+        _run_context(toggle_watchlist)
     elif "action=toggle_favorites" in params or "action=add_to_favorites" in params:
-        toggle_favorites()
+        _run_context(toggle_favorites)
     elif "action=toggle_collection" in params or "action=add_to_collection" in params:
-        toggle_collection()
+        _run_context(toggle_collection)
     elif "action=add_to_list" in params:
-        add_to_list_dialog()
+        _run_context(add_to_list_dialog)
     elif "action=settings" in params:
         ADDON.openSettings()
     else:

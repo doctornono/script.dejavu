@@ -40,9 +40,9 @@
             <control type="label" id="202">
                 <description>Scan hint</description>
                 <left>30</left>
-                <top>84</top>
+                <top>80</top>
                 <width>640</width>
-                <height>40</height>
+                <height>36</height>
                 <align>center</align>
                 <aligny>center</aligny>
                 <font>font13</font>
@@ -50,10 +50,24 @@
                 <label>$ADDON[script.dejavu 30107]</label>
             </control>
 
+            <control type="label" id="208">
+                <description>Create account hint</description>
+                <left>30</left>
+                <top>116</top>
+                <width>640</width>
+                <height>48</height>
+                <align>center</align>
+                <aligny>center</aligny>
+                <font>font12</font>
+                <textcolor>FF9CA3AF</textcolor>
+                <wrapmultiline>true</wrapmultiline>
+                <label>$ADDON[script.dejavu 30174]</label>
+            </control>
+
             <control type="image" id="100">
                 <description>QR code</description>
                 <left>175</left>
-                <top>140</top>
+                <top>168</top>
                 <width>350</width>
                 <height>350</height>
                 <aspectratio>keep</aspectratio>
@@ -63,7 +77,7 @@
             <control type="label" id="207">
                 <description>Or visit</description>
                 <left>30</left>
-                <top>510</top>
+                <top>538</top>
                 <width>640</width>
                 <height>32</height>
                 <align>center</align>
@@ -75,7 +89,7 @@
             <control type="label" id="203">
                 <description>Device URL</description>
                 <left>30</left>
-                <top>546</top>
+                <top>574</top>
                 <width>640</width>
                 <height>40</height>
                 <align>center</align>
@@ -87,7 +101,7 @@
             <control type="label" id="204">
                 <description>User code</description>
                 <left>30</left>
-                <top>600</top>
+                <top>628</top>
                 <width>640</width>
                 <height>70</height>
                 <align>center</align>
@@ -100,7 +114,7 @@
             <control type="label" id="205">
                 <description>Waiting</description>
                 <left>30</left>
-                <top>680</top>
+                <top>708</top>
                 <width>640</width>
                 <height>36</height>
                 <align>center</align>
@@ -111,7 +125,7 @@
 
             <control type="progress" id="206">
                 <left>80</left>
-                <top>730</top>
+                <top>758</top>
                 <width>540</width>
                 <height>10</height>
             </control>
@@ -119,7 +133,7 @@
             <control type="button" id="9000">
                 <description>Cancel</description>
                 <left>200</left>
-                <top>780</top>
+                <top>808</top>
                 <width>300</width>
                 <height>64</height>
                 <align>center</align>
