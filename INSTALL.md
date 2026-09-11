@@ -67,14 +67,12 @@ dejaVu ne fournit pas de films : il synchronise votre compte [dejaVu.plus](https
    ![URL et nom de la source](https://dejavu.plus/kodi/20-param-compte.png)
 
 5. Un dialogue affiche un **QR code** et un code court.
+   ![URL et nom de la source](https://dejavu.plus/kodi/20-param-qr.png)
+
 6. Sur le téléphone, scanner le QR ou ouvrir [dejavu.plus/device](https://dejavu.plus/device) et saisir le code.
 7. Se connecter ou **créer un compte** sur le téléphone (Google, GitHub ou code e-mail), puis autoriser Kodi.
 
 Aucun e-mail ni mot de passe n’est saisi dans Kodi. Le compte se crée sur le téléphone.
-
-![Réglages dejaVu — Compte](docs/screenshots/08-addon-settings.png)
-
-![Connexion QR](docs/screenshots/09-connect-qr.png)
 
 Après une connexion réussie, dejaVu peut proposer d’**importer votre bibliothèque Kodi** (historique, notes, collection). Le scrobbling automatique démarre ensuite : les lectures dans Kodi sont envoyées à dejaVu.plus.
 
@@ -96,12 +94,6 @@ Kodi needs a file source to download the repository zip.
 4. Name the source, for example: `dejaVu`.
 5. Confirm.
 
-![File manager](docs/screenshots/01-file-manager.png)
-
-![Add source](docs/screenshots/02-add-source.png)
-
-![Source URL and name](docs/screenshots/03-source-url.png)
-
 ### 2. Install the repository
 
 The repository then installs and updates dejaVu automatically.
@@ -111,10 +103,6 @@ The repository then installs and updates dejaVu automatically.
 3. Open the `dejaVu` source.
 4. Install `repository.dejavu-1.0.0.zip`.
 
-![Install from zip file](docs/screenshots/04-install-zip.png)
-
-![Install the repository](docs/screenshots/05-install-repo.png)
-
 ### 3. Install the add-on
 
 1. Go to `Add-ons > Install from repository`.
@@ -123,10 +111,6 @@ The repository then installs and updates dejaVu automatically.
 4. Install **dejaVu**.
 
 Once the repository is installed, Kodi offers updates automatically.
-
-![Install from repository](docs/screenshots/06-install-from-repo.png)
-
-![Install dejaVu](docs/screenshots/07-install-addon.png)
 
 ### 4. Configure the add-on (sign in to dejaVu)
 
@@ -141,9 +125,5 @@ dejaVu does not provide streams: it syncs your [dejaVu.plus](https://dejavu.plus
 7. Sign in or **create an account** on the phone (Google, GitHub, or email code), then authorize Kodi.
 
 No email or password is typed in Kodi. The account is created on the phone.
-
-![dejaVu settings — Account](docs/screenshots/08-addon-settings.png)
-
-![QR sign-in](docs/screenshots/09-connect-qr.png)
 
 After a successful sign-in, dejaVu may offer to **import your Kodi library** (history, ratings, collection). Automatic scrobbling then starts: playback in Kodi is sent to dejaVu.plus.
