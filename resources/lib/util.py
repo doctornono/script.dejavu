@@ -7,12 +7,15 @@ import xbmc
 import xbmcaddon
 
 from .pure import (
+    ids_from_plugin_path,
     is_addons_path,
     is_context_media,
     listitem_api_type,
     listitem_history_type,
     normalize_dbtype,
     parse_optional_int,
+    status_flags,
+    strip_kodi_label,
     unwrap_data,
 )
 
@@ -65,11 +68,7 @@ def notify_changed(action, media_type=None, tmdb_id=None, extra=None):
 
 def status_for(result, media_type, tmdb_id):
     """Pick the media/status entry for type+id from a v1 response."""
-    data = unwrap_data(result) or {}
-    if not isinstance(data, dict):
-        return {}
-    key = f"{media_type}:{tmdb_id}"
-    return data.get(key) or data.get(str(tmdb_id)) or {}
+    return status_flags(result, media_type, tmdb_id)
 
 
 def _jsonrpc(method, params, req_id=1):
@@ -316,6 +315,14 @@ def _prop(item, key):
     return xbmc.getInfoLabel("ListItem.Property(%s)" % key) or ""
 
 
+def _first_prop(item, keys):
+    for key in keys:
+        val = _prop(item, key)
+        if val:
+            return val
+    return ""
+
+
 def _label(name):
     return xbmc.getInfoLabel("ListItem.%s" % name) or ""
 
@@ -336,10 +343,11 @@ def _assemble_media_info(
     if is_addons_path(path):
         return _empty_media_info()
 
-    db_type = normalize_dbtype(db_type, s_cat)
-    tmdb_id = str(tmdb_id or "")
-    imdb_id = str(imdb_id or "")
-    show_tmdb = str(show_tmdb or "")
+    path_ids = ids_from_plugin_path(path)
+    db_type = normalize_dbtype(db_type, s_cat) or path_ids.get("media_type") or ""
+    tmdb_id = str(tmdb_id or path_ids.get("tmdb_id") or "")
+    imdb_id = str(imdb_id or path_ids.get("imdb_id") or "")
+    show_tmdb = str(show_tmdb or path_ids.get("show_tmdb_id") or "")
     if tmdb_id.startswith("tt"):
         imdb_id = imdb_id or tmdb_id
         tmdb_id = ""
@@ -359,7 +367,7 @@ def _assemble_media_info(
         "season": parse_optional_int(season),
         "episode": parse_optional_int(episode),
         "dbid": dbid,
-        "title": title or "",
+        "title": strip_kodi_label(title or ""),
         "year": year,
         "s_cat": str(s_cat or ""),
     }
@@ -388,7 +396,10 @@ def _media_info_from_listitem(item):
             db_type = tag.getMediaType() or ""
         except Exception:
             db_type = ""
-        tmdb_id = _tag_unique_id(tag, "tmdb")
+        tmdb_id = (
+            _tag_unique_id(tag, "tmdb")
+            or _tag_unique_id(tag, "themoviedb")
+        )
         imdb_id = _tag_unique_id(tag, "imdb")
         if not imdb_id:
             try:
@@ -432,18 +443,16 @@ def _media_info_from_listitem(item):
     if not db_type:
         db_type = _prop(item, "DBType") or _prop(item, "media_type")
     s_cat = _prop(item, "sCat")
-    tmdb_id = (
-        tmdb_id
-        or _prop(item, "tmdb_id")
-        or _prop(item, "TmdbId")
-        or _prop(item, "tmdbid")
-    )
-    imdb_id = imdb_id or _prop(item, "imdb_id")
-    show_tmdb = (
-        show_tmdb
-        or _prop(item, "tvshow_tmdb_id")
-        or _prop(item, "TVShowID")
-    )
+    tmdb_id = tmdb_id or _first_prop(item, (
+        "tmdb_id", "TmdbId", "tmdbid", "tmdb",
+        "elementum_tmdb_id", "elementum_movie_tmdb_id",
+    ))
+    imdb_id = imdb_id or _first_prop(item, (
+        "imdb_id", "imdb", "imdbid", "elementum_imdb_id",
+    ))
+    show_tmdb = show_tmdb or _first_prop(item, (
+        "tvshow_tmdb_id", "TVShowID", "elementum_tvshow_tmdb_id",
+    ))
 
     return _assemble_media_info(
         db_type,
@@ -467,14 +476,21 @@ def _media_info_from_infolabels():
         db_type,
         _label("Property(sCat)"),
         _label("UniqueID(tmdb)")
+        or _label("UniqueID(themoviedb)")
         or _label("Property(tmdb_id)")
         or _label("Property(TmdbId)")
-        or _label("Property(tmdbid)"),
-        _label("UniqueID(imdb)") or _label("IMDBNumber") or _label("Property(imdb_id)"),
+        or _label("Property(tmdbid)")
+        or _label("Property(tmdb)")
+        or _label("Property(elementum_tmdb_id)"),
+        _label("UniqueID(imdb)")
+        or _label("IMDBNumber")
+        or _label("Property(imdb_id)")
+        or _label("Property(imdb)"),
         _label("TVShowUniqueID(tmdb)")
         or _label("UniqueID(tvshow_tmdb)")
         or _label("Property(tvshow_tmdb_id)")
-        or _label("Property(TVShowID)"),
+        or _label("Property(TVShowID)")
+        or _label("Property(elementum_tvshow_tmdb_id)"),
         _label("Season"),
         _label("Episode"),
         _label("DBID"),

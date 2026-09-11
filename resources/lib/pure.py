@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """Pure helpers with no xbmc / network imports (unit-tested)."""
 
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
+import re
 
 DEFAULT_API_URL = "https://dejavu.plus/api/v1"
 ALLOWED_API_HOSTS = ("dejavu.plus", "www.dejavu.plus")
@@ -12,6 +13,91 @@ def unwrap_data(result):
     if isinstance(result, dict) and "data" in result:
         return result.get("data")
     return result
+
+
+_KODI_TAG_RE = re.compile(r"\[/?[^\]]+\]")
+_STAR_RATING_RE = re.compile(r"★\s*\d+")
+_BADGE_CHARS = str.maketrans({"✔": " ", "♥": " ", "●": " "})
+
+
+def strip_kodi_label(text):
+    """Remove skin/color tags and dejaVu overlay badges from a ListItem label."""
+    cleaned = _KODI_TAG_RE.sub("", str(text or ""))
+    cleaned = cleaned.translate(_BADGE_CHARS)
+    cleaned = _STAR_RATING_RE.sub("", cleaned)
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+_TMDB_QUERY_KEYS = ("tmdb_id", "tmdbid", "tmdb", "themoviedb", "tmdbId")
+_IMDB_QUERY_KEYS = ("imdb_id", "imdbid", "imdb", "imdbId")
+_SHOW_TMDB_QUERY_KEYS = (
+    "show_tmdb_id", "tvshow_tmdb_id", "tvshowid", "tvShowId", "TVShowID", "show_id",
+)
+_TYPE_QUERY_KEYS = ("type", "media_type", "mediatype", "dbtype")
+
+
+def _qs_first(query, keys):
+    for key in keys:
+        values = query.get(key) or query.get(key.lower()) or query.get(key.upper())
+        if not values:
+            continue
+        val = str(values[0] or "").strip()
+        if val:
+            return val
+    return ""
+
+
+def ids_from_plugin_path(path):
+    """Pull TMDB/IMDb/type from plugin:// query strings (alkoFlix, Elementum, …)."""
+    text = (path or "").replace("\\", "/")
+    if "plugin://" not in text and "?" not in text:
+        return {"tmdb_id": "", "imdb_id": "", "show_tmdb_id": "", "media_type": ""}
+    try:
+        parsed = urlparse(text)
+        query = parse_qs(parsed.query or "")
+        if not query and "?" in text:
+            query = parse_qs(text.split("?", 1)[-1])
+    except Exception:
+        query = {}
+    tmdb_id = _qs_first(query, _TMDB_QUERY_KEYS)
+    if not tmdb_id:
+        match = re.search(r"/tmdb/(\d+)", text, re.I)
+        if match:
+            tmdb_id = match.group(1)
+    if tmdb_id and not str(tmdb_id).isdigit():
+        tmdb_id = ""
+    imdb_id = _qs_first(query, _IMDB_QUERY_KEYS)
+    show_tmdb = _qs_first(query, _SHOW_TMDB_QUERY_KEYS)
+    if show_tmdb and not str(show_tmdb).isdigit():
+        show_tmdb = ""
+    media_type = normalize_dbtype(_qs_first(query, _TYPE_QUERY_KEYS))
+    return {
+        "tmdb_id": tmdb_id,
+        "imdb_id": imdb_id,
+        "show_tmdb_id": show_tmdb,
+        "media_type": media_type,
+    }
+
+
+def status_flags(result, media_type, tmdb_id):
+    """Pick get_media_status flags for type+id from a v1 envelope or a plain map."""
+    data = unwrap_data(result)
+    if not isinstance(data, dict):
+        return {}
+    tid = str(tmdb_id or "").strip()
+    kind = listitem_api_type(media_type) or (media_type if media_type in ("movie", "tv") else "")
+    keys = []
+    if kind and tid:
+        keys.append("%s:%s" % (kind, tid))
+    if tid:
+        keys.append(tid)
+    for key in keys:
+        entry = data.get(key)
+        if isinstance(entry, dict) and entry:
+            return entry
+    if any(k in data for k in ("isFavorite", "inWatchlist", "inCollection", "watched", "rating")):
+        return data
+    return {}
 
 
 def extract_ids(uniqueids, imdbnumber=None):

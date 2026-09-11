@@ -204,5 +204,40 @@ class ContextActionsTests(unittest.TestCase):
         self.assertEqual(pure.context_actions(None), [])
 
 
+class StripLabelAndPluginIdsTests(unittest.TestCase):
+    def test_strip_overlay_badges(self):
+        raw = "[COLOR green]✔[/COLOR] The Matrix  ★8  [COLOR yellow]●[/COLOR] [COLOR red]♥[/COLOR]"
+        self.assertEqual(pure.strip_kodi_label(raw), "The Matrix")
+
+    def test_ids_from_alkoflix_style_url(self):
+        path = "plugin://plugin.video.alkoflix/?action=dejavu_play&type=movie&tmdb_id=603"
+        ids = pure.ids_from_plugin_path(path)
+        self.assertEqual(ids["tmdb_id"], "603")
+        self.assertEqual(ids["media_type"], "movie")
+
+    def test_ids_from_elementum_tmdb_path(self):
+        path = "plugin://plugin.video.elementum/movie/tmdb/550/play"
+        self.assertEqual(pure.ids_from_plugin_path(path)["tmdb_id"], "550")
+
+    def test_ignores_non_plugin_paths(self):
+        self.assertEqual(pure.ids_from_plugin_path("videodb://movies/titles/1")["tmdb_id"], "")
+
+
+class StatusFlagsTests(unittest.TestCase):
+    def test_v1_envelope_movie_key(self):
+        result = {"success": True, "data": {"movie:603": {"isFavorite": True, "inWatchlist": False}}}
+        flags = pure.status_flags(result, "movie", 603)
+        self.assertTrue(flags.get("isFavorite"))
+        self.assertFalse(flags.get("inWatchlist"))
+
+    def test_tvshow_alias_uses_tv_key(self):
+        result = {"data": {"tv:1396": {"isFavorite": True}}}
+        self.assertTrue(pure.status_flags(result, "tvshow", "1396").get("isFavorite"))
+
+    def test_missing_returns_empty(self):
+        self.assertEqual(pure.status_flags({"data": {}}, "movie", 1), {})
+        self.assertEqual(pure.status_flags(None, "movie", 1), {})
+
+
 if __name__ == "__main__":
     unittest.main()
