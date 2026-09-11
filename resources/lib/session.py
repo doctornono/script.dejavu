@@ -8,7 +8,6 @@ This JSON file is the source of truth the dialog cannot overwrite.
 
 import json
 import os
-import time
 
 import xbmc
 import xbmcaddon
@@ -115,30 +114,5 @@ def sync_settings_from_session():
     if current_token == token and current_user == username:
         return False
     apply_session_to_settings(data)
-    # #region agent log
-    try:
-        payload = {
-            "sessionId": "489f32",
-            "timestamp": int(time.time() * 1000),
-            "location": "session.py:sync_settings_from_session",
-            "message": "restored settings from session.json",
-            "data": {
-                "session_token_len": len(token),
-                "session_username_len": len(username),
-                "settings_token_len_before": len(current_token),
-                "settings_username_len_before": len(current_user),
-            },
-            "hypothesisId": "A",
-            "runId": "post-fix",
-        }
-        with open(
-            r"D:\Developpement\dejavu-kodi-addons\debug-489f32.log",
-            "a",
-            encoding="utf-8",
-        ) as handle:
-            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-    # #endregion
     xbmc.log("[dejaVu] Restored account settings from session.json", xbmc.LOGINFO)
     return True

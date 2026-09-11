@@ -7,12 +7,9 @@ Flow:
   1. POST /auth/device/code  → get user_code + verification_uri
   2. Show QR + short code (WindowXML, with text fallback)
   3. Poll POST /auth/device/token until approved or expired
-  4. Save access_token + username in addon settings
+  4. Save the session to session.json, then mirror access_token + username in addon settings
 """
 
-import json
-import os
-import re
 import time
 import xbmc
 import xbmcgui
@@ -24,84 +21,6 @@ from .util import notify_changed
 ADDON = xbmcaddon.Addon()
 AUTH_STATUS_PROP = "script.dejavu.auth.status"
 WEB_HOME = "https://dejavu.plus"
-
-# #region agent log
-_DBG_PATH = r"D:\Developpement\dejavu-kodi-addons\debug-489f32.log"
-_DBG_URL = "http://127.0.0.1:7403/ingest/793ea98b-2109-427e-9f7f-ba8b74480cc9"
-
-
-def _agent_log(location, message, data, hypothesis_id, run_id="post-fix"):
-    payload = {
-        "sessionId": "489f32",
-        "timestamp": int(time.time() * 1000),
-        "location": location,
-        "message": message,
-        "data": data,
-        "hypothesisId": hypothesis_id,
-        "runId": run_id,
-    }
-    try:
-        with open(_DBG_PATH, "a", encoding="utf-8") as handle:
-            handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-    try:
-        import requests
-        requests.post(
-            _DBG_URL,
-            json=payload,
-            headers={"Content-Type": "application/json", "X-Debug-Session-Id": "489f32"},
-            timeout=1,
-        )
-    except Exception:
-        pass
-
-
-def _dbg_file_filled(xml, setting_id):
-    tagged = re.search(
-        r'<setting id="%s"[^>]*>([^<]*)</setting>' % re.escape(setting_id),
-        xml,
-    )
-    if tagged:
-        return bool((tagged.group(1) or "").strip())
-    if re.search(r'<setting id="%s"[^>]*/>' % re.escape(setting_id), xml):
-        return False
-    return None
-
-
-def _dbg_snapshot():
-    xml = ""
-    xml_path = ""
-    try:
-        import xbmcvfs
-        xml_path = xbmcvfs.translatePath(
-            "special://profile/addon_data/script.dejavu/settings.xml"
-        )
-        with open(xml_path, "r", encoding="utf-8") as handle:
-            xml = handle.read()
-    except Exception as exc:
-        xml = "ERR:%s" % exc
-    snap = {
-        "win_addonsettings": bool(xbmc.getCondVisibility("Window.IsVisible(addonsettings)")),
-        "win_10140": bool(xbmc.getCondVisibility("Window.IsVisible(10140)")),
-        "username_len": len(ADDON.getSetting("username") or ""),
-        "token_len": len(ADDON.getSetting("access_token") or ""),
-        "import_offered": ADDON.getSetting("kodi_import_offered"),
-        "file_username": _dbg_file_filled(xml, "username") if xml.startswith("<") else xml[:80],
-        "file_token": _dbg_file_filled(xml, "access_token") if xml.startswith("<") else None,
-        "file_offered": _dbg_file_filled(xml, "kodi_import_offered") if xml.startswith("<") else None,
-        "xml_path_exists": os.path.exists(xml_path) if xml_path else False,
-    }
-    try:
-        from .session import load_session
-        sess = load_session()
-        snap["session_token_len"] = len(sess.get("access_token") or "")
-        snap["session_username_len"] = len(sess.get("username") or "")
-    except Exception:
-        snap["session_token_len"] = -1
-        snap["session_username_len"] = -1
-    return snap
-# #endregion
 
 
 def _ls(string_id):
@@ -211,31 +130,20 @@ DISPLAY_URI = "dejavu.plus/device"
 
 def _persist_login(token_data):
     access_token = token_data["access_token"]
-    # #region agent log
-    _agent_log(
-        "auth_handler.py:_persist_login:before",
-        "persist start",
-        {**_dbg_snapshot(), "incoming_token_len": len(access_token or ""), "has_refresh": bool(token_data.get("refresh_token"))},
-        "A",
-    )
-    # #endregion
     refresh_token = token_data.get("refresh_token") or ""
     save_session({
         "access_token": access_token,
         "username": "",
         "refresh_token": refresh_token,
     })
-    set_token_ok = ADDON.setSetting("access_token", access_token)
-    set_refresh_ok = None
+    ADDON.setSetting("access_token", access_token)
     if refresh_token:
-        set_refresh_ok = ADDON.setSetting("refresh_token", refresh_token)
+        ADDON.setSetting("refresh_token", refresh_token)
 
     authed_api = DejaVuAPI(token=access_token)
     me = authed_api.get_me()
     username = "User"
-    me_ok = bool(me and isinstance(me, dict))
-    me_keys = list(me.keys())[:12] if me_ok else []
-    if me_ok:
+    if me and isinstance(me, dict):
         user = me.get("user") if isinstance(me.get("user"), dict) else me
         username = (
             user.get("name")
@@ -248,36 +156,12 @@ def _persist_login(token_data):
         "username": username,
         "refresh_token": refresh_token,
     })
-    set_user_ok = ADDON.setSetting("username", username)
-    # #region agent log
-    _agent_log(
-        "auth_handler.py:_persist_login:after_set",
-        "setSetting results",
-        {
-            **_dbg_snapshot(),
-            "set_token_ok": set_token_ok,
-            "set_refresh_ok": set_refresh_ok,
-            "set_user_ok": set_user_ok,
-            "me_ok": me_ok,
-            "me_keys": me_keys,
-            "username_len_local": len(username or ""),
-        },
-        "B",
-    )
-    # #endregion
+    ADDON.setSetting("username", username)
     xbmc.log(f"[dejaVu] Login successful: {username}", xbmc.LOGINFO)
     _set_auth_status("success")
     notify_changed("authenticated")
     _show_welcome(username, me)
     apply_session_to_settings()
-    # #region agent log
-    _agent_log(
-        "auth_handler.py:_persist_login:after_welcome",
-        "after welcome dialog",
-        _dbg_snapshot(),
-        "A",
-    )
-    # #endregion
     xbmc.executebuiltin("Addon.OpenSettings(script.dejavu)")
     return True
 
@@ -324,9 +208,6 @@ def login():
     Returns True on success, False on failure/cancel.
     """
     _set_auth_status("pending")
-    # #region agent log
-    _agent_log("auth_handler.py:login:start", "login() started", _dbg_snapshot(), "A")
-    # #endregion
     api = DejaVuAPI(token="")
 
     device_info = api.get_device_code()
@@ -374,16 +255,7 @@ def login():
         return False
 
     if token_data and token_data.get("access_token"):
-        ok = _persist_login(token_data)
-        # #region agent log
-        _agent_log(
-            "auth_handler.py:login:end",
-            "login() after persist",
-            {**_dbg_snapshot(), "persist_ok": ok},
-            "A",
-        )
-        # #endregion
-        return ok
+        return _persist_login(token_data)
 
     if expired:
         _set_auth_status("expired")
