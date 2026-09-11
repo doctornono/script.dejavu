@@ -19,7 +19,7 @@ Quatre onglets : **Compte**, **Kodi**, **Scrobbling**, **Avancé**.
 | Connecté en tant que | Votre identifiant dejaVu une fois la session ouverte (lecture seule). |
 | Connecter dejaVu | Affiché si vous n’êtes pas connecté. Ouvre le dialogue QR (DejaVu Connect). Aucun mot de passe dans Kodi. |
 | Se déconnecter de dejaVu | Affiché une fois connecté. Efface la session locale. |
-| Afficher le menu contextuel dejaVu | Entrée **dejaVu** : film/série (menu complet), épisode (note + vu), saison (note). Désactivez-le si vous ne voulez que le scrobble en arrière-plan. |
+| Afficher le menu contextuel dejaVu | Entrée **dejaVu** (dialogue titré) : film/série (menu complet, y compris nouvelle vue si déjà vu), épisode (note + vu), saison (note). Désactivez-le si vous ne voulez que le scrobble en arrière-plan. |
 
 L’import de la bibliothèque n’est **pas** dans cet onglet.
 
@@ -141,7 +141,7 @@ Four tabs: **Account**, **Kodi**, **Scrobbling**, **Advanced**.
 | Logged in as | Your dejaVu username once signed in (read-only). |
 | Connect dejaVu | Shown when logged out. Opens the QR dialog (DejaVu Connect). No password in Kodi. |
 | Log out of dejaVu | Shown when logged in. Clears the local session. |
-| Show dejaVu context menu | **dejaVu** item: full menu on movies and shows; rate + watched on episodes; rate only on seasons. Turn it off if you only want background scrobbling. |
+| Show dejaVu context menu | **dejaVu** dialog: full menu on movies and shows (including an extra view when already watched); rate + watched on episodes; rate only on seasons. Turn it off if you only want background scrobbling. |
 
 Library import is **not** on this tab.
 

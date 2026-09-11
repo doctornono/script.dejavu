@@ -609,7 +609,7 @@ msgctxt "#30195"
 msgid "Kodi"
 msgstr "Kodi"
 
-# Menu contextuel — libellés d'état (30200-30205)
+# Menu contextuel — libellés d'état (30200-30207)
 msgctxt "#30200"
 msgid "Rating: %s/10..."
 msgstr "Note : %s/10…"
@@ -633,3 +633,11 @@ msgstr "Ajouter une nouvelle vue"
 msgctxt "#30205"
 msgid "Added a new view."
 msgstr "Nouvelle vue ajoutée."
+
+msgctxt "#30206"
+msgid "Add a new view (%d views, %s)"
+msgstr "Ajouter une nouvelle vue (%d vues, %s)"
+
+msgctxt "#30207"
+msgid "Add a new view (%d view, %s)"
+msgstr "Ajouter une nouvelle vue (%d vue, %s)"

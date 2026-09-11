@@ -66,9 +66,12 @@ def notify_changed(action, media_type=None, tmdb_id=None, extra=None):
         _log(f"notify_changed failed: {e}", xbmc.LOGWARNING)
 
 
-def status_for(result, media_type, tmdb_id):
+def status_for(result, media_type, tmdb_id, show_tmdb_id=None, season=None, episode=None):
     """Pick the media/status entry for type+id from a v1 response."""
-    return status_flags(result, media_type, tmdb_id)
+    return status_flags(
+        result, media_type, tmdb_id,
+        show_tmdb_id=show_tmdb_id, season=season, episode=episode,
+    )
 
 
 def _jsonrpc(method, params, req_id=1):

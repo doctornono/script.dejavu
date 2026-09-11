@@ -614,7 +614,7 @@ msgctxt "#30195"
 msgid "Kodi"
 msgstr ""
 
-# Context menu — stateful labels (30200-30205)
+# Context menu — stateful labels (30200-30207)
 msgctxt "#30200"
 msgid "Rating: %s/10..."
 msgstr ""
@@ -637,6 +637,14 @@ msgstr ""
 
 msgctxt "#30205"
 msgid "Added a new view."
+msgstr ""
+
+msgctxt "#30206"
+msgid "Add a new view (%d views, %s)"
+msgstr ""
+
+msgctxt "#30207"
+msgid "Add a new view (%d view, %s)"
 msgstr ""
 
 # Settings labels

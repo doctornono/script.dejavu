@@ -2,7 +2,7 @@
 
 Addon : `script.dejavu` (Kodi 19+, Python 3).  
 Site : [dejavu.plus](https://dejavu.plus)  
-Version documentée : **1.11.0**
+Version documentée : **1.18.1**
 
 Installation : [README.md](../README.md) · [INSTALL.md](INSTALL.md).  
 Paramètres (détail, y compris l’import Kodi) : [PARAMETRES.md](PARAMETRES.md).  
@@ -61,25 +61,28 @@ Pause et stop conservent **Reprendre la lecture** à la dernière position réel
 
 ## Menu contextuel dejaVu
 
-Réglage **Afficher le menu contextuel dejaVu** (onglet Compte, activé par défaut). Une entrée **dejaVu** sur un **film**, une **série**, une **saison** ou un **épisode** — bibliothèque Kodi, vStream, Elementum, etc. Pas sur les extensions, « installer un zip », personnes ou dossiers. Le menu Python s’adapte au type et à l’état dejaVu (note, watchlist…).
+Réglage **Afficher le menu contextuel dejaVu** (onglet Compte, activé par défaut). Une entrée native **dejaVu** apparaît sur un **film**, une **série**, une **saison** ou un **épisode** — bibliothèque Kodi, vStream, Elementum, etc. Pas sur le navigateur d’extensions, « installer un zip », Programmes, personnes ou dossiers.
+
+Un clic ouvre un **dialogue titré dejaVu**. Les lignes ne répètent plus « (dejaVu) » : Ajouter / Retirer / Noter suffisent. Les libellés suivent votre compte (note actuelle, déjà en liste de suivi, etc.).
 
 | Type | Entrées |
 |---|---|
-| Film | Noter, vu / non vu, liste à voir, favoris, collection, liste perso |
-| Série | Noter, liste à voir, favoris, collection, liste perso (pas de « vu » global) |
-| Épisode | Noter, marquer vu, marquer non vu |
+| Film | Noter, marquer vu **ou** non vu, éventuellement **ajouter une nouvelle vue**, liste de suivi, favoris, collection, liste perso |
+| Série | Noter, liste de suivi, favoris, collection, liste perso (pas de « vu » pour la série entière) |
+| Épisode | Noter, marquer vu, marquer non vu, éventuellement **ajouter une nouvelle vue** |
 | Saison | Noter seulement |
 
 | Entrée | Comportement |
 |---|---|
 | Noter | Dialogue 1–10, pré-rempli, option **retirer la note**. Après un épisode : proposer de noter aussi la série |
-| Vu / non vu | Film : une ligne selon l’état. Épisode : les deux actions |
-| Liste à voir / favoris / collection | Toggle ; libellé Ajouter ou Retirer. Collection : choix de format à l’ajout (Blu-ray, DVD, Digital, 4K UHD, VHS) |
+| Vu / non vu | Film : une seule ligne selon l’état dejaVu. Épisode : les deux actions (le statut épisode vient de dejaVu, ou du playcount Kodi en secours) |
+| Ajouter une nouvelle vue | Uniquement si le titre est **déjà vu**. Enregistre un visionnage de plus (`rewatchCount`) **sans** passer par « non vu ». Si dejaVu connaît l’historique : `Ajouter une nouvelle vue (3 vues, 11/09/2026)` |
+| Liste de suivi / favoris / collection | Toggle ; libellé **Ajouter** ou **Retirer**. Collection : choix de format à l’ajout (Blu-ray, DVD, Digital, 4K UHD, VHS) |
 | Ajouter à une liste | Choix parmi vos listes perso ; ajoute ou retire |
 
-Si le **miroir bibliothèque Kodi** est activé, une note ou un statut vu depuis dejaVu est aussi écrit dans la fiche Kodi lorsque le titre existe dans MyVideos.
+Si le **miroir bibliothèque Kodi** est activé, une note ou un statut vu depuis dejaVu est aussi écrit dans la fiche Kodi lorsque le titre existe dans MyVideos. **Ajouter une nouvelle vue** n’incrémente pas le playcount Kodi (déjà vu).
 
-Sur une liste plugin (vStream, etc.), le menu contextuel parle à dejaVu.plus. Les badges « vu » sur ces listes dépendent de l’addon listeur, pas du miroir Kodi.
+Sur une liste plugin (vStream, etc.), le menu parle à dejaVu.plus. Les badges « vu » sur ces listes dépendent de l’addon listeur (`get_media_status`), pas du miroir Kodi.
 
 ---
 

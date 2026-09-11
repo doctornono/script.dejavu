@@ -85,12 +85,34 @@ def _require_tmdb(info):
 def _status_entry(api, info):
     from resources.lib.util import status_for
 
+    dbtype = info.get("dbtype") or ""
+    if dbtype == "episode":
+        tmdb_id = info.get("tmdb_id")
+        show_tmdb = info.get("show_tmdb_id")
+        payload = {"type": "episode"}
+        if tmdb_id and str(tmdb_id).isdigit():
+            payload["id"] = int(tmdb_id)
+        if show_tmdb and str(show_tmdb).isdigit():
+            payload["tmdbId"] = int(show_tmdb)
+        if info.get("season") is not None:
+            payload["seasonNumber"] = info["season"]
+        if info.get("episode") is not None:
+            payload["episodeNumber"] = info["episode"]
+        if "id" not in payload and "tmdbId" not in payload:
+            return {}, "episode", tmdb_id
+        result = api.get_media_status([payload])
+        flags = status_for(
+            result, "episode", tmdb_id,
+            show_tmdb_id=show_tmdb,
+            season=info.get("season"),
+            episode=info.get("episode"),
+        )
+        return flags, "episode", tmdb_id
+
     api_type = info.get("api_type") or "movie"
     tmdb_id = info.get("tmdb_id") if api_type == "movie" else (
         info.get("show_tmdb_id") or info.get("tmdb_id")
     )
-    if api_type == "tv" and info.get("dbtype") == "episode":
-        tmdb_id = info.get("show_tmdb_id") or tmdb_id
     if not tmdb_id or not str(tmdb_id).isdigit():
         return {}, api_type, tmdb_id
     result = api.get_media_status([{"type": api_type, "id": int(tmdb_id)}])
@@ -130,7 +152,7 @@ def _show_context_labels(labels):
 
 def open_context_menu():
     """Single dejaVu context item: build a dynamic menu from type + status."""
-    from resources.lib.pure import context_actions, parse_optional_int
+    from resources.lib.pure import context_actions, format_watched_at, parse_optional_int
 
     if not _context_enabled():
         return
@@ -139,8 +161,13 @@ def open_context_menu():
         return
     status, _, _ = _status_entry(api, info)
     if info.get("dbtype") == "episode" and parse_optional_int(info.get("playcount")):
-        status = dict(status or {})
-        status["watched"] = True
+        if not (status or {}).get("watched"):
+            status = dict(status or {})
+            status["watched"] = True
+    status = dict(status or {})
+    date_label = format_watched_at(status.get("watchedAt"))
+    if date_label:
+        status["watched_at_label"] = date_label
     actions = context_actions(info.get("dbtype"), status)
     if not actions:
         return

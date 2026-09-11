@@ -738,22 +738,49 @@ class DejaVuAPI:
 
     def get_media_status(self, items):
         """
-        Batch user status for up to 50 movies/TV shows.
+        Batch user status for up to 50 movies, TV shows, or episodes.
 
-        items : list of {"type": "movie"|"tv", "id": int}
+        items : list of {"type": "movie"|"tv"|"episode", "id": int,
+                         "tmdbId"?, "seasonNumber"?, "episodeNumber"?}
 
-        Returns a map keyed by "type:id" with:
-          watched, inWatchlist, inCollection, isFavorite, rating, watchlistPriority
+        Returns a map keyed by "type:id" (and "episode:show:s:e" aliases) with:
+          watched, inWatchlist, inCollection, isFavorite, rating, watchlistPriority,
+          rewatchCount, watchedAt (ISO-8601, when watched)
         """
         payload_items = []
         for item in items or []:
             media_type = item.get("type")
+            if media_type not in ("movie", "tv", "episode"):
+                continue
+            entry = {"type": media_type}
             raw_id = item.get("id")
-            if media_type not in ("movie", "tv") or raw_id is None:
+            if raw_id is not None and str(raw_id).isdigit():
+                entry["id"] = int(raw_id)
+            if media_type == "episode":
+                for key in ("tmdbId", "tmdb_id", "show_tmdb_id"):
+                    val = item.get(key)
+                    if val is not None and str(val).isdigit():
+                        entry["tmdbId"] = int(val)
+                        break
+                for key in ("seasonNumber", "season"):
+                    val = item.get(key)
+                    if val is not None and str(val).lstrip("-").isdigit():
+                        entry["seasonNumber"] = int(val)
+                        break
+                for key in ("episodeNumber", "episode"):
+                    val = item.get(key)
+                    if val is not None and str(val).lstrip("-").isdigit():
+                        entry["episodeNumber"] = int(val)
+                        break
+                if "id" not in entry and not (
+                    "tmdbId" in entry
+                    and "seasonNumber" in entry
+                    and "episodeNumber" in entry
+                ):
+                    continue
+            elif "id" not in entry:
                 continue
-            if not str(raw_id).isdigit():
-                continue
-            payload_items.append({"type": media_type, "id": int(raw_id)})
+            payload_items.append(entry)
             if len(payload_items) >= 50:
                 break
         return self._post("/media/status", {"items": payload_items})

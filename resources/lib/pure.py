@@ -79,16 +79,25 @@ def ids_from_plugin_path(path):
     }
 
 
-def status_flags(result, media_type, tmdb_id):
+def status_flags(result, media_type, tmdb_id, show_tmdb_id=None, season=None, episode=None):
     """Pick get_media_status flags for type+id from a v1 envelope or a plain map."""
     data = unwrap_data(result)
     if not isinstance(data, dict):
         return {}
     tid = str(tmdb_id or "").strip()
-    kind = listitem_api_type(media_type) or (media_type if media_type in ("movie", "tv") else "")
+    db = normalize_dbtype(media_type)
+    if db == "episode" or str(media_type or "").strip().lower() == "episode":
+        kind = "episode"
+    else:
+        kind = listitem_api_type(media_type) or (
+            media_type if media_type in ("movie", "tv") else ""
+        )
     keys = []
     if kind and tid:
         keys.append("%s:%s" % (kind, tid))
+    show = str(show_tmdb_id or "").strip()
+    if kind == "episode" and show and season is not None and episode is not None:
+        keys.append("episode:%s:%s:%s" % (show, season, episode))
     if tid:
         keys.append(tid)
     for key in keys:
@@ -234,6 +243,30 @@ def parse_optional_int(value):
     return number if number >= 0 else None
 
 
+def _rewatch_action(flags):
+    date = flags.get("watched_at_label")
+    if date:
+        count = parse_optional_int(flags.get("rewatchCount")) or 1
+        label_id = 30207 if count == 1 else 30206
+        return {"id": _REWATCH, "label_id": label_id, "label_arg": (count, date)}
+    return {"id": _REWATCH, "label_id": 30204}
+
+
+def format_watched_at(value):
+    """ISO-8601 (or YYYY-MM-DD prefix) to JJ/MM/AAAA. Empty when unparseable."""
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    date_part = text.replace("Z", "").split("T")[0].split(" ")[0]
+    bits = date_part.split("-")
+    if len(bits) != 3 or len(bits[0]) != 4:
+        return ""
+    year, month, day = bits
+    if not (year.isdigit() and month.isdigit() and day.isdigit()):
+        return ""
+    return "%s/%s/%s" % (day.zfill(2), month.zfill(2), year)
+
+
 # Context-menu action ids + string ids (see strings.po 30016 / 30080+ / 30200+).
 _RATE = "rate"
 _WATCHED = "watched"
@@ -263,15 +296,14 @@ def context_actions(dbtype, flags=None):
     if db == "movie":
         if flags.get("watched"):
             actions.append({"id": _UNWATCHED, "label_id": 30093})
-            actions.append({"id": _REWATCH, "label_id": 30204})
+            actions.append(_rewatch_action(flags))
         else:
             actions.append({"id": _WATCHED, "label_id": 30092})
     elif db == "episode":
-        # get_media_status is movie/tv only — offer both watched actions.
         actions.append({"id": _WATCHED, "label_id": 30092})
         actions.append({"id": _UNWATCHED, "label_id": 30093})
         if flags.get("watched"):
-            actions.append({"id": _REWATCH, "label_id": 30204})
+            actions.append(_rewatch_action(flags))
 
     if db in ("movie", "tvshow"):
         if flags.get("inWatchlist"):

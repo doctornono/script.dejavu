@@ -12,7 +12,7 @@ Typical uses:
 - Resolve an IMDb id or a title to a TMDB id
 - Refresh those badges when the user rates something from the dejaVu context menu
 
-IDs are **TMDB**. Status overlays work for **`movie`** and **`tv`** (the show), not for individual episodes.
+IDs are **TMDB**. `get_media_status` covers **`movie`**, **`tv`** (the show), and **`episode`**. Overlay badges on list screens are still usually movie/show rows; the **dejaVu** context item is what users use on a focused title (including episodes).
 
 End-user docs: [README.md](../README.md) · [INSTALL.md](INSTALL.md) · [FONCTIONNALITES.md](FONCTIONNALITES.md) · [PARAMETRES.md](PARAMETRES.md).  
 Internal Kodi → dejaVu import mapping: [IMPORT_KODI.md](IMPORT_KODI.md).
@@ -157,6 +157,16 @@ The user must also be **logged in**. If they are not, calls return `None` or `{ 
 
 `DejaVuClient(timeout=5)` waits up to 5 seconds on Window 10000 for the service reply. Use `timeout=8` for large `get_media_status` batches.
 
+## Context menu
+
+Users already have a **dejaVu** item on movies, shows, seasons, and episodes (Videos, playlist, video info — not the add-on browser). Do **not** add a second dejaVu submenu. Make that item useful on *your* rows:
+
+1. Set **`UniqueID(tmdb)`** (and `imdb` if you have it). Plugin query `tmdb_id=` / `/tmdb/123` also works. For episodes, set the episode TMDB id when you can, plus show id + season + episode.
+2. Set `DBType` / `mediatype` to `movie`, `tvshow`, `season`, or `episode` so the XML `<visible>` matches.
+3. Paint overlays with `get_media_status` (below). After a context action, listen for `script.dejavu.changed` and refresh the current directory.
+
+The Python dialog is headed **dejaVu**. Labels follow the user’s account (Add vs Remove, current rating). On a title already watched, **Add a new view** calls `add_to_history` (increments `rewatchCount`) and shows the count + last `watchedAt` when the API returns them. That path does not bump Kodi `playcount`.
+
 ## 3. Overlay badges — `get_media_status`
 
 This is the call you want for list screens. One round-trip, up to **50** items.
@@ -169,6 +179,7 @@ if not dv:
 status = dv.get_media_status([
     {"type": "movie", "id": 603},    # The Matrix
     {"type": "tv", "id": 1396},      # Breaking Bad
+    {"type": "episode", "id": 62085, "tmdbId": 1396, "seasonNumber": 1, "episodeNumber": 1},
 ])
 ```
 
@@ -180,6 +191,8 @@ Response:
   "data": {
     "movie:603": {
       "watched": true,
+      "rewatchCount": 3,
+      "watchedAt": "2026-09-11T19:00:00.000Z",
       "inWatchlist": false,
       "inCollection": true,
       "isFavorite": true,
@@ -188,15 +201,23 @@ Response:
     },
     "tv:1396": {
       "watched": true,
+      "watchedAt": "2026-09-11T19:00:00.000Z",
       "inWatchlist": true,
       "inCollection": false,
       "isFavorite": false,
       "rating": 8,
       "watchlistPriority": 2
+    },
+    "episode:62085": {
+      "watched": true,
+      "rewatchCount": 2,
+      "watchedAt": "2026-09-11T19:00:00.000Z"
     }
   }
 }
 ```
+
+`rewatchCount` / `watchedAt` are omitted when the title has never been watched. TV shows have `watchedAt` (`lastWatchedAt`) but no `rewatchCount`. Episodes are also keyed as `episode:{showId}:{season}:{episode}` when you send show + S/E.
 
 Helper:
 
@@ -216,8 +237,8 @@ if flags.get("inWatchlist"):
 
 Rules:
 
-- `type` is `"movie"` or `"tv"` only. For an episode, pass the **show** TMDB id with `"tv"`.
-- `id` must be a numeric TMDB id. If you only have IMDb, call `resolve_media` first.
+- `type` is `"movie"`, `"tv"`, or `"episode"`. For show-level lists (watchlist, favorites), still use `"tv"` with the **show** TMDB id.
+- `id` must be a numeric TMDB id (movie, show, or episode). If you only have IMDb, call `resolve_media` first. Episodes may omit `id` and send `tmdbId` (show) + `seasonNumber` + `episodeNumber` instead.
 - Batch in chunks of 50. Prefer `minimal=True` on list endpoints when you only need ids.
 
 ## 4. Resolve identifiers — `resolve_media`
@@ -410,7 +431,7 @@ while time.time() < deadline:
 
 | Action | Params |
 |---|---|
-| `get_media_status` | `items` — `[{type, id}, ...]` max 50 |
+| `get_media_status` | `items` — `[{type, id}, ...]` max 50 (`movie`/`tv`/`episode`; episodes may add `tmdbId`, `seasonNumber`, `episodeNumber`) |
 | `get_watchlist` | `type`, `page`, `page_size`, `sort`, `minimal` |
 | `get_history` | `type`, `page`, `page_size`, `sort`, `minimal` |
 | `get_ratings` | `type`, `page`, `page_size`, `minimal` |
@@ -453,8 +474,8 @@ while time.time() < deadline:
 
 1. Depend on `script.dejavu` ≥ 1.11.0 and import `DejaVuClient` behind `System.HasAddon`.
 2. Offer **Connect dejaVu** via `dv.authenticate()` (never collect a password in Kodi).
-3. Map your items to TMDB (`resolve_media` if you only have IMDb or a title).
-4. Call `get_media_status` in batches of 50 and paint badges from `data["movie:123"]`.
+3. Map your items to TMDB (`resolve_media` if you only have IMDb or a title). Set `UniqueID(tmdb)` (and `DBType`) so the native **dejaVu** context item can resolve the row.
+4. Call `get_media_status` in batches of 50 and paint badges from `data["movie:123"]` (optional `rewatchCount` / `watchedAt` when watched).
 5. Wire one write (watchlist toggle is enough) and listen for `script.dejavu.changed`.
 6. Treat `None` / missing addon / logged-out user as “no badges”, not as a crash.
 7. Optional: **Import my Kodi history** via `dv.import_kodi_library()` (`script.dejavu` ≥ 1.7.0). Do not send library playback as scrobbles.

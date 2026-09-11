@@ -17,7 +17,7 @@ Ce n’est **pas** un lecteur ni un scraper : l’extension ne fournit aucun flu
 - Scrobbling automatique (seuil « vu » réglable, 90 % par défaut)
 - Reprise à la dernière position dejaVu
 - Proposition de l’épisode suivant en fin de lecture
-- Sous-menu contextuel **dejaVu** (films, séries, épisodes) : noter, vu, watchlist, favoris, collection, ajouter à une liste
+- Sous-menu contextuel **dejaVu** : noter, vu / nouvelle vue, liste de suivi, favoris, collection, listes perso (libellés selon l’état du compte)
 - Miroir optionnel vers la bibliothèque Kodi (`playcount` / `userrating`)
 - Connexion par QR code (**DejaVu Connect**) — aucun mot de passe dans Kodi
 - Import one-shot de la bibliothèque Kodi (historique, notes, collection Digital, reprise, favoris)
@@ -49,7 +49,7 @@ Après la connexion, dejaVu peut proposer d’importer votre bibliothèque Kodi 
 ### Utilisation quotidienne
 
 - **Lecture** : le service en arrière-plan envoie la progression à dejaVu.plus. Pause et stop conservent « Reprendre la lecture ».
-- **Menu contextuel** : clic droit (ou menu) sur un film / une série / un épisode → sous-menu **dejaVu**. Désactivable dans les réglages.
+- **Menu contextuel** : clic droit (ou menu) sur un film / une série / un épisode → **dejaVu**. Dialogue titré dejaVu, actions selon le type et l’état du compte (ajouter / retirer, nouvelle vue si déjà vu). Désactivable dans les réglages.
 - **Réglages utiles** : seuil « vu », reprise, épisode suivant, notifications, miroir bibliothèque Kodi. Guide : [PARAMETRES.md](docs/PARAMETRES.md).
 
 Sur une liste plugin (vStream, etc.), le menu contextuel parle à dejaVu.plus. Les badges « vu » sur ces listes nécessitent que l’addon listeur appelle l’API dejaVu. Le miroir `playcount` / `userrating` ne s’écrit que si le titre existe dans la **bibliothèque vidéo Kodi**.
@@ -90,7 +90,7 @@ This is **not** a player or a scraper: the add-on does not provide streams. It w
 - Automatic scrobbling (configurable watched threshold, default 90%)
 - Resume from the last dejaVu position
 - Next-episode prompt at the end of playback
-- **dejaVu** context item on movies, TV shows, seasons, and episodes. The Python menu matches the type (full for movie/show; rate + watched for episodes; rate only for seasons)
+- **dejaVu** context item on movies, TV shows, seasons, and episodes. The Python dialog is headed **dejaVu**; labels follow your account (add/remove, extra view when already watched)
 - Optional mirror of watched status and ratings onto the Kodi library (`playcount` / `userrating`)
 - QR sign-in (**DejaVu Connect**) — no password in Kodi
 - One-shot Kodi library import (history, ratings, Digital collection, resume, favorites)
@@ -122,7 +122,7 @@ After sign-in, dejaVu may offer to import your Kodi library (**Settings → Kodi
 ### Daily use
 
 - **Playback**: the background service sends progress to dejaVu.plus. Pause and stop keep Continue watching.
-- **Context menu**: right-click (or context) on a movie / show / season / episode → **dejaVu**. The actions depend on the type and your dejaVu status. Can be turned off in settings.
+- **Context menu**: right-click (or context) on a movie / show / season / episode → **dejaVu**. Actions depend on the type and your dejaVu status (add vs remove, extra view when already watched). Can be turned off in settings.
 - **Useful settings**: watched %, resume, next episode, notifications, Kodi library mirror. Guide: [PARAMETRES.md](docs/PARAMETRES.md).
 
 On plugin lists (vStream, etc.) the context menu talks to dejaVu.plus. Watched badges on those rows require the listing addon to call the dejaVu API. Kodi `playcount` / `userrating` are only written when the same title exists in the **Kodi video library**.

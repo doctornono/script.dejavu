@@ -182,6 +182,26 @@ class ContextActionsTests(unittest.TestCase):
         self.assertEqual(acts[5]["label_id"], 30203)
         self.assertEqual(acts[6]["label_id"], 30101)
 
+    def test_movie_rewatch_with_date_plural(self):
+        acts = pure.context_actions("movie", {
+            "watched": True,
+            "rewatchCount": 3,
+            "watched_at_label": "11/09/2026",
+        })
+        rewatch = [a for a in acts if a["id"] == "rewatch"][0]
+        self.assertEqual(rewatch["label_id"], 30206)
+        self.assertEqual(rewatch["label_arg"], (3, "11/09/2026"))
+
+    def test_movie_rewatch_with_date_singular(self):
+        acts = pure.context_actions("movie", {
+            "watched": True,
+            "rewatchCount": 1,
+            "watched_at_label": "11/09/2026",
+        })
+        rewatch = [a for a in acts if a["id"] == "rewatch"][0]
+        self.assertEqual(rewatch["label_id"], 30207)
+        self.assertEqual(rewatch["label_arg"], (1, "11/09/2026"))
+
     def test_tvshow_full_without_watched(self):
         self.assertEqual(
             self._ids("tv"),
@@ -204,6 +224,13 @@ class ContextActionsTests(unittest.TestCase):
             pure.context_actions("episode", {"watched": True})[-1]["label_id"],
             30204,
         )
+        dated = pure.context_actions("episode", {
+            "watched": True,
+            "rewatchCount": 2,
+            "watched_at_label": "01/02/2026",
+        })[-1]
+        self.assertEqual(dated["label_id"], 30206)
+        self.assertEqual(dated["label_arg"], (2, "01/02/2026"))
 
     def test_season_rate_only(self):
         self.assertEqual(self._ids("season", {"rating": 9, "inWatchlist": True}), ["rate"])
@@ -248,6 +275,36 @@ class StatusFlagsTests(unittest.TestCase):
     def test_missing_returns_empty(self):
         self.assertEqual(pure.status_flags({"data": {}}, "movie", 1), {})
         self.assertEqual(pure.status_flags(None, "movie", 1), {})
+
+    def test_episode_id_and_season_episode_alias(self):
+        result = {
+            "data": {
+                "episode:62085": {"watched": True, "rewatchCount": 2},
+                "episode:1396:1:1": {"watched": True, "rewatchCount": 2},
+            }
+        }
+        self.assertEqual(
+            pure.status_flags(result, "episode", 62085).get("rewatchCount"), 2,
+        )
+        self.assertEqual(
+            pure.status_flags(
+                result, "episode", "", show_tmdb_id=1396, season=1, episode=1,
+            ).get("rewatchCount"),
+            2,
+        )
+
+
+class FormatWatchedAtTests(unittest.TestCase):
+    def test_iso_to_dmy(self):
+        self.assertEqual(
+            pure.format_watched_at("2026-09-11T19:00:00.000Z"), "11/09/2026",
+        )
+        self.assertEqual(pure.format_watched_at("2026-09-11"), "11/09/2026")
+
+    def test_empty_and_garbage(self):
+        self.assertEqual(pure.format_watched_at(""), "")
+        self.assertEqual(pure.format_watched_at(None), "")
+        self.assertEqual(pure.format_watched_at("not-a-date"), "")
 
 
 if __name__ == "__main__":
