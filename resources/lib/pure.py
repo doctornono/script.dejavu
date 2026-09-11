@@ -238,6 +238,7 @@ def parse_optional_int(value):
 _RATE = "rate"
 _WATCHED = "watched"
 _UNWATCHED = "unwatched"
+_REWATCH = "rewatch"
 _WATCHLIST = "watchlist"
 _FAVORITES = "favorites"
 _COLLECTION = "collection"
@@ -262,12 +263,15 @@ def context_actions(dbtype, flags=None):
     if db == "movie":
         if flags.get("watched"):
             actions.append({"id": _UNWATCHED, "label_id": 30093})
+            actions.append({"id": _REWATCH, "label_id": 30204})
         else:
             actions.append({"id": _WATCHED, "label_id": 30092})
     elif db == "episode":
         # get_media_status is movie/tv only — offer both watched actions.
         actions.append({"id": _WATCHED, "label_id": 30092})
         actions.append({"id": _UNWATCHED, "label_id": 30093})
+        if flags.get("watched"):
+            actions.append({"id": _REWATCH, "label_id": 30204})
 
     if db in ("movie", "tvshow"):
         if flags.get("inWatchlist"):

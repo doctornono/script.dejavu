@@ -171,15 +171,16 @@ class ContextActionsTests(unittest.TestCase):
         })
         self.assertEqual(
             [a["id"] for a in acts],
-            ["rate", "unwatched", "watchlist", "favorites", "collection", "list"],
+            ["rate", "unwatched", "rewatch", "watchlist", "favorites", "collection", "list"],
         )
         self.assertEqual(acts[0]["label_id"], 30200)
         self.assertEqual(acts[0]["label_arg"], 8)
         self.assertEqual(acts[1]["label_id"], 30093)
-        self.assertEqual(acts[2]["label_id"], 30201)
-        self.assertEqual(acts[3]["label_id"], 30202)
-        self.assertEqual(acts[4]["label_id"], 30203)
-        self.assertEqual(acts[5]["label_id"], 30101)
+        self.assertEqual(acts[2]["label_id"], 30204)
+        self.assertEqual(acts[3]["label_id"], 30201)
+        self.assertEqual(acts[4]["label_id"], 30202)
+        self.assertEqual(acts[5]["label_id"], 30203)
+        self.assertEqual(acts[6]["label_id"], 30101)
 
     def test_tvshow_full_without_watched(self):
         self.assertEqual(
@@ -189,10 +190,20 @@ class ContextActionsTests(unittest.TestCase):
 
     def test_episode_rate_and_both_watched(self):
         self.assertEqual(
-            self._ids("episode", {"watched": True, "inWatchlist": True}),
+            self._ids("episode", {}),
             ["rate", "watched", "unwatched"],
         )
         self.assertEqual(pure.context_actions("episode", {})[0]["label_id"], 30016)
+
+    def test_episode_watched_adds_rewatch(self):
+        self.assertEqual(
+            self._ids("episode", {"watched": True, "inWatchlist": True}),
+            ["rate", "watched", "unwatched", "rewatch"],
+        )
+        self.assertEqual(
+            pure.context_actions("episode", {"watched": True})[-1]["label_id"],
+            30204,
+        )
 
     def test_season_rate_only(self):
         self.assertEqual(self._ids("season", {"rating": 9, "inWatchlist": True}), ["rate"])

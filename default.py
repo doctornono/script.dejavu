@@ -125,16 +125,12 @@ def _action_label(action):
 
 
 def _show_context_labels(labels):
-    dialog = xbmcgui.Dialog()
-    try:
-        return dialog.contextmenu(labels)
-    except (AttributeError, TypeError):
-        return dialog.select("dejaVu", labels)
+    return xbmcgui.Dialog().select(_ls(30100), labels)
 
 
 def open_context_menu():
     """Single dejaVu context item: build a dynamic menu from type + status."""
-    from resources.lib.pure import context_actions
+    from resources.lib.pure import context_actions, parse_optional_int
 
     if not _context_enabled():
         return
@@ -142,6 +138,9 @@ def open_context_menu():
     if not info:
         return
     status, _, _ = _status_entry(api, info)
+    if info.get("dbtype") == "episode" and parse_optional_int(info.get("playcount")):
+        status = dict(status or {})
+        status["watched"] = True
     actions = context_actions(info.get("dbtype"), status)
     if not actions:
         return
@@ -156,6 +155,8 @@ def open_context_menu():
         toggle_watched(api, info, status, mark_watched=True)
     elif action_id == "unwatched":
         toggle_watched(api, info, status, mark_watched=False)
+    elif action_id == "rewatch":
+        add_new_view(api, info)
     elif action_id == "watchlist":
         toggle_watchlist(api, info, status)
     elif action_id == "favorites":
@@ -335,6 +336,46 @@ def toggle_watched(api=None, info=None, status=None, mark_watched=None):
     sync_kodi_library(info, watched=mark_watched)
     _notify_ok(30052 if mark_watched else 30079)
     notify_changed("watched" if mark_watched else "unwatched", "movie", tmdb_id)
+
+
+def add_new_view(api=None, info=None):
+    """Record an extra watch in dejaVu history without changing Kodi playcount."""
+    api, info = _load_context(api, info)
+    if not info:
+        return
+    from resources.lib.util import notify_changed
+
+    dbtype = info.get("dbtype") or ""
+    tmdb_id = info.get("tmdb_id")
+    show_tmdb = info.get("show_tmdb_id")
+
+    if dbtype == "episode":
+        if not (tmdb_id or (show_tmdb and info.get("season") is not None and info.get("episode") is not None)):
+            _notify_err(30019)
+            return
+        result = api.add_to_history(
+            "episode",
+            tmdb_id=tmdb_id or None,
+            tv_show_id=show_tmdb or None,
+            season=info.get("season"),
+            episode=info.get("episode"),
+        )
+        history_type = "episode"
+    else:
+        tmdb_id = _require_tmdb(info)
+        if not tmdb_id:
+            return
+        if dbtype in ("tvshow", "tv", "season"):
+            _notify_err(30097)
+            return
+        result = api.add_to_history("movie", tmdb_id=tmdb_id)
+        history_type = "movie"
+
+    if result is None:
+        _notify_err(30097)
+        return
+    _notify_ok(30205)
+    notify_changed("add_to_history", history_type, tmdb_id)
 
 
 # ---------------------------------------------------------------------------

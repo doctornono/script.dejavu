@@ -89,7 +89,7 @@ msgstr ""
 
 # Context menu / Rating
 msgctxt "#30016"
-msgid "Rate on dejaVu..."
+msgid "Rate..."
 msgstr ""
 
 msgctxt "#30017"
@@ -161,7 +161,7 @@ msgstr ""
 
 # Context menu — Collection (30080-30082)
 msgctxt "#30080"
-msgid "Add to Collection (dejaVu)..."
+msgid "Add to collection..."
 msgstr ""
 
 msgctxt "#30081"
@@ -174,7 +174,7 @@ msgstr ""
 
 # Context menu — Watchlist (30083-30085)
 msgctxt "#30083"
-msgid "Add to Watchlist (dejaVu)"
+msgid "Add to watchlist"
 msgstr ""
 
 msgctxt "#30084"
@@ -187,7 +187,7 @@ msgstr ""
 
 # Context menu — Favorites (30086-30088)
 msgctxt "#30086"
-msgid "Add to Favorites (dejaVu)"
+msgid "Add to favorites"
 msgstr ""
 
 msgctxt "#30087"
@@ -199,15 +199,15 @@ msgid "Error: Could not add to favorites."
 msgstr ""
 
 msgctxt "#30089"
-msgid "Watchlist (dejaVu)"
+msgid "Watchlist"
 msgstr ""
 
 msgctxt "#30090"
-msgid "Favorites (dejaVu)"
+msgid "Favorites"
 msgstr ""
 
 msgctxt "#30091"
-msgid "Collection (dejaVu)..."
+msgid "Collection..."
 msgstr ""
 
 msgctxt "#30092"
@@ -614,21 +614,29 @@ msgctxt "#30195"
 msgid "Kodi"
 msgstr ""
 
-# Context menu — stateful labels (30200-30203)
+# Context menu — stateful labels (30200-30205)
 msgctxt "#30200"
 msgid "Rating: %s/10..."
 msgstr ""
 
 msgctxt "#30201"
-msgid "Remove from Watchlist (dejaVu)"
+msgid "Remove from watchlist"
 msgstr ""
 
 msgctxt "#30202"
-msgid "Remove from Favorites (dejaVu)"
+msgid "Remove from favorites"
 msgstr ""
 
 msgctxt "#30203"
-msgid "Remove from Collection (dejaVu)"
+msgid "Remove from collection"
+msgstr ""
+
+msgctxt "#30204"
+msgid "Add a new view"
+msgstr ""
+
+msgctxt "#30205"
+msgid "Added a new view."
 msgstr ""
 
 # Settings labels

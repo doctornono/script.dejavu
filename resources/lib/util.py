@@ -263,6 +263,7 @@ def _empty_media_info():
         "title": "",
         "year": None,
         "s_cat": "",
+        "playcount": None,
     }
 
 
@@ -339,6 +340,7 @@ def _assemble_media_info(
     title,
     year,
     path,
+    playcount=None,
 ):
     if is_addons_path(path):
         return _empty_media_info()
@@ -370,6 +372,7 @@ def _assemble_media_info(
         "title": strip_kodi_label(title or ""),
         "year": year,
         "s_cat": str(s_cat or ""),
+        "playcount": parse_optional_int(playcount),
     }
 
 
@@ -390,6 +393,7 @@ def _media_info_from_listitem(item):
     dbid = ""
     title = ""
     year = None
+    playcount = None
 
     if tag is not None:
         try:
@@ -439,6 +443,10 @@ def _media_info_from_listitem(item):
             year = tag.getYear()
         except Exception:
             year = None
+        try:
+            playcount = tag.getPlayCount()
+        except Exception:
+            playcount = None
 
     if not title:
         try:
@@ -466,6 +474,8 @@ def _media_info_from_listitem(item):
     show_tmdb = show_tmdb or _first_prop(item, (
         "tvshow_tmdb_id", "TVShowID", "elementum_tvshow_tmdb_id",
     ))
+    if playcount is None:
+        playcount = _label("PlayCount")
 
     return _assemble_media_info(
         db_type,
@@ -479,6 +489,7 @@ def _media_info_from_listitem(item):
         title,
         year,
         path,
+        playcount,
     )
 
 
@@ -510,6 +521,7 @@ def _media_info_from_infolabels():
         _label("Title"),
         _label("Year"),
         path,
+        _label("PlayCount"),
     )
 
 
@@ -519,7 +531,7 @@ def get_listitem_media_info(listitem=None):
 
     Falls back to ListItem.* infolabels when sys.listitem is missing.
     Returns a dict with dbtype, api_type, history_type, tmdb_id,
-    show_tmdb_id, season, episode, dbid, title, year.
+    show_tmdb_id, season, episode, dbid, title, year, playcount.
     """
     if listitem is None:
         listitem = getattr(sys, "listitem", None)
