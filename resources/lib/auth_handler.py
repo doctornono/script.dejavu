@@ -18,6 +18,7 @@ import xbmc
 import xbmcgui
 import xbmcaddon
 from .api_client import DejaVuAPI
+from .session import apply_session_to_settings, clear_session, get_access_token, save_session
 from .util import notify_changed
 
 ADDON = xbmcaddon.Addon()
@@ -29,7 +30,7 @@ _DBG_PATH = r"D:\Developpement\dejavu-kodi-addons\debug-489f32.log"
 _DBG_URL = "http://127.0.0.1:7403/ingest/793ea98b-2109-427e-9f7f-ba8b74480cc9"
 
 
-def _agent_log(location, message, data, hypothesis_id):
+def _agent_log(location, message, data, hypothesis_id, run_id="post-fix"):
     payload = {
         "sessionId": "489f32",
         "timestamp": int(time.time() * 1000),
@@ -37,7 +38,7 @@ def _agent_log(location, message, data, hypothesis_id):
         "message": message,
         "data": data,
         "hypothesisId": hypothesis_id,
-        "runId": "pre-fix",
+        "runId": run_id,
     }
     try:
         with open(_DBG_PATH, "a", encoding="utf-8") as handle:
@@ -80,7 +81,7 @@ def _dbg_snapshot():
             xml = handle.read()
     except Exception as exc:
         xml = "ERR:%s" % exc
-    return {
+    snap = {
         "win_addonsettings": bool(xbmc.getCondVisibility("Window.IsVisible(addonsettings)")),
         "win_10140": bool(xbmc.getCondVisibility("Window.IsVisible(10140)")),
         "username_len": len(ADDON.getSetting("username") or ""),
@@ -91,6 +92,15 @@ def _dbg_snapshot():
         "file_offered": _dbg_file_filled(xml, "kodi_import_offered") if xml.startswith("<") else None,
         "xml_path_exists": os.path.exists(xml_path) if xml_path else False,
     }
+    try:
+        from .session import load_session
+        sess = load_session()
+        snap["session_token_len"] = len(sess.get("access_token") or "")
+        snap["session_username_len"] = len(sess.get("username") or "")
+    except Exception:
+        snap["session_token_len"] = -1
+        snap["session_username_len"] = -1
+    return snap
 # #endregion
 
 
@@ -209,8 +219,13 @@ def _persist_login(token_data):
         "A",
     )
     # #endregion
+    refresh_token = token_data.get("refresh_token") or ""
+    save_session({
+        "access_token": access_token,
+        "username": "",
+        "refresh_token": refresh_token,
+    })
     set_token_ok = ADDON.setSetting("access_token", access_token)
-    refresh_token = token_data.get("refresh_token")
     set_refresh_ok = None
     if refresh_token:
         set_refresh_ok = ADDON.setSetting("refresh_token", refresh_token)
@@ -228,6 +243,11 @@ def _persist_login(token_data):
             or user.get("email")
             or "User"
         )
+    save_session({
+        "access_token": access_token,
+        "username": username,
+        "refresh_token": refresh_token,
+    })
     set_user_ok = ADDON.setSetting("username", username)
     # #region agent log
     _agent_log(
@@ -249,6 +269,7 @@ def _persist_login(token_data):
     _set_auth_status("success")
     notify_changed("authenticated")
     _show_welcome(username, me)
+    apply_session_to_settings()
     # #region agent log
     _agent_log(
         "auth_handler.py:_persist_login:after_welcome",
@@ -257,6 +278,7 @@ def _persist_login(token_data):
         "A",
     )
     # #endregion
+    xbmc.executebuiltin("Addon.OpenSettings(script.dejavu)")
     return True
 
 
@@ -374,6 +396,7 @@ def login():
 
 def logout():
     """Clears stored credentials."""
+    clear_session()
     ADDON.setSetting("access_token", "")
     ADDON.setSetting("refresh_token", "")
     ADDON.setSetting("username", "")
@@ -392,4 +415,4 @@ def logout():
 
 def is_logged_in():
     """Returns True if an access token is stored."""
-    return bool(ADDON.getSetting("access_token"))
+    return bool(get_access_token())

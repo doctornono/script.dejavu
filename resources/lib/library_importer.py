@@ -994,7 +994,8 @@ def run_import_wizard(allow_skip=True):
     """
     set_import_status("pending")
 
-    if not ADDON.getSetting("access_token"):
+    from .session import get_access_token
+    if not get_access_token():
         set_import_status("error")
         xbmcgui.Dialog().notification("dejaVu", _ls(30075), xbmcgui.NOTIFICATION_ERROR)
         return False

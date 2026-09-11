@@ -33,7 +33,8 @@ class DejaVuAPI:
     def _current_token(self):
         if self._token_override is not None:
             return self._token_override
-        return ADDON.getSetting("access_token") or ""
+        from .session import get_access_token
+        return get_access_token()
 
     @property
     def token(self):

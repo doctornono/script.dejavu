@@ -450,7 +450,8 @@ def main_menu():
     from resources.lib.auth_handler import is_logged_in
 
     if is_logged_in():
-        username = ADDON.getSetting("username") or "?"
+        from resources.lib.session import get_username
+        username = get_username() or "?"
         options = [
             _ls(30120),                     # Import Kodi library (first — dedicated button)
             _ls(30062),                     # Settings
