@@ -15,51 +15,57 @@ Guide d’installation de l’extension **dejaVu** (`script.dejavu`) depuis le d
 Kodi a besoin d’une source de fichiers pour télécharger le zip du dépôt.
 
 1. Aller dans `Paramètres > Gestionnaire de fichiers`.
-![Gestionnaire de fichiers](https://dejavu.plus/kodi/01-file-manager.png)
+   ![Gestionnaire de fichiers](https://dejavu.plus/kodi/01-file-manager.png)
 2. Choisir `Ajouter une source`.
-![Ajouter une source](https://dejavu.plus/kodi/02-add-source.png)
-![URL et nom de la source](https://dejavu.plus/kodi/03-source-url.png)
+   ![Ajouter une source](https://dejavu.plus/kodi/02-add-source.png)
 3. Saisir l’URL : `https://doctornono.github.io/`.
+   ![URL et nom de la source](https://dejavu.plus/kodi/03-source-url.png)
+   ![URL et nom de la source](https://dejavu.plus/kodi/04-source-url.png)
 4. Donner un nom à la source, par exemple : `dejaVu`.
+   ![URL et nom de la source](https://dejavu.plus/kodi/05-source-name.png)
 5. Valider.
-
-
-
 
 ### 2. Installer le dépôt
 
 Le dépôt permet ensuite d’installer et de mettre à jour dejaVu automatiquement.
 
-1. Aller dans `Extensions > Installer depuis un fichier ZIP`.
-2. Si Kodi le demande, confirmer l’autorisation des sources inconnues.
-3. Ouvrir la source `dejaVu`.
-4. Installer `repository.dejavu-1.0.0.zip`.
-
-![Installer depuis un fichier ZIP](docs/screenshots/04-install-zip.png)
-
-![Installer le dépôt](docs/screenshots/05-install-repo.png)
+1. Aller dans `Extensions`.
+   ![URL et nom de la source](https://dejavu.plus/kodi/06-extensions.png)
+2. Choisir `Installer depuis un fichier ZIP`
+   ![URL et nom de la source](https://dejavu.plus/kodi/07-install-from-zip.png)
+3. Si Kodi le demande, confirmer l’autorisation des sources inconnues.
+4. Ouvrir la source `dejaVu`.
+   ![URL et nom de la source](https://dejavu.plus/kodi/08-install-from-zip-2.png)
+5. Installer `repository.dejavu-1.0.0.zip`.
+   ![URL et nom de la source](https://dejavu.plus/kodi/09-install-from-zip-3.png)
 
 ### 3. Installer l’extension
 
 1. Aller dans `Extensions > Installer depuis un dépôt`.
+   ![URL et nom de la source](https://dejavu.plus/kodi/10-install-from-repo.png)
 2. Ouvrir `Dépôt dejaVu`.
-3. Ouvrir la catégorie **Programmes** (ou la liste des extensions du dépôt).
+   ![URL et nom de la source](https://dejavu.plus/kodi/11-install-from-repo-2.png)
+
+3. Ouvrir la catégorie **Services** (ou la liste des extensions du dépôt).
+   ![URL et nom de la source](https://dejavu.plus/kodi/12-install-from-repo-3.png)
+
 4. Installer **dejaVu**.
+   ![URL et nom de la source](https://dejavu.plus/kodi/13-install-from-repo-4.png)
 
 Une fois le dépôt installé, Kodi proposera les mises à jour automatiquement.
-
-![Installer depuis un dépôt](docs/screenshots/06-install-from-repo.png)
-
-![Installer dejaVu](docs/screenshots/07-install-addon.png)
 
 ### 4. Configurer l’extension (connexion à dejaVu)
 
 dejaVu ne fournit pas de films : il synchronise votre compte [dejaVu.plus](https://dejavu.plus). La connexion se fait **depuis les paramètres du script**, pas depuis un autre addon.
 
 1. Aller dans `Extensions > Mes extensions`.
-2. Ouvrir **Programmes** (dejaVu peut aussi apparaître sous **Dépendances**).
+2. Ouvrir **Services** (dejaVu peut aussi apparaître sous **Dépendances**).
 3. Sélectionner **dejaVu**, puis **Configurer**.
+   ![URL et nom de la source](https://dejavu.plus/kodi/16-configurer.png)
+
 4. Dans l’onglet **Compte**, appuyer sur **Connecter dejaVu**.
+   ![URL et nom de la source](https://dejavu.plus/kodi/20-param-compte.png)
+
 5. Un dialogue affiche un **QR code** et un code court.
 6. Sur le téléphone, scanner le QR ou ouvrir [dejavu.plus/device](https://dejavu.plus/device) et saisir le code.
 7. Se connecter ou **créer un compte** sur le téléphone (Google, GitHub ou code e-mail), puis autoriser Kodi.
