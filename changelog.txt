@@ -1,3 +1,9 @@
+v1.13.0 (2026-09-11)
+- Context: one dejaVu item opens a Python menu (Dialog.contextmenu) from ListItem type + get_media_status.
+- Movies and TV shows: rate, watched (movies only), watchlist, favorites, collection, lists — labels follow current state.
+- Episodes: rate + mark watched / unwatched. Seasons: rate only.
+- Hidden outside video windows (addon browser, Programs, install from zip). Reads sys.listitem, not the focused infolabel.
+
 v1.11.0 (2026-09-11)
 - Session: no refresh_token; settings token is not resurrected if session.json exists (even empty after logout).
 - 401/403 clears the local session once (one notification, no spam).

@@ -61,15 +61,20 @@ Pause et stop conservent **Reprendre la lecture** à la dernière position réel
 
 ## Menu contextuel dejaVu
 
-Réglage **Afficher le menu contextuel dejaVu** (onglet Compte, activé par défaut). Visible sur un **film**, une **série** ou un **épisode** qui a un identifiant TMDB ou IMDb — bibliothèque Kodi, vStream, Elementum, etc. Pas sur les saisons, personnes ou dossiers.
+Réglage **Afficher le menu contextuel dejaVu** (onglet Compte, activé par défaut). Une entrée **dejaVu** sur un **film**, une **série**, une **saison** ou un **épisode** — bibliothèque Kodi, vStream, Elementum, etc. Pas sur les extensions, « installer un zip », personnes ou dossiers. Le menu Python s’adapte au type et à l’état dejaVu (note, watchlist…).
+
+| Type | Entrées |
+|---|---|
+| Film | Noter, vu / non vu, liste à voir, favoris, collection, liste perso |
+| Série | Noter, liste à voir, favoris, collection, liste perso (pas de « vu » global) |
+| Épisode | Noter, marquer vu, marquer non vu |
+| Saison | Noter seulement |
 
 | Entrée | Comportement |
 |---|---|
 | Noter | Dialogue 1–10, pré-rempli, option **retirer la note**. Après un épisode : proposer de noter aussi la série |
-| Vu / non vu | Toggle pour un film. Pour un épisode : choix marquer vu ou non vu |
-| Liste à voir | Toggle (un épisode agit sur la **série**) |
-| Favoris | Toggle (un épisode agit sur la série) |
-| Collection | Toggle ; à l’ajout, choix de format : Blu-ray, DVD, Digital, 4K UHD, VHS |
+| Vu / non vu | Film : une ligne selon l’état. Épisode : les deux actions |
+| Liste à voir / favoris / collection | Toggle ; libellé Ajouter ou Retirer. Collection : choix de format à l’ajout (Blu-ray, DVD, Digital, 4K UHD, VHS) |
 | Ajouter à une liste | Choix parmi vos listes perso ; ajoute ou retire |
 
 Si le **miroir bibliothèque Kodi** est activé, une note ou un statut vu depuis dejaVu est aussi écrit dans la fiche Kodi lorsque le titre existe dans MyVideos.
