@@ -1,6 +1,8 @@
 # Import Kodi → dejaVu (spec interne)
 
-Document **interne**. L’assistant part du principe que MyVideos (films / séries scrapés) = **collection personnelle** de l’utilisateur.
+Document **interne**. Pour l’explication utilisateur (ce qui arrive sur dejaVu.plus) : [PARAMETRES.md](PARAMETRES.md).
+
+L’assistant part du principe que MyVideos (films / séries scrapés) = **collection personnelle** de l’utilisateur.
 
 Le client envoie `POST /api/v1/kodi/import`. Ce n’est pas un scrobble (pas d’incrément de `rewatchCount`).
 

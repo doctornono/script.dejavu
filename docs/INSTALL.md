@@ -2,6 +2,8 @@
 
 [Français](#français) · [English](#english)
 
+Overview: [README.md](../README.md) · Settings: [PARAMETRES.md](PARAMETRES.md).
+
 ---
 
 ## Français
@@ -74,7 +76,9 @@ dejaVu ne fournit pas de films : il synchronise votre compte [dejaVu.plus](https
 
 Aucun e-mail ni mot de passe n’est saisi dans Kodi. Le compte se crée sur le téléphone.
 
-Après une connexion réussie, dejaVu peut proposer d’**importer votre bibliothèque Kodi** (historique, notes, collection). Le scrobbling automatique démarre ensuite : les lectures dans Kodi sont envoyées à dejaVu.plus.
+Après une connexion réussie, dejaVu peut proposer d’**importer votre bibliothèque Kodi** (historique, notes, collection). Vous pouvez aussi lancer l’import plus tard depuis **Réglages → Kodi**. Le détail de ce qui est envoyé vers [dejaVu.plus](https://dejavu.plus) est dans [PARAMETRES.md](PARAMETRES.md).
+
+Le scrobbling automatique démarre ensuite : les lectures dans Kodi sont envoyées à dejaVu.plus.
 
 ---
 
@@ -126,4 +130,6 @@ dejaVu does not provide streams: it syncs your [dejaVu.plus](https://dejavu.plus
 
 No email or password is typed in Kodi. The account is created on the phone.
 
-After a successful sign-in, dejaVu may offer to **import your Kodi library** (history, ratings, collection). Automatic scrobbling then starts: playback in Kodi is sent to dejaVu.plus.
+After a successful sign-in, dejaVu may offer to **import your Kodi library** (history, ratings, collection). You can also start the import later from **Settings → Kodi**. What is copied to [dejaVu.plus](https://dejavu.plus) is explained in [PARAMETRES.md](PARAMETRES.md).
+
+Automatic scrobbling then starts: playback in Kodi is sent to dejaVu.plus.

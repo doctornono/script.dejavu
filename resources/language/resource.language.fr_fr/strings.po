@@ -604,3 +604,7 @@ msgstr "VHS"
 msgctxt "#30194"
 msgid "Session expired. Please sign in again."
 msgstr "Session expirée. Veuillez vous reconnecter."
+
+msgctxt "#30195"
+msgid "Kodi"
+msgstr "Kodi"

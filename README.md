@@ -10,7 +10,7 @@
 
 dejaVu synchronise vos films et séries Kodi avec [dejaVu.plus](https://dejavu.plus) : historique, notes, liste de suivi, favoris, collection.
 
-Ce n’est **pas** un lecteur ni un scraper : l’extension ne fournit aucun flux. Elle fonctionne avec votre bibliothèque Kodi, vStream, Elementum, ou tout addon qui s’y branche.
+Ce n’est **pas** un lecteur ni un scraper : l’extension ne fournit aucun flux. Elle fonctionne avec votre bibliothèque Kodi ou tout addon qui s’y branche.
 
 ### Fonctionnalités
 
@@ -24,7 +24,9 @@ Ce n’est **pas** un lecteur ni un scraper : l’extension ne fournit aucun flu
 
 ### Installation
 
-Guide détaillé avec captures : **[INSTALL.md](INSTALL.md)**.
+Guide détaillé avec captures : **[INSTALL.md](docs/INSTALL.md)**.  
+Fonctionnalités : **[FONCTIONNALITES.md](docs/FONCTIONNALITES.md)**.  
+Paramètres (dont l’import Kodi) : **[PARAMETRES.md](docs/PARAMETRES.md)**.
 
 1. Ajouter la source `https://doctornono.github.io/` dans le gestionnaire de fichiers (nom : `dejaVu`).
 2. Installer le dépôt : `Extensions > Installer depuis un fichier ZIP` → `repository.dejavu-1.0.0.zip`.
@@ -42,13 +44,13 @@ La connexion se fait **depuis dejaVu**, pas depuis un autre addon.
 
 Aucun e-mail ni mot de passe n’est saisi dans Kodi.
 
-Après la connexion, dejaVu peut proposer d’importer votre bibliothèque Kodi. Le scrobbling démarre ensuite tout seul.
+Après la connexion, dejaVu peut proposer d’importer votre bibliothèque Kodi (**Réglages → Kodi**). Le scrobbling démarre ensuite tout seul. Détail de l’import : [PARAMETRES.md](docs/PARAMETRES.md).
 
 ### Utilisation quotidienne
 
 - **Lecture** : le service en arrière-plan envoie la progression à dejaVu.plus. Pause et stop conservent « Reprendre la lecture ».
 - **Menu contextuel** : clic droit (ou menu) sur un film / une série / un épisode → sous-menu **dejaVu**. Désactivable dans les réglages.
-- **Réglages utiles** : seuil « vu », reprise, épisode suivant, notifications, miroir bibliothèque Kodi.
+- **Réglages utiles** : seuil « vu », reprise, épisode suivant, notifications, miroir bibliothèque Kodi. Guide : [PARAMETRES.md](docs/PARAMETRES.md).
 
 Sur une liste plugin (vStream, etc.), le menu contextuel parle à dejaVu.plus. Les badges « vu » sur ces listes nécessitent que l’addon listeur appelle l’API dejaVu. Le miroir `playcount` / `userrating` ne s’écrit que si le titre existe dans la **bibliothèque vidéo Kodi**.
 
@@ -71,8 +73,9 @@ status = dv.get_media_status([
 
 Documentation complète :
 
-- [FONCTIONNALITES.md](FONCTIONNALITES.md) — spec française (utilisateur + RPC)
-- [DEVELOPERS.md](DEVELOPERS.md) — guide développeur anglais (RPC, Connect, import)
+- [DEVELOPERS.md](docs/DEVELOPERS.md) — guide développeur (RPC, Connect, import)
+- [FONCTIONNALITES.md](docs/FONCTIONNALITES.md) — guide utilisateur
+- [PARAMETRES.md](docs/PARAMETRES.md) — réglages et import Kodi
 
 ---
 
@@ -94,7 +97,9 @@ This is **not** a player or a scraper: the add-on does not provide streams. It w
 
 ### Installation
 
-Full walkthrough with screenshots: **[INSTALL.md](INSTALL.md)**.
+Full walkthrough with screenshots: **[INSTALL.md](docs/INSTALL.md)**.  
+Features: **[FONCTIONNALITES.md](docs/FONCTIONNALITES.md)** (French).  
+Settings (including Kodi import): **[PARAMETRES.md](docs/PARAMETRES.md)**.
 
 1. Add the source `https://doctornono.github.io/` in the file manager (name: `dejaVu`).
 2. Install the repository: `Add-ons > Install from zip file` → `repository.dejavu-1.0.0.zip`.
@@ -112,13 +117,13 @@ Sign in from **dejaVu itself**, not from another add-on.
 
 No email or password is typed in Kodi.
 
-After sign-in, dejaVu may offer to import your Kodi library. Scrobbling then starts on its own.
+After sign-in, dejaVu may offer to import your Kodi library (**Settings → Kodi**). Scrobbling then starts on its own. Import details: [PARAMETRES.md](docs/PARAMETRES.md).
 
 ### Daily use
 
 - **Playback**: the background service sends progress to dejaVu.plus. Pause and stop keep Continue watching.
 - **Context menu**: right-click (or context) on a movie / show / episode → **dejaVu** submenu. Can be turned off in settings.
-- **Useful settings**: watched %, resume, next episode, notifications, Kodi library mirror.
+- **Useful settings**: watched %, resume, next episode, notifications, Kodi library mirror. Guide: [PARAMETRES.md](docs/PARAMETRES.md).
 
 On plugin lists (vStream, etc.) the context menu talks to dejaVu.plus. Watched badges on those rows require the listing addon to call the dejaVu API. Kodi `playcount` / `userrating` are only written when the same title exists in the **Kodi video library**.
 
@@ -141,8 +146,9 @@ status = dv.get_media_status([
 
 Full documentation:
 
-- [DEVELOPERS.md](DEVELOPERS.md) — English developer guide (RPC, Connect, import)
-- [FONCTIONNALITES.md](FONCTIONNALITES.md) — French spec (end user + RPC)
+- [DEVELOPERS.md](docs/DEVELOPERS.md) — English developer guide (RPC, Connect, import)
+- [PARAMETRES.md](docs/PARAMETRES.md) — settings and Kodi library import
+- [FONCTIONNALITES.md](docs/FONCTIONNALITES.md) — French end-user guide
 
 ---
 

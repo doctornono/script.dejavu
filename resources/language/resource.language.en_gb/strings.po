@@ -610,6 +610,10 @@ msgctxt "#30194"
 msgid "Session expired. Please sign in again."
 msgstr ""
 
+msgctxt "#30195"
+msgid "Kodi"
+msgstr ""
+
 # Settings labels
 msgctxt "#30099"
 msgid "Access Token"

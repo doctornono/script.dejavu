@@ -14,9 +14,8 @@ Typical uses:
 
 IDs are **TMDB**. Status overlays work for **`movie`** and **`tv`** (the show), not for individual episodes.
 
-End-user install and usage: [README.md](README.md) · [INSTALL.md](INSTALL.md).  
-French spec (same surface, more detail): [FONCTIONNALITES.md](FONCTIONNALITES.md).  
-Kodi library import mapping: [IMPORT_KODI.md](IMPORT_KODI.md).
+End-user docs: [README.md](../README.md) · [INSTALL.md](INSTALL.md) · [FONCTIONNALITES.md](FONCTIONNALITES.md) · [PARAMETRES.md](PARAMETRES.md).  
+Internal Kodi → dejaVu import mapping: [IMPORT_KODI.md](IMPORT_KODI.md).
 
 ---
 
@@ -61,7 +60,7 @@ This is **not** scrobble. Scrobble stays the live path after the user is connect
 
 `playcount`, `lastplayed`, `userrating`, TMDB/IMDb `uniqueid`, resume bookmarks, library favourites, and the full movie/show library as Digital collection.
 
-After Connect, the script offers the import when a video library exists. The user can also start it from **Add-on settings → Import Kodi library** (button **Import my Kodi history**), the Programs menu (first item when logged in), or another addon:
+After Connect, the script offers the import when a video library exists. The user can also start it from **Add-on settings → Kodi** (button **Import Kodi library**), the Programs menu (first item when logged in), or another addon:
 
 ```python
 dv = DejaVuClient()

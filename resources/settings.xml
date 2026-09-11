@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
 
-    <!-- Account: login/logout/import visibility uses relative eq() on username -->
+    <!-- Account: login/logout visibility uses relative eq() on username -->
     <category label="30000">
         <setting id="username" type="text" label="30001" default="" enable="false"/>
         <setting id="action_login" type="action" label="30002" action="RunScript(script.dejavu,action=login)" option="close" visible="eq(-1,)"/>
         <setting id="action_logout" type="action" label="30003" action="RunScript(script.dejavu,action=logout)" option="close" visible="!eq(-2,)"/>
-        <setting id="action_import_kodi" type="action" label="30120" action="RunScript(script.dejavu,action=import_kodi)" option="close" visible="!eq(-3,)"/>
         <setting id="enable_context_menu" type="bool" label="30175" default="true"/>
         <setting id="access_token" type="text" label="30099" default="" visible="false"/>
         <setting id="kodi_import_offered" type="bool" default="false" visible="false"/>
         <setting id="kodi_import_at" type="text" default="" visible="false"/>
     </category>
 
-    <!-- Import Kodi library — no enable= on hidden token (Kodi greys it out) -->
-    <category label="30120">
+    <!-- Kodi library: import + mirror -->
+    <category label="30195">
         <setting id="import_kodi_help" type="lsep" label="30173"/>
         <setting id="action_import_kodi_tab" type="action" label="30120" action="RunScript(script.dejavu,action=import_kodi)" option="close"/>
+        <setting id="sync_kodi_library" type="bool" label="30106" default="true"/>
     </category>
 
     <!-- Scrobbling -->
@@ -27,7 +27,6 @@
         <setting id="prompt_rating" type="bool" label="30070" default="true"/>
         <setting id="enable_resume" type="bool" label="30071" default="true"/>
         <setting id="enable_upnext" type="bool" label="30072" default="true"/>
-        <setting id="sync_kodi_library" type="bool" label="30106" default="true"/>
     </category>
 
     <!-- Advanced -->
