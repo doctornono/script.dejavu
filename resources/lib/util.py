@@ -401,6 +401,12 @@ def _media_info_from_listitem(item):
             or _tag_unique_id(tag, "themoviedb")
         )
         imdb_id = _tag_unique_id(tag, "imdb")
+        if not tmdb_id:
+            unknown = _tag_unique_id(tag, "unknown")
+            if unknown.isdigit():
+                tmdb_id = unknown
+            elif unknown.startswith("tt"):
+                imdb_id = imdb_id or unknown
         if not imdb_id:
             try:
                 imdb_id = tag.getIMDBNumber() or ""
@@ -447,9 +453,16 @@ def _media_info_from_listitem(item):
         "tmdb_id", "TmdbId", "tmdbid", "tmdb",
         "elementum_tmdb_id", "elementum_movie_tmdb_id",
     ))
+    # sys.listitem UniqueIDs are often empty in context menus; infolabels still work.
+    tmdb_id = tmdb_id or _label("UniqueID(tmdb)") or _label("UniqueID(themoviedb)")
+    unknown = _label("UniqueID(unknown)")
+    if not tmdb_id and unknown.isdigit():
+        tmdb_id = unknown
     imdb_id = imdb_id or _first_prop(item, (
         "imdb_id", "imdb", "imdbid", "elementum_imdb_id",
     ))
+    if unknown.startswith("tt"):
+        imdb_id = imdb_id or unknown
     show_tmdb = show_tmdb or _first_prop(item, (
         "tvshow_tmdb_id", "TVShowID", "elementum_tvshow_tmdb_id",
     ))

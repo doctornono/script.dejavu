@@ -11,7 +11,7 @@ LIB = os.path.abspath(
 if LIB not in sys.path:
     sys.path.insert(0, LIB)
 
-import pure  # noqa: E402
+import pure  # noqa: E402, reportMissingImports
 
 
 class UnwrapDataTests(unittest.TestCase):
