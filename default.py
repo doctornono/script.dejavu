@@ -136,6 +136,24 @@ def open_context_menu():
     """Single dejaVu context item: build a dynamic menu from type + status."""
     from resources.lib.pure import context_actions
 
+    # #region agent log
+    try:
+        import json, time
+        payload = {
+            "sessionId": "762a00",
+            "timestamp": int(time.time() * 1000),
+            "location": "default.py:open_context_menu",
+            "message": "context menu script invoked",
+            "data": {"enabled": _context_enabled()},
+            "runId": "pre-fix",
+            "hypothesisId": "XML",
+        }
+        with open(r"D:\Developpement\dejavu-kodi-addons\debug-762a00.log", "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(payload) + "\n")
+    except Exception:
+        pass
+    # #endregion
+
     if not _context_enabled():
         return
     api, info = _api_and_info()
