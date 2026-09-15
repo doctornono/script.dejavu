@@ -1,0 +1,110 @@
+v1.19.1 (2026-09-15)
+- Fix: always resolve the script.dejavu add-on context when called by a skin.
+- Fix: adding or removing an item from a custom list cannot crash on a malformed localized label.
+- Fix: RPC caller identity is stable when the client is used by another add-on.
+
+v1.13.0 (2026-09-11)
+- Context: one dejaVu item opens a Python menu (Dialog.contextmenu) from ListItem type + get_media_status.
+- Movies and TV shows: rate, watched (movies only), watchlist, favorites, collection, lists — labels follow current state.
+- Episodes: rate + mark watched / unwatched. Seasons: rate only.
+- Hidden outside video windows (addon browser, Programs, install from zip). Reads sys.listitem, not the focused infolabel.
+- Visibility XML no longer uses System.AddonSetting (comma in the infolabel always evaluated false).
+
+v1.11.0 (2026-09-11)
+- Session: no refresh_token; settings token is not resurrected if session.json exists (even empty after logout).
+- 401/403 clears the local session once (one notification, no spam).
+- RPC HTTP is queued in onNotification and drained one job per service tick; is_authenticated stays sync.
+- onAVStarted defers resolve / resume / scrobble start to the next tick() so playback is not blocked.
+- i18n: gettext headers; collection format labels 30188–30193; expired session 30194.
+- Unit tests without xbmc (unwrap_data, extract_ids, api_url pin, result_property, no session resurrection).
+
+v1.10.0 (2026-09-11)
+- Production: wrap player.tick(), sync session every 30s (not every second), cache session.json.
+- No Player.GetItem file dump unless debug; INFO logs gated; ignore shipped TMDB key.
+- api_url locked to https://dejavu.plus unless debug + https; QR user_code quoted; HTTP bodies only in debug.
+- RPC result_property must start with script.dejavu.; logout via RPC does not reopen settings.
+- Connect QR: worker thread no longer touches GUI.
+
+v1.9.6 (2026-09-11)
+- Account settings show Log out (and the signed-in name) after Connect, not Login again.
+
+v1.9.0 (2026-09-11)
+- Import wizard: Kodi library → Digital collection; watches+dates merged; playlists hidden.
+- Preview states what will be added (X movies / Y shows per destination).
+- Modes: import-only turns scrobble off; import-and-sync keeps it on.
+
+v1.8.0 (2026-09-11)
+- Quote script.dejavu.changed NotifyAll JSON so pause/stop no longer logs "failed to parse data".
+- Context submenu only on movie / tvshow / episode; setting to hide it (default on).
+- Settings: Login/Logout visibility follows username and closes the dialog; logout label is "Log out of dejaVu".
+- QR connect dialog: hint to create an account on the phone.
+- IMPORT_KODI.md documents every import wizard option.
+
+v1.7.7 (2026-09-09)
+- Stop keeps continue watching at the last real position (same as pause) for movies and episodes.
+- Kodi reports 0 after Stop; the scrobbler now caches playback time so Stop no longer wipes Reprendre la lecture.
+- Finished titles (end / watched threshold) still leave the list. Short plays under 30s are still dropped.
+
+v1.7.5 (2026-09-09)
+- RPC monitor accepts Other.script.dejavu.* (Kodi NotifyAll prefix). Other addons
+  were timing out on is_authenticated / get_history because the service ignored the notification.
+- DejaVuClient quotes the NotifyAll JSON payload so commas are not builtin separators.
+
+v1.7.3 (2026-09-09)
+- Fix DejaVuClient.call(): NotifyAll sender used xbmc.getAddonInfo("id"), which does not exist.
+  Other addons (plugin.video.dejavu, alkoFlix, vStream) crashed on authenticate() / is_authenticated().
+
+v1.7.0 (2026-09-09)
+- Import Kodi library (migration, not scrobble): VideoLibrary scan, match preview, POST /kodi/import in chunks.
+- Optional watchlist for unwatched titles, resume positions, video playlists, and Kodi favorites.
+- Post-login offer, settings/Programs action, DejaVuClient.import_kodi_library() for alkoFlix.
+
+v1.5.0 (2026-09-09)
+- DejaVu Connect: QR pairing dialog, authenticate() / is_authenticated() / logout() for other addons.
+- Post-login welcome with watchlist / history / lists / favorites counts and Open dejaVu.
+- Live API token reload after login (no Kodi restart). Logout also clears refresh_token.
+
+v1.4.0 (2026-08-18)
+- Context menu grouped under a single dejaVu submenu (rate, watched, watchlist, favorites, collection, add to a list).
+- Custom list picker: add or remove the current movie/show from a user list.
+- Mirror watched status and ratings to the Kodi library (playcount / userrating), including lookup by TMDB/IMDb uniqueid when DBID is missing.
+- Setting: "Mirror watched status and ratings to the Kodi library" (default on).
+
+v1.3.0 (2026-08-17)
+- RPC: get_media_status (batch overlays), get_list_items, add/remove list items, get_scrobbles, delete_scrobble, delete_history, delete_rating, collection add/remove, resolve_media, get_me.
+- client.py sugar methods for all RPC actions; Accept-Language follows Kodi UI language.
+- Scrobble uses a single watched path (no double rewatchCount). Resume from GET /scrobble. Up Next after episodes.
+- Context menus are toggles (watched, watchlist, favorites, collection). Ratings can be removed and pre-filled; option to also rate the show after an episode.
+- ID resolution prefers POST /media/resolve. Broadcasts script.dejavu.changed after writes.
+
+v1.2.2 (2026-05-04)
+- Context menus: Add to Collection (with format picker), Add to Watchlist, Add to Favorites.
+- Helper _get_media_info() with dual fallback (Kodi library + plugin custom properties).
+- New strings: 30080-30088 (EN + FR).
+
+v1.1.2 (2026-04-09)
+- Fix: accurate episode and movie identification by resolving specific TMDB IDs from api.themoviedb.org
+
+v1.1.1 (2026-04-08)
+- Fix: accurate episode identification by resolving specific TMDB IDs from api.themoviedb.org
+- Support: fallback identification for episodes in plugins via ListItem properties (tvshow_tmdb_id, etc.)
+- Improved: "healing" logic when episode ID is missing or duplicate of Show ID
+- Settings: added TMDB API Key for external resolution
+- API v1 compliance: full refactor of api_client.py and lib/ adaptations
+- Automated "Mark as Watched" at 90% threshold (no manual action needed)
+- Robust metadata resolution: show TMDB IDs resolved via JSON-RPC for episodes
+- Enhanced Monitor: 14 RPC actions added for inter-addon integration (History, Watchlist, etc.)
+- Improved scrobble payload with tvShowId, seasonNumber, and episodeNumber
+- Rating dialog: better ID resolution for seasons/episodes and error notifications
+- Auth: persistence of refresh_token if returned by the API
+
+v1.1.0 (2026-04-02)
+- Refactored into clean module structure (resources/lib/)
+- Full Device Code Flow login (RFC 8628) with progress dialog
+- Scrobble: periodic updates + auto-watched at configurable threshold
+- Ratings: movie / tv / season / episode via context menu
+- Settings: login/logout, scrobble interval, watched %, API URL, debug
+- Bilingual strings: English + French
+
+v1.0.1
+- Initial release

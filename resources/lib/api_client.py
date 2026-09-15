@@ -1,0 +1,955 @@
+# -*- coding: utf-8 -*-
+"""
+dejaVu API Client
+Wraps all calls to https://dejavu.plus/api/v1/
+Authentication: x-api-key header with secret key (sk_...)
+"""
+
+import xbmc
+import xbmcaddon
+import xbmcvfs
+import json
+import requests
+from urllib.parse import quote
+from .pure import DEFAULT_API_URL, effective_api_url
+from .util import get_accept_language
+
+ADDON = xbmcaddon.Addon()
+ADDON_ID = "script.dejavu"
+
+
+def _log(msg, level=xbmc.LOGDEBUG):
+    xbmc.log(f"[dejaVu] {msg}", level)
+
+
+def _debug_enabled():
+    try:
+        return ADDON.getSettingBool("debug")
+    except Exception:
+        return False
+
+
+def _http_error_detail(response):
+    if response is None:
+        return ""
+    if _debug_enabled():
+        text = (response.text or "")[:500]
+        return " – %s" % text if text else ""
+    return ""
+
+
+def _effective_api_url(api_url=None):
+    raw = api_url or ADDON.getSetting("api_url") or DEFAULT_API_URL
+    return effective_api_url(raw, debug=_debug_enabled(), default=DEFAULT_API_URL)
+
+
+class DejaVuAPI:
+    def __init__(self, api_url=None, token=None):
+        self.api_url = _effective_api_url(api_url)
+        # None = re-read addon settings on every request (login/logout without restarting the service)
+        self._token_override = token
+
+    def _current_token(self):
+        if self._token_override is not None:
+            return self._token_override
+        from .session import get_access_token
+        return get_access_token()
+
+    @property
+    def token(self):
+        return self._current_token()
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _headers(self):
+        h = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Accept-Language": get_accept_language(),
+        }
+        token = self._current_token()
+        if token:
+            h["x-api-key"] = token
+        return h
+
+    def _expire_if_unauthorized(self, response, path):
+        if response is None:
+            return
+        try:
+            status = int(response.status_code)
+        except Exception:
+            return
+        if status not in (401, 403):
+            return
+        route = path or ""
+        if "auth/device" in route:
+            return
+        from .auth_handler import expire_local_session
+        expire_local_session()
+
+    def _http_not_found(self, response, path, allow_404):
+        try:
+            status = int(response.status_code) if response is not None else 0
+        except Exception:
+            status = 0
+        if allow_404 and status == 404:
+            return {"success": False, "error": "not_found"}
+        self._expire_if_unauthorized(response, path)
+        _log(
+            f"HTTP {path} error: {status}{_http_error_detail(response)}",
+            xbmc.LOGERROR,
+        )
+        return None
+
+    def _get(self, path, params=None, allow_404=False):
+        url = f"{self.api_url}/{path.lstrip('/')}"
+        try:
+            r = requests.get(url, headers=self._headers(), params=params, timeout=10)
+            r.raise_for_status()
+            return r.json()
+        except requests.HTTPError as e:
+            return self._http_not_found(e.response, path, allow_404)
+        except Exception as e:
+            _log(f"GET {path} error: {e}", xbmc.LOGERROR)
+        return None
+
+    def _post(self, path, payload, timeout=10, allow_404=False):
+        url = f"{self.api_url}/{path.lstrip('/')}"
+        try:
+            r = requests.post(url, headers=self._headers(), json=payload, timeout=timeout)
+            r.raise_for_status()
+            return r.json()
+        except requests.HTTPError as e:
+            return self._http_not_found(e.response, path, allow_404)
+        except Exception as e:
+            _log(f"POST {path} error: {e}", xbmc.LOGERROR)
+        return None
+
+    def _delete(self, path, payload=None):
+        """DELETE with a JSON body (used by scrobble)."""
+        url = f"{self.api_url}/{path.lstrip('/')}"
+        try:
+            r = requests.delete(url, headers=self._headers(), json=payload, timeout=10)
+            r.raise_for_status()
+            return r.json() if r.content else {}
+        except requests.HTTPError as e:
+            self._expire_if_unauthorized(e.response, path)
+            _log(f"DELETE {path} HTTP error: {e.response.status_code}{_http_error_detail(e.response)}", xbmc.LOGERROR)
+        except Exception as e:
+            _log(f"DELETE {path} error: {e}", xbmc.LOGERROR)
+        return None
+
+    def _delete_qs(self, path, params=None):
+        """DELETE with query string params (used by watchlist, collection, favorites, ratings, history)."""
+        url = f"{self.api_url}/{path.lstrip('/')}"
+        try:
+            r = requests.delete(url, headers=self._headers(), params=params, timeout=10)
+            r.raise_for_status()
+            return r.json() if r.content else {}
+        except requests.HTTPError as e:
+            self._expire_if_unauthorized(e.response, path)
+            _log(f"DELETE {path} HTTP error: {e.response.status_code}{_http_error_detail(e.response)}", xbmc.LOGERROR)
+        except Exception as e:
+            _log(f"DELETE {path} error: {e}", xbmc.LOGERROR)
+        return None
+
+    # ------------------------------------------------------------------
+    # Auth – Device Code Flow
+    # ------------------------------------------------------------------
+
+    def get_device_code(self, client_id="dejavu-kodi", client_name=None):
+        """Step 1: request a device code + user code from the server."""
+        payload = {"client_id": client_id}
+        if client_name:
+            payload["client_name"] = client_name
+        return self._post("/auth/device/code", payload)
+
+    def download_device_qr(self, user_code):
+        """Download the pairing QR PNG to special://temp. Returns local path or empty string."""
+        if not user_code:
+            return ""
+        dest = xbmcvfs.translatePath("special://temp/dejavu_qr.png")
+        url = "%s/auth/device/qr?user_code=%s" % (
+            self.api_url,
+            quote(str(user_code), safe=""),
+        )
+        try:
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200 and r.content:
+                handle = xbmcvfs.File(dest, "w")
+                try:
+                    handle.write(bytearray(r.content))
+                finally:
+                    handle.close()
+                return dest
+            _log(f"QR download HTTP {r.status_code}", xbmc.LOGWARNING)
+        except Exception as e:
+            _log(f"QR download error: {e}", xbmc.LOGWARNING)
+        return ""
+
+    def poll_token(self, device_code):
+        """Step 2: poll until the user has authorized the device."""
+        payload = {
+            "device_code": device_code,
+            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+            "client_id": "dejavu-kodi",
+        }
+        url = f"{self.api_url}/auth/device/token"
+        try:
+            r = requests.post(url, headers=self._headers(), json=payload, timeout=10)
+            _log(f"poll_token status={r.status_code}", xbmc.LOGDEBUG)
+            if r.status_code == 200:
+                return r.json()
+            if r.status_code in (400, 428):
+                # authorization_pending or slow_down – normal, keep polling
+                return None
+            # Any other error: log and bail
+            _log(
+                "poll_token unexpected %s%s" % (r.status_code, _http_error_detail(r)),
+                xbmc.LOGERROR,
+            )
+        except Exception as e:
+            _log(f"poll_token error: {e}", xbmc.LOGERROR)
+        return None
+
+    def get_me(self):
+        """Returns the authenticated user's profile."""
+        return self._get("/me")
+
+    # ------------------------------------------------------------------
+    # Scrobble
+    # ------------------------------------------------------------------
+
+    def scrobble(self, media_type, progress, duration, tmdb_id=None, item_id=None,
+                 tv_show_id=None, season=None, episode=None):
+        """
+        Update playback progress.
+        If progress/duration >= 0.9 the API automatically marks the item as watched.
+
+        media_type : "movie" | "episode"
+        tmdb_id    : TMDB ID of the movie OR episode
+        progress   : seconds played (int)
+        duration   : total duration in seconds (int)
+        """
+        payload = {
+            "type": media_type,
+            "progress": int(progress),
+            "duration": int(duration),
+        }
+        if tmdb_id:
+            if str(tmdb_id).isdigit():
+                payload["id"] = int(tmdb_id)
+            else:
+                _log(f"scrobble: tmdb_id is non-numeric ('{tmdb_id}'). Skipping 'id' field.", xbmc.LOGWARNING)
+
+        if item_id:
+            if str(item_id).isdigit():
+                payload["id"] = int(item_id)
+
+        if tv_show_id:
+            if str(tv_show_id).isdigit():
+                payload["tvShowId"] = int(tv_show_id)
+            else:
+                _log(f"scrobble: tv_show_id is non-numeric ('{tv_show_id}'). Skipping 'tvShowId' field.", xbmc.LOGWARNING)
+
+        if season is not None:
+            payload["seasonNumber"] = int(season)
+        if episode is not None:
+            payload["episodeNumber"] = int(episode)
+
+        _log(f"scrobble API Call payload: {json.dumps(payload)}", xbmc.LOGDEBUG)
+        return self._post("/scrobble", payload)
+
+    def get_scrobbles(self, media_type=None, page=1, page_size=20, minimal=False):
+        """
+        Retrieve active playback progress sessions (continue watching).
+
+        media_type : "movie" | "episode" | "all" (default)
+        """
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "minimal": str(minimal).lower(),
+        }
+        if media_type:
+            params["type"] = media_type
+        return self._get("/scrobble", params)
+
+    def delete_scrobble(self, media_type, tmdb_id):
+        """
+        Delete an active scrobble session.
+
+        media_type : "movie" | "episode"
+        tmdb_id    : TMDB ID of the movie or episode
+        """
+        if not str(tmdb_id).isdigit():
+            _log(f"delete_scrobble: tmdb_id is non-numeric ('{tmdb_id}').", xbmc.LOGWARNING)
+            return None
+        return self._delete_qs("/scrobble", {"type": media_type, "id": int(tmdb_id)})
+
+    def delete_scrobble_session(self, session_id):
+        """Deprecated: the API has no /scrobble/{id} route. Use delete_scrobble(type, id)."""
+        _log(
+            "delete_scrobble_session is deprecated; the API expects DELETE /scrobble?type=&id=",
+            xbmc.LOGWARNING,
+        )
+        return None
+
+    # ------------------------------------------------------------------
+    # Ratings
+    # ------------------------------------------------------------------
+
+    def get_ratings(self, media_type=None, page=1, page_size=20, minimal=False):
+        """
+        Retrieve the user's ratings.
+
+        media_type : "movie" | "tv" | "season" | "episode" | "all" (default)
+        page       : page number (default 1)
+        page_size  : items per page, max 100 (default 20)
+        minimal    : if True, returns only id/rating/createdAt (default False)
+        """
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "minimal": str(minimal).lower(),
+        }
+        if media_type:
+            params["type"] = media_type
+        return self._get("/ratings", params)
+
+    def rate(self, media_type, rating, tmdb_id=None, item_id=None,
+             tv_show_id=None, season=None, episode=None, review=None):
+        """
+        Upsert a rating (1-10).
+
+        media_type  : "movie" | "tv" | "season" | "episode"
+        rating      : integer 1-10
+        tmdb_id     : TMDB ID of the item (movie / tv show / episode)
+        tv_show_id  : required for season / episode types
+        season      : season number, required for "season" type
+        episode     : episode number, used with tv_show_id + season to resolve episode ID
+        review      : optional text review
+        """
+        payload = {
+            "type": media_type,
+            "rating": int(rating),
+        }
+        if tmdb_id:
+            if str(tmdb_id).isdigit():
+                payload["id"] = int(tmdb_id)
+            else:
+                _log(f"rate: tmdb_id is non-numeric ('{tmdb_id}').", xbmc.LOGWARNING)
+        elif item_id:
+            if str(item_id).isdigit():
+                payload["id"] = int(item_id)
+
+        if tv_show_id:
+            if str(tv_show_id).isdigit():
+                payload["tvShowId"] = int(tv_show_id)
+            else:
+                _log(f"rate: tv_show_id is non-numeric ('{tv_show_id}').", xbmc.LOGWARNING)
+
+        if season is not None:
+            payload["seasonNumber"] = int(season)
+        if episode is not None:
+            payload["episodeNumber"] = int(episode)
+        if review:
+            payload["review"] = str(review)
+
+        _log(f"rate API Call payload: {json.dumps(payload)}", xbmc.LOGDEBUG)
+        return self._post("/ratings", payload)
+
+    def delete_rating(self, media_type, tmdb_id=None, tv_show_id=None, season=None):
+        """
+        Delete a rating.
+
+        media_type : "movie" | "tv" | "season" | "episode"
+        tmdb_id    : TMDB ID (movie, tv show or episode)
+        tv_show_id : required for "season" type
+        season     : season number, required for "season" type
+        """
+        params = {"type": media_type}
+        if tmdb_id is not None and str(tmdb_id).isdigit():
+            params["id"] = int(tmdb_id)
+        if tv_show_id is not None and str(tv_show_id).isdigit():
+            params["tvShowId"] = int(tv_show_id)
+        if season is not None:
+            params["seasonNumber"] = int(season)
+        return self._delete_qs("/ratings", params)
+
+    # ------------------------------------------------------------------
+    # History
+    # ------------------------------------------------------------------
+
+    def get_history(self, media_type=None, page=1, page_size=20,
+                    sort="watchedAt:desc", minimal=False):
+        """
+        Retrieve the user's watch history.
+
+        media_type : "movie" | "tv" | "episode" | "all" (default)
+        page       : page number (default 1)
+        page_size  : items per page, max 100 (default 20)
+        sort       : "watchedAt:desc" (default) | "watchedAt:asc"
+        minimal    : if True, returns only id/watchedAt/rewatchCount (default False)
+        """
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "sort": sort,
+            "minimal": str(minimal).lower(),
+        }
+        if media_type:
+            params["type"] = media_type
+        return self._get("/history", params)
+
+    def add_to_history(self, media_type, tmdb_id=None, count=1, watched_at=None,
+                       tv_show_id=None, season=None, episode=None):
+        """
+        Add a movie or episode to the watch history.
+
+        media_type  : "movie" | "tv" | "episode"
+        tmdb_id     : TMDB ID of the movie or episode
+        count       : number of additional views to record (default 1)
+        watched_at  : ISO 8601 datetime string (default: now)
+        tv_show_id  : TV show TMDB ID (alternative to tmdb_id for episodes)
+        season      : season number (used with tv_show_id + episode)
+        episode     : episode number (used with tv_show_id + season)
+        """
+        payload = {"type": media_type, "count": int(count)}
+        if tmdb_id:
+            if str(tmdb_id).isdigit():
+                payload["id"] = int(tmdb_id)
+            else:
+                _log(f"add_to_history: tmdb_id is non-numeric ('{tmdb_id}').", xbmc.LOGWARNING)
+
+        if watched_at:
+            payload["watchedAt"] = watched_at
+
+        if tv_show_id:
+            if str(tv_show_id).isdigit():
+                payload["tvShowId"] = int(tv_show_id)
+            else:
+                _log(f"add_to_history: tv_show_id is non-numeric ('{tv_show_id}').", xbmc.LOGWARNING)
+
+        if season is not None:
+            payload["seasonNumber"] = int(season)
+        if episode is not None:
+            payload["episodeNumber"] = int(episode)
+        _log(f"add_to_history API Call payload: {json.dumps(payload)}", xbmc.LOGDEBUG)
+        return self._post("/history", payload)
+
+    def delete_history(self, media_type, tmdb_id):
+        """
+        Delete a movie or episode from the watch history.
+
+        media_type : "movie" | "tv" | "episode"
+        tmdb_id    : TMDB ID of the movie or episode
+        """
+        params = {"type": media_type}
+        if str(tmdb_id).isdigit():
+            params["id"] = int(tmdb_id)
+        else:
+            _log(f"delete_history: tmdb_id is non-numeric ('{tmdb_id}').", xbmc.LOGWARNING)
+            return None
+        return self._delete_qs("/history", params)
+
+    # ------------------------------------------------------------------
+    # Watchlist
+    # ------------------------------------------------------------------
+
+    def get_watchlist(self, media_type=None, page=1, page_size=20,
+                      sort="addedAt:desc", minimal=False):
+        """
+        Retrieve the user's watchlist.
+
+        media_type : "movie" | "tv" | "all" (default)
+        page       : page number (default 1)
+        page_size  : items per page, max 100 (default 20)
+        sort       : "addedAt:desc" (default) | "addedAt:asc" | "priority:desc" | "priority:asc"
+        minimal    : if True, returns only id/addedAt/priority (default False)
+        """
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "sort": sort,
+            "minimal": str(minimal).lower(),
+        }
+        if media_type:
+            params["type"] = media_type
+        return self._get("/watchlist", params)
+
+    def add_to_watchlist(self, media_type, tmdb_id, priority=None, notes=None):
+        """
+        Add an item to the watchlist.
+
+        media_type : "movie" | "tv"
+        tmdb_id    : TMDB ID
+        priority   : optional integer priority
+        notes      : optional text note
+        """
+        payload = {"type": media_type, "id": int(tmdb_id)}
+        if priority is not None:
+            payload["priority"] = int(priority)
+        if notes:
+            payload["notes"] = str(notes)
+        return self._post("/watchlist", payload)
+
+    def remove_from_watchlist(self, media_type, tmdb_id):
+        """
+        Remove an item from the watchlist.
+
+        media_type : "movie" | "tv"
+        tmdb_id    : TMDB ID
+        """
+        return self._delete_qs("/watchlist", {"type": media_type, "id": int(tmdb_id)})
+
+    # ------------------------------------------------------------------
+    # Collection
+    # ------------------------------------------------------------------
+
+    def get_collection(self, media_type=None, page=1, page_size=20,
+                       sort="addedAt:desc", fmt=None, minimal=False):
+        """
+        Retrieve the user's collection.
+
+        media_type : "movie" | "tv" | "all" (default)
+        page       : page number (default 1)
+        page_size  : items per page, max 100 (default 20)
+        sort       : "addedAt:desc" (default) | "addedAt:asc"
+        fmt        : filter by format string (e.g. "bluray", "dvd")
+        minimal    : if True, returns only id/addedAt/format (default False)
+        """
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "sort": sort,
+            "minimal": str(minimal).lower(),
+        }
+        if media_type:
+            params["type"] = media_type
+        if fmt:
+            params["format"] = fmt
+        return self._get("/collection", params)
+
+    def add_to_collection(self, media_type, tmdb_id, fmt=None, notes=None):
+        """
+        Add an item to the collection.
+
+        media_type : "movie" | "tv"
+        tmdb_id    : TMDB ID
+        fmt        : optional format string (e.g. "bluray", "dvd")
+        notes      : optional text note
+        """
+        payload = {"type": media_type, "id": int(tmdb_id)}
+        if fmt:
+            payload["format"] = fmt
+        if notes:
+            payload["notes"] = str(notes)
+        return self._post("/collection", payload)
+
+    def remove_from_collection(self, media_type, tmdb_id):
+        """
+        Remove an item from the collection.
+
+        media_type : "movie" | "tv"
+        tmdb_id    : TMDB ID
+        """
+        return self._delete_qs("/collection", {"type": media_type, "id": int(tmdb_id)})
+
+    # ------------------------------------------------------------------
+    # Favorites
+    # ------------------------------------------------------------------
+
+    def get_favorites(self, media_type=None, page=1, page_size=20, minimal=False):
+        """
+        Retrieve the user's favorites.
+
+        media_type : "movie" | "tv" | "all" (default)
+        page       : page number (default 1)
+        page_size  : items per page, max 100 (default 20)
+        minimal    : if True, returns only id/addedAt (default False)
+        """
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "minimal": str(minimal).lower(),
+        }
+        if media_type:
+            params["type"] = media_type
+        return self._get("/favorites", params)
+
+    def add_to_favorites(self, media_type, tmdb_id):
+        """
+        Add an item to favorites.
+
+        media_type : "movie" | "tv"
+        tmdb_id    : TMDB ID
+        """
+        return self._post("/favorites", {"type": media_type, "id": int(tmdb_id)})
+
+    def remove_from_favorites(self, media_type, tmdb_id):
+        """
+        Remove an item from favorites.
+
+        media_type : "movie" | "tv"
+        tmdb_id    : TMDB ID
+        """
+        return self._delete_qs("/favorites", {"type": media_type, "id": int(tmdb_id)})
+
+    # ------------------------------------------------------------------
+    # Lists
+    # ------------------------------------------------------------------
+
+    def get_lists(self, page=1, page_size=20, minimal=False):
+        """
+        Retrieve the user's custom lists.
+
+        page      : page number (default 1)
+        page_size : items per page, max 100 (default 20)
+        minimal   : if True, returns only id/name/itemsCount/updatedAt (default False)
+        """
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "minimal": str(minimal).lower(),
+        }
+        return self._get("/lists", params)
+
+    def create_list(self, name, description=None, visibility="PRIVATE"):
+        """
+        Create a new custom list.
+
+        name        : list name (required)
+        description : optional description
+        visibility  : "PRIVATE" (default) | "PUBLIC"
+        """
+        payload = {"name": name, "visibility": visibility}
+        if description:
+            payload["description"] = description
+        return self._post("/lists", payload)
+
+    def get_list_items(self, list_id, page=1, page_size=20, minimal=False):
+        """Retrieve items in a custom list."""
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "minimal": str(minimal).lower(),
+        }
+        return self._get(f"/lists/{list_id}/items", params)
+
+    def add_to_list(self, list_id, media_type, tmdb_id, notes=None, position=None):
+        """
+        Add an item to a custom list.
+
+        media_type : "movie" | "tv"
+        """
+        payload = {"type": media_type, "id": int(tmdb_id)}
+        if notes:
+            payload["notes"] = str(notes)
+        if position is not None:
+            payload["position"] = int(position)
+        return self._post(f"/lists/{list_id}/items", payload)
+
+    def remove_from_list(self, list_id, media_type, tmdb_id):
+        """Remove an item from a custom list."""
+        return self._delete_qs(
+            f"/lists/{list_id}/items",
+            {"type": media_type, "id": int(tmdb_id)},
+        )
+
+    # ------------------------------------------------------------------
+    # Channels / universes
+    # ------------------------------------------------------------------
+
+    def get_channels(self, page=1, page_size=20, channel_type=None, scope=None):
+        """
+        GET /channels — 404 → {success: false, error: not_found}.
+
+        channel_type : UNIVERSE | EDITORIAL | PLATFORM | THEMATIC |
+                       CREATOR | AWARDS | FRANCHISE (case-insensitive)
+        scope        : mine | following (omit = explore)
+        """
+        params = {
+            "page": page,
+            "pageSize": page_size,
+        }
+        if channel_type:
+            params["type"] = str(channel_type).strip().upper()
+        if scope:
+            params["scope"] = str(scope).strip().lower()
+        result = self._get("/channels", params, allow_404=True)
+        if result is None:
+            return None
+        return result
+
+    def get_channel(self, channel_id):
+        """GET /channels/{id} — 404 → {success: false, error: not_found}."""
+        if not channel_id:
+            return {"success": False, "error": "missing_channel_id"}
+        result = self._get("/channels/%s" % channel_id, allow_404=True)
+        if result is None:
+            return None
+        return result
+
+    # ------------------------------------------------------------------
+    # Up Next
+    # ------------------------------------------------------------------
+
+    def get_up_next(self, page=1, page_size=20, minimal=False):
+        """
+        Retrieve the user's "Up Next" episodes (in-progress TV shows).
+
+        page      : page number (default 1)
+        page_size : items per page, max 100 (default 20)
+        minimal   : if True, returns a lightweight payload (default False)
+
+        Note: the API defaults minimal to True server-side when not provided.
+              Passing minimal=False explicitly overrides this behaviour.
+        """
+        params = {
+            "page": page,
+            "pageSize": page_size,
+            "minimal": str(minimal).lower(),
+        }
+        return self._get("/upnext", params)
+
+    # ------------------------------------------------------------------
+    # Dashboard
+    # ------------------------------------------------------------------
+
+    def get_dashboard(self):
+        """
+        Retrieve the user's dashboard layout configuration.
+
+        Returns a list of widgets (excluding non-video widgets like 'stats'),
+        each with: id, type, title, props, and a ready-to-use apiUrl.
+
+        Example response:
+          {
+            "success": True,
+            "data": {
+              "widgets": [
+                {
+                  "id": "up_next-1",
+                  "type": "up_next",
+                  "title": "Up Next",
+                  "props": {},
+                  "apiUrl": "/api/v1/dashboard/widget?type=up_next"
+                },
+                ...
+              ],
+              "filters": []
+            }
+          }
+        """
+        return self._get("/dashboard")
+
+    def get_dashboard_widget(self, widget_type, list_id=None, page=1,
+                             page_size=20, minimal=False):
+        """
+        Retrieve the content of a specific dashboard widget.
+
+        This is a unified proxy that routes to the appropriate underlying
+        endpoint based on the widget type.
+
+        widget_type : one of:
+                      "up_next"                – Next episodes to watch
+                      "recent_watchlist"       – Last items added to watchlist
+                      "continue_watching"      – All active scrobble sessions
+                      "active_movie_scrobbles" – Active movie scrobble sessions
+                      "active_tv_scrobbles"    – Active TV scrobble sessions
+                      "upcoming_releases"      – Upcoming movies (TMDB Discover)
+                      "upcoming_schedule"      – Upcoming TV shows (TMDB Discover)
+                      "list"                   – Custom list items (requires list_id)
+        list_id     : list ID, required when widget_type == "list"
+        page        : page number (default 1)
+        page_size   : items per page (default 20)
+        minimal     : if True, returns a lightweight payload (default False)
+        """
+        params = {
+            "type": widget_type,
+            "page": page,
+            "pageSize": page_size,
+            "minimal": str(minimal).lower(),
+        }
+        if list_id:
+            params["listId"] = list_id
+        return self._get("/dashboard/widget", params)
+
+    # ------------------------------------------------------------------
+    # Media status / resolve (integration helpers for other addons)
+    # ------------------------------------------------------------------
+
+    def get_media_status(self, items):
+        """
+        Batch user status for up to 50 movies, TV shows, or episodes.
+
+        items : list of {"type": "movie"|"tv"|"episode", "id": int,
+                         "tmdbId"?, "seasonNumber"?, "episodeNumber"?}
+
+        Returns a map keyed by "type:id" (and "episode:show:s:e" aliases) with:
+          watched, inWatchlist, inCollection, isFavorite, rating, watchlistPriority,
+          rewatchCount, watchedAt (ISO-8601, when watched)
+        """
+        payload_items = []
+        for item in items or []:
+            media_type = item.get("type")
+            if media_type not in ("movie", "tv", "episode"):
+                continue
+            entry = {"type": media_type}
+            raw_id = item.get("id")
+            if raw_id is not None and str(raw_id).isdigit():
+                entry["id"] = int(raw_id)
+            if media_type == "episode":
+                for key in ("tmdbId", "tmdb_id", "show_tmdb_id"):
+                    val = item.get(key)
+                    if val is not None and str(val).isdigit():
+                        entry["tmdbId"] = int(val)
+                        break
+                for key in ("seasonNumber", "season"):
+                    val = item.get(key)
+                    if val is not None and str(val).lstrip("-").isdigit():
+                        entry["seasonNumber"] = int(val)
+                        break
+                for key in ("episodeNumber", "episode"):
+                    val = item.get(key)
+                    if val is not None and str(val).lstrip("-").isdigit():
+                        entry["episodeNumber"] = int(val)
+                        break
+                if "id" not in entry and not (
+                    "tmdbId" in entry
+                    and "seasonNumber" in entry
+                    and "episodeNumber" in entry
+                ):
+                    continue
+            elif "id" not in entry:
+                continue
+            payload_items.append(entry)
+            if len(payload_items) >= 50:
+                break
+        return self._post("/media/status", {"items": payload_items})
+
+    def resolve_media(self, imdb_id=None, tmdb_id=None, media_type=None,
+                      title=None, year=None):
+        """
+        Resolve a movie or TV show to a TMDB ID via dejaVu (no local TMDB key).
+
+        Provide at least one of: imdb_id, tmdb_id+media_type, or title.
+        media_type : "movie" | "tv"
+        """
+        payload = {}
+        if imdb_id:
+            payload["imdbId"] = str(imdb_id)
+        if tmdb_id is not None and str(tmdb_id).isdigit():
+            payload["tmdbId"] = int(tmdb_id)
+        if media_type:
+            payload["type"] = media_type
+        if title:
+            payload["title"] = str(title)
+        if year is not None and str(year).isdigit():
+            payload["year"] = int(year)
+        if not payload:
+            return None
+        return self._post("/media/resolve", payload)
+
+    def get_last_activities(self):
+        """GET /sync/last_activities — 404 → {success: false, error: not_found}."""
+        result = self._get("/sync/last_activities", allow_404=True)
+        if result is None:
+            return None
+        from .cache import remember_plus_feature
+        remember_plus_feature("sync_cursor", result.get("error") != "not_found")
+        return result
+
+    def get_show_progress(self, ids):
+        """POST /media/show-progress — max 20 show TMDB ids. 404-safe."""
+        show_ids = []
+        for raw in ids or []:
+            if raw is not None and str(raw).isdigit():
+                show_ids.append(int(raw))
+            if len(show_ids) >= 20:
+                break
+        if not show_ids:
+            return {"success": True, "data": {}}
+        result = self._post("/media/show-progress", {"ids": show_ids}, allow_404=True)
+        if result is not None and result.get("error") != "not_found":
+            from .cache import remember_plus_feature
+            remember_plus_feature("show_progress", True)
+        elif result is not None:
+            from .cache import remember_plus_feature
+            remember_plus_feature("show_progress", False)
+        return result
+
+    def resolve_media_batch(self, items):
+        """POST /media/resolve/batch — 404 falls back to unitary resolve."""
+        payload_items = []
+        for item in items or []:
+            if not isinstance(item, dict):
+                continue
+            entry = {}
+            imdb_id = item.get("imdbId") or item.get("imdb_id")
+            if imdb_id:
+                entry["imdbId"] = str(imdb_id)
+            tmdb_id = item.get("tmdbId") or item.get("tmdb_id") or item.get("id")
+            if tmdb_id is not None and str(tmdb_id).isdigit():
+                entry["tmdbId"] = int(tmdb_id)
+            if item.get("type"):
+                entry["type"] = item.get("type")
+            if item.get("title"):
+                entry["title"] = str(item.get("title"))
+            year = item.get("year")
+            if year is not None and str(year).isdigit():
+                entry["year"] = int(year)
+            if entry:
+                payload_items.append(entry)
+            if len(payload_items) >= 50:
+                break
+        if not payload_items:
+            return {"success": True, "data": {}}
+        result = self._post(
+            "/media/resolve/batch", {"items": payload_items}, allow_404=True,
+        )
+        if result is None:
+            return None
+        if result.get("error") != "not_found":
+            from .cache import remember_plus_feature
+            remember_plus_feature("resolve_batch", True)
+            return result
+        from .cache import remember_plus_feature
+        remember_plus_feature("resolve_batch", False)
+        data = {}
+        for index, entry in enumerate(payload_items):
+            hit = self.resolve_media(
+                imdb_id=entry.get("imdbId"),
+                tmdb_id=entry.get("tmdbId"),
+                media_type=entry.get("type"),
+                title=entry.get("title"),
+                year=entry.get("year"),
+            )
+            from .pure import unwrap_data
+            resolved = unwrap_data(hit) if hit else None
+            if not isinstance(resolved, dict) or not resolved.get("tmdbId"):
+                continue
+            key = entry.get("imdbId") or str(index)
+            data[key] = resolved
+        return {"success": True, "data": data}
+
+    # ------------------------------------------------------------------
+    # Kodi library import (migration, not scrobble)
+    # ------------------------------------------------------------------
+
+    def import_kodi_library(self, payload):
+        """
+        Bulk-import a Kodi library snapshot. Distinct from POST /scrobble.
+
+        POST /kodi/import — 120s timeout per chunk.
+        payload keys: source, importSessionId, chunk, totalChunks, options,
+        movies, tvShows, episodes, playlists, favorites.
+        """
+        chunk = payload.get("chunk")
+        total = payload.get("totalChunks")
+        _log(f"import_kodi_library chunk={chunk}/{total}", xbmc.LOGINFO)
+        return self._post("/kodi/import", payload, timeout=120)
+

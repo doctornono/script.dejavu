@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<window>
+    <defaultcontrol always="true">8001</defaultcontrol>
+    <controls>
+        <control type="image">
+            <left>0</left>
+            <top>0</top>
+            <width>1920</width>
+            <height>1080</height>
+            <texture colordiffuse="C0000000">white.png</texture>
+        </control>
+
+        <control type="group">
+            <left>560</left>
+            <top>40</top>
+            <width>800</width>
+            <height>1000</height>
+
+            <control type="image">
+                <left>0</left>
+                <top>0</top>
+                <width>800</width>
+                <height>1000</height>
+                <texture colordiffuse="F01F2937">white.png</texture>
+            </control>
+
+            <control type="label" id="201">
+                <description>Title</description>
+                <left>40</left>
+                <top>28</top>
+                <width>720</width>
+                <height>48</height>
+                <align>center</align>
+                <aligny>center</aligny>
+                <font>font14</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <label>$ADDON[script.dejavu 30134]</label>
+            </control>
+
+            <control type="textbox" id="202">
+                <description>What will be imported</description>
+                <left>40</left>
+                <top>90</top>
+                <width>720</width>
+                <height>420</height>
+                <font>font13</font>
+                <textcolor>FFFFFFFF</textcolor>
+            </control>
+
+            <control type="label" id="210">
+                <description>Certain matches</description>
+                <left>40</left>
+                <top>530</top>
+                <width>720</width>
+                <height>36</height>
+                <align>center</align>
+                <font>font13</font>
+                <textcolor>FFFFFFFF</textcolor>
+            </control>
+
+            <control type="label" id="211">
+                <description>To verify</description>
+                <left>40</left>
+                <top>566</top>
+                <width>720</width>
+                <height>36</height>
+                <align>center</align>
+                <font>font13</font>
+                <textcolor>FFFBBF24</textcolor>
+            </control>
+
+            <control type="label" id="212">
+                <description>Unidentified</description>
+                <left>40</left>
+                <top>602</top>
+                <width>720</width>
+                <height>36</height>
+                <align>center</align>
+                <font>font13</font>
+                <textcolor>FF9CA3AF</textcolor>
+            </control>
+
+            <control type="button" id="8000">
+                <description>See details</description>
+                <left>80</left>
+                <top>670</top>
+                <width>640</width>
+                <height>64</height>
+                <align>center</align>
+                <aligny>center</aligny>
+                <font>font13</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <focusedcolor>FFFFFFFF</focusedcolor>
+                <label>$ADDON[script.dejavu 30146]</label>
+                <texturefocus colordiffuse="FF4B5563">white.png</texturefocus>
+                <texturenofocus colordiffuse="FF374151">white.png</texturenofocus>
+            </control>
+
+            <control type="button" id="8001">
+                <description>Import</description>
+                <left>80</left>
+                <top>754</top>
+                <width>640</width>
+                <height>72</height>
+                <align>center</align>
+                <aligny>center</aligny>
+                <font>font13</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <focusedcolor>FFFFFFFF</focusedcolor>
+                <label>$ADDON[script.dejavu 30147]</label>
+                <texturefocus colordiffuse="FF2563EB">white.png</texturefocus>
+                <texturenofocus colordiffuse="FF1D4ED8">white.png</texturenofocus>
+            </control>
+
+            <control type="button" id="9000">
+                <description>Cancel</description>
+                <left>80</left>
+                <top>846</top>
+                <width>640</width>
+                <height>64</height>
+                <align>center</align>
+                <aligny>center</aligny>
+                <font>font13</font>
+                <textcolor>FFFFFFFF</textcolor>
+                <focusedcolor>FFFFFFFF</focusedcolor>
+                <label>$ADDON[script.dejavu 30118]</label>
+                <texturefocus colordiffuse="FF4B5563">white.png</texturefocus>
+                <texturenofocus colordiffuse="FF374151">white.png</texturenofocus>
+            </control>
+        </control>
+    </controls>
+</window>

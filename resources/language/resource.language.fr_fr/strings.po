@@ -1,0 +1,687 @@
+# Kodi Media Center language file
+# Addon Name: dejaVu
+# Addon id: script.dejavu
+msgid ""
+msgstr ""
+"Project-Id-Version: script.dejavu\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgctxt "#30000"
+msgid "Account"
+msgstr "Compte"
+
+msgctxt "#30001"
+msgid "Logged in as"
+msgstr "Connecté en tant que"
+
+msgctxt "#30002"
+msgid "Login with dejaVu"
+msgstr "Connecter dejaVu"
+
+msgctxt "#30003"
+msgid "Log out of dejaVu"
+msgstr "Se déconnecter de dejaVu"
+
+msgctxt "#30010"
+msgid "Scrobbling"
+msgstr "Scrobbling"
+
+msgctxt "#30011"
+msgid "Enable automatic scrobbling"
+msgstr "Activer le scrobbling automatique"
+
+msgctxt "#30012"
+msgid "Scrobble interval (seconds)"
+msgstr "Intervalle de scrobble (secondes)"
+
+msgctxt "#30013"
+msgid "Mark as watched at (% played)"
+msgstr "Marquer comme vu à (% lu)"
+
+msgctxt "#30014"
+msgid "Show notifications (start, watched, rated)"
+msgstr "Afficher les notifications (début, vu, noté)"
+
+msgctxt "#30020"
+msgid "Advanced"
+msgstr "Avancé"
+
+msgctxt "#30021"
+msgid "API URL"
+msgstr "URL de l'API"
+
+msgctxt "#30022"
+msgid "Debug logging"
+msgstr "Journalisation débogage"
+
+msgctxt "#30030"
+msgid "dejaVu Login"
+msgstr "Connexion dejaVu"
+
+msgctxt "#30031"
+msgid "Visit the URL below and enter the code:"
+msgstr "Rendez-vous sur dejavu.plus/device et entrez le code :"
+
+msgctxt "#30032"
+msgid "Login successful! Welcome, %s."
+msgstr "Connexion réussie ! Bienvenue, %s."
+
+msgctxt "#30034"
+msgid "Login failed. Could not connect to dejaVu."
+msgstr "Échec de la connexion. Impossible de joindre dejaVu."
+
+msgctxt "#30035"
+msgid "Login code expired. Please try again."
+msgstr "Le code a expiré. Veuillez réessayer."
+
+msgctxt "#30040"
+msgid "Logged out of dejaVu."
+msgstr "Déconnecté de dejaVu."
+
+msgctxt "#30016"
+msgid "Rate..."
+msgstr "Noter..."
+
+msgctxt "#30017"
+msgid "Select a rating (1-10)"
+msgstr "Choisir une note (1-10)"
+
+msgctxt "#30018"
+msgid "Rated %s/10 on dejaVu"
+msgstr "Noté %s/10 sur dejaVu"
+
+msgctxt "#30019"
+msgid "Error: No TMDB ID found for this item."
+msgstr "Erreur : aucun ID TMDB trouvé pour cet élément."
+
+msgctxt "#30052"
+msgid "Marked as watched"
+msgstr "Marqué comme vu"
+
+msgctxt "#30053"
+msgid "Scrobbling started"
+msgstr "Scrobbling démarré"
+
+msgctxt "#30062"
+msgid "Settings"
+msgstr "Paramètres"
+
+msgctxt "#30070"
+msgid "Prompt for rating after playback"
+msgstr "Proposer de noter après visionnage"
+
+msgctxt "#30071"
+msgid "Resume from last position"
+msgstr "Reprendre à la dernière position"
+
+msgctxt "#30072"
+msgid "Offer next episode when playback ends"
+msgstr "Proposer l'épisode suivant en fin de lecture"
+
+msgctxt "#30073"
+msgid "Resume from %s?"
+msgstr "Reprendre à %s ?"
+
+msgctxt "#30074"
+msgid "Play next episode: %s?"
+msgstr "Lire l'épisode suivant : %s ?"
+
+msgctxt "#30075"
+msgid "Not logged in. Scrobbling is disabled."
+msgstr "Non connecté. Le scrobbling est désactivé."
+
+msgctxt "#30076"
+msgid "Rating removed."
+msgstr "Note supprimée."
+
+msgctxt "#30077"
+msgid "Also rate this TV show?"
+msgstr "Noter aussi la série ?"
+
+msgctxt "#30078"
+msgid "Watched status (dejaVu)"
+msgstr "Statut vu (dejaVu)"
+
+msgctxt "#30079"
+msgid "Marked as unwatched"
+msgstr "Marqué comme non vu"
+
+msgctxt "#30099"
+msgid "Access Token"
+msgstr "Jeton d'accès"
+
+# Menu contextuel — Collection (30080-30082)
+msgctxt "#30080"
+msgid "Add to collection..."
+msgstr "Ajouter à la collection..."
+
+msgctxt "#30081"
+msgid "Added to your collection."
+msgstr "Ajouté à votre collection."
+
+msgctxt "#30082"
+msgid "Error: Could not add to collection."
+msgstr "Erreur : impossible d'ajouter à la collection."
+
+# Menu contextuel — Watchlist (30083-30085)
+msgctxt "#30083"
+msgid "Add to watchlist"
+msgstr "Ajouter à la liste de suivi"
+
+msgctxt "#30084"
+msgid "Added to your watchlist."
+msgstr "Ajouté à votre liste de suivi."
+
+msgctxt "#30085"
+msgid "Error: Could not add to watchlist."
+msgstr "Erreur : impossible d'ajouter à la liste de suivi."
+
+# Menu contextuel — Favoris (30086-30088)
+msgctxt "#30086"
+msgid "Add to favorites"
+msgstr "Ajouter aux favoris"
+
+msgctxt "#30087"
+msgid "Added to your favorites."
+msgstr "Ajouté à vos favoris."
+
+msgctxt "#30088"
+msgid "Error: Could not add to favorites."
+msgstr "Erreur : impossible d'ajouter aux favoris."
+
+msgctxt "#30089"
+msgid "Watchlist"
+msgstr "Liste de suivi"
+
+msgctxt "#30090"
+msgid "Favorites"
+msgstr "Favoris"
+
+msgctxt "#30091"
+msgid "Collection..."
+msgstr "Collection..."
+
+msgctxt "#30092"
+msgid "Mark as watched"
+msgstr "Marquer comme vu"
+
+msgctxt "#30093"
+msgid "Mark as unwatched"
+msgstr "Marquer comme non vu"
+
+msgctxt "#30094"
+msgid "Removed from your watchlist."
+msgstr "Retiré de votre liste de suivi."
+
+msgctxt "#30095"
+msgid "Removed from your favorites."
+msgstr "Retiré de vos favoris."
+
+msgctxt "#30096"
+msgid "Removed from your collection."
+msgstr "Retiré de votre collection."
+
+msgctxt "#30097"
+msgid "Could not update watched status."
+msgstr "Impossible de mettre à jour le statut vu."
+
+msgctxt "#30098"
+msgid "Remove rating"
+msgstr "Supprimer la note"
+
+msgctxt "#30100"
+msgid "dejaVu"
+msgstr "dejaVu"
+
+msgctxt "#30101"
+msgid "Add to a list..."
+msgstr "Ajouter à une liste..."
+
+msgctxt "#30102"
+msgid "No lists found."
+msgstr "Aucune liste trouvée."
+
+msgctxt "#30103"
+msgid "Added to list: %s"
+msgstr "Ajouté à la liste : %s"
+
+msgctxt "#30104"
+msgid "Removed from list: %s"
+msgstr "Retiré de la liste : %s"
+
+msgctxt "#30105"
+msgid "Could not update the list."
+msgstr "Impossible de mettre à jour la liste."
+
+msgctxt "#30106"
+msgid "Mirror watched status and ratings to the Kodi library"
+msgstr "Répercuter le statut vu et les notes dans la bibliothèque Kodi"
+
+msgctxt "#30107"
+msgid "Scan this QR code with your phone"
+msgstr "Scannez ce QR code avec votre téléphone"
+
+msgctxt "#30108"
+msgid "or visit"
+msgstr "ou rendez-vous sur"
+
+msgctxt "#30109"
+msgid "Waiting for connection..."
+msgstr "En attente de connexion..."
+
+msgctxt "#30110"
+msgid "Open dejaVu"
+msgstr "Ouvrir dejaVu"
+
+msgctxt "#30111"
+msgid "Close"
+msgstr "Fermer"
+
+msgctxt "#30112"
+msgid "Your data is now synced."
+msgstr "Vos données sont maintenant synchronisées."
+
+msgctxt "#30113"
+msgid "Watchlist: %s"
+msgstr "Watchlist : %s"
+
+msgctxt "#30114"
+msgid "History: %s"
+msgstr "Historique : %s"
+
+msgctxt "#30115"
+msgid "Lists: %s"
+msgstr "Listes : %s"
+
+msgctxt "#30116"
+msgid "Favorites: %s"
+msgstr "Favoris : %s"
+
+msgctxt "#30117"
+msgid "Connect dejaVu"
+msgstr "Connecter dejaVu"
+
+msgctxt "#30118"
+msgid "Cancel"
+msgstr "Annuler"
+
+msgctxt "#30120"
+msgid "Import Kodi library"
+msgstr "Importer la bibliothèque Kodi"
+
+msgctxt "#30121"
+msgid "Import only (then turn off scrobbling)"
+msgstr "Importer uniquement (désactive le scrobble ensuite)"
+
+msgctxt "#30122"
+msgid "Import and keep syncing (scrobbling stays on)"
+msgstr "Importer et continuer à synchroniser (le scrobble reste actif)"
+
+msgctxt "#30123"
+msgid "Don't import for now"
+msgstr "Ne rien importer pour le moment"
+
+msgctxt "#30124"
+msgid "What would you like to import?"
+msgstr "Que souhaitez-vous importer ?"
+
+msgctxt "#30125"
+msgid "Import your Kodi collection into your dejaVu collection (Digital)"
+msgstr "Importer votre collection Kodi dans votre collection dejaVu (Digital)"
+
+msgctxt "#30126"
+msgid "Import your Kodi watches into your dejaVu watches"
+msgstr "Importer vos visionnages Kodi dans vos visionnages dejaVu"
+
+msgctxt "#30127"
+msgid "Import your Kodi ratings into dejaVu"
+msgstr "Importer vos notes Kodi dans dejaVu"
+
+msgctxt "#30128"
+msgid "Watch dates"
+msgstr "Dates de visionnage"
+
+msgctxt "#30129"
+msgid "Add unwatched items from your Kodi library to your dejaVu watchlist"
+msgstr "Ajouter les éléments non vus de votre bibliothèque Kodi à votre liste de suivi dejaVu"
+
+msgctxt "#30130"
+msgid "Resume positions"
+msgstr "Positions de reprise"
+
+msgctxt "#30131"
+msgid "Kodi playlists"
+msgstr "Playlists Kodi"
+
+msgctxt "#30132"
+msgid "Kodi favorites"
+msgstr "Favoris Kodi"
+
+msgctxt "#30133"
+msgid "Scanning Kodi library..."
+msgstr "Analyse de la bibliothèque Kodi..."
+
+msgctxt "#30134"
+msgid "Import Kodi"
+msgstr "Import Kodi"
+
+msgctxt "#30135"
+msgid "We found:"
+msgstr "Nous avons trouvé :"
+
+msgctxt "#30136"
+msgid "%s movies"
+msgstr "%s films"
+
+msgctxt "#30137"
+msgid "%s TV shows"
+msgstr "%s séries"
+
+msgctxt "#30138"
+msgid "%s episodes"
+msgstr "%s épisodes"
+
+msgctxt "#30139"
+msgid "Of which:"
+msgstr "Dont :"
+
+msgctxt "#30140"
+msgid "%s movies watched"
+msgstr "%s films déjà vus"
+
+msgctxt "#30141"
+msgid "%s TV shows started"
+msgstr "%s séries commencées"
+
+msgctxt "#30142"
+msgid "%s episodes watched"
+msgstr "%s épisodes vus"
+
+msgctxt "#30143"
+msgid "Certain matches: %s"
+msgstr "Correspondances certaines : %s"
+
+msgctxt "#30144"
+msgid "To verify: %s"
+msgstr "Correspondances à vérifier : %s"
+
+msgctxt "#30145"
+msgid "Unidentified: %s"
+msgstr "Non identifiés : %s"
+
+msgctxt "#30146"
+msgid "See details"
+msgstr "Voir le détail"
+
+msgctxt "#30147"
+msgid "Import %s items"
+msgstr "Importer %s médias"
+
+msgctxt "#30148"
+msgid "Also import %s items that need verification?"
+msgstr "Importer aussi %s médias à vérifier ?"
+
+msgctxt "#30149"
+msgid "Import only certain matches"
+msgstr "Importer uniquement les correspondances certaines"
+
+msgctxt "#30150"
+msgid "Import certain and to-verify"
+msgstr "Importer certaines et à vérifier"
+
+msgctxt "#30151"
+msgid "Matches to verify / unidentified"
+msgstr "À vérifier / non identifiés"
+
+msgctxt "#30152"
+msgid "You have %s unwatched movies in Kodi. Add them to your dejaVu watchlist?"
+msgstr "Vous avez %s films non vus dans Kodi. Les ajouter à votre watchlist DejaVu ?"
+
+msgctxt "#30153"
+msgid "Add to watchlist"
+msgstr "Ajouter à la watchlist"
+
+msgctxt "#30154"
+msgid "Skip"
+msgstr "Passer"
+
+msgctxt "#30155"
+msgid "Importing to dejaVu..."
+msgstr "Import vers dejaVu..."
+
+msgctxt "#30156"
+msgid "Import complete"
+msgstr "Import terminé"
+
+msgctxt "#30157"
+msgid "Imported: %s movies, %s episodes, %s ratings"
+msgstr "Importé : %s films, %s épisodes, %s notes"
+
+msgctxt "#30158"
+msgid "Could not import the Kodi library."
+msgstr "Impossible d'importer la bibliothèque Kodi."
+
+msgctxt "#30159"
+msgid "No video library found."
+msgstr "Aucune bibliothèque vidéo trouvée."
+
+msgctxt "#30160"
+msgid "We detected your Kodi library."
+msgstr "Nous avons détecté votre bibliothèque Kodi."
+
+msgctxt "#30161"
+msgid "Later"
+msgstr "Plus tard"
+
+msgctxt "#30162"
+msgid "Nothing to import with the selected options."
+msgstr "Rien à importer avec les options choisies."
+
+msgctxt "#30163"
+msgid "Import cancelled."
+msgstr "Import annulé."
+
+msgctxt "#30164"
+msgid "Watchlist: %s, lists: %s, favorites: %s, resume: %s"
+msgstr "Watchlist : %s, listes : %s, favoris : %s, reprises : %s"
+
+msgctxt "#30165"
+msgid "How do you want to import?"
+msgstr "Que souhaitez-vous faire ?"
+
+msgctxt "#30166"
+msgid "Scanning movies..."
+msgstr "Analyse des films..."
+
+msgctxt "#30167"
+msgid "Scanning TV shows..."
+msgstr "Analyse des séries..."
+
+msgctxt "#30168"
+msgid "Scanning episodes..."
+msgstr "Analyse des épisodes..."
+
+msgctxt "#30169"
+msgid "Scanning playlists..."
+msgstr "Analyse des playlists..."
+
+msgctxt "#30170"
+msgid "Scanning favorites..."
+msgstr "Analyse des favoris..."
+
+msgctxt "#30171"
+msgid "Sending batch %s of %s..."
+msgstr "Envoi du lot %s sur %s..."
+
+msgctxt "#30173"
+msgid "Copy your Kodi video library (collection, watches, ratings) into dejaVu."
+msgstr "Copier votre bibliothèque vidéo Kodi (collection, visionnages, notes) dans dejaVu."
+
+msgctxt "#30174"
+msgid "No account yet? Create one on your phone (Google, GitHub, or email)."
+msgstr "Pas de compte ? Crée-le sur ton téléphone (Google, GitHub ou e-mail)."
+
+msgctxt "#30175"
+msgid "Show dejaVu context menu"
+msgstr "Afficher le menu contextuel dejaVu"
+
+msgctxt "#30176"
+msgid "Every movie and TV show in your scanned Kodi library, stored as Digital."
+msgstr "Tous les films et séries de votre bibliothèque Kodi scannée, au format Digital."
+
+msgctxt "#30177"
+msgid "Titles you already watched, including Kodi watch dates."
+msgstr "Les titres déjà vus, avec les dates de visionnage Kodi."
+
+msgctxt "#30178"
+msgid "Ratings from 1 to 10. Existing dejaVu ratings are left unchanged."
+msgstr "Notes de 1 à 10. Une note dejaVu déjà présente n'est pas écrasée."
+
+msgctxt "#30179"
+msgid "Unwatched movies and TV shows never started go to your dejaVu watchlist."
+msgstr "Films jamais vus et séries jamais commencées → liste de suivi dejaVu."
+
+msgctxt "#30180"
+msgid "Resume where you left off, unless dejaVu already has an active scrobble."
+msgstr "Reprendre où vous vous êtes arrêté, sauf si dejaVu a déjà une lecture en cours."
+
+msgctxt "#30181"
+msgid "Kodi library favorites only (not addon or website favorites)."
+msgstr "Favoris de la bibliothèque Kodi uniquement (pas les addons ni les sites)."
+
+msgctxt "#30182"
+msgid "You will add %s movies and %s TV shows to your Digital collection."
+msgstr "Vous allez ajouter %s films et %s séries à votre collection Digital."
+
+msgctxt "#30183"
+msgid "You will import %s watched movies, %s started TV shows and %s episodes into your watches."
+msgstr "Vous allez importer %s films vus, %s séries commencées et %s épisodes dans vos visionnages."
+
+msgctxt "#30184"
+msgid "You will import %s ratings."
+msgstr "Vous allez importer %s notes."
+
+msgctxt "#30185"
+msgid "You will add %s unwatched movies and %s unwatched TV shows to your watchlist."
+msgstr "Vous allez ajouter %s films et %s séries non vus à votre liste de suivi."
+
+msgctxt "#30186"
+msgid "You will save %s resume positions."
+msgstr "Vous allez enregistrer %s positions de reprise."
+
+msgctxt "#30187"
+msgid "You will add %s favorites."
+msgstr "Vous allez ajouter %s favoris."
+
+msgctxt "#30188"
+msgid "(none)"
+msgstr "(aucun)"
+
+msgctxt "#30189"
+msgid "Blu-ray"
+msgstr "Blu-ray"
+
+msgctxt "#30190"
+msgid "DVD"
+msgstr "DVD"
+
+msgctxt "#30191"
+msgid "Digital"
+msgstr "Digital"
+
+msgctxt "#30192"
+msgid "4K UHD"
+msgstr "4K UHD"
+
+msgctxt "#30193"
+msgid "VHS"
+msgstr "VHS"
+
+msgctxt "#30194"
+msgid "Session expired. Please sign in again."
+msgstr "Session expirée. Veuillez vous reconnecter."
+
+msgctxt "#30195"
+msgid "Kodi"
+msgstr "Kodi"
+
+# Menu contextuel — libellés d'état (30200-30207)
+msgctxt "#30200"
+msgid "Rating: %s/10..."
+msgstr "Note : %s/10…"
+
+msgctxt "#30201"
+msgid "Remove from watchlist"
+msgstr "Retirer de la liste de suivi"
+
+msgctxt "#30202"
+msgid "Remove from favorites"
+msgstr "Retirer des favoris"
+
+msgctxt "#30203"
+msgid "Remove from collection"
+msgstr "Retirer de la collection"
+
+msgctxt "#30204"
+msgid "Add a new view"
+msgstr "Ajouter une nouvelle vue"
+
+msgctxt "#30205"
+msgid "Added a new view."
+msgstr "Nouvelle vue ajoutée."
+
+msgctxt "#30206"
+msgid "Add a new view (%d views, %s)"
+msgstr "Ajouter une nouvelle vue (%d vues, %s)"
+
+msgctxt "#30207"
+msgid "Add a new view (%d view, %s)"
+msgstr "Ajouter une nouvelle vue (%d vue, %s)"
+
+msgctxt "#30210"
+msgid "Watchlist"
+msgstr "Liste de suivi"
+
+msgctxt "#30211"
+msgid "History"
+msgstr "Historique"
+
+msgctxt "#30212"
+msgid "Favorites"
+msgstr "Favoris"
+
+msgctxt "#30213"
+msgid "Continue watching"
+msgstr "Reprendre la lecture"
+
+msgctxt "#30214"
+msgid "Up next"
+msgstr "Épisode suivant"
+
+msgctxt "#30215"
+msgid "Movies"
+msgstr "Films"
+
+msgctxt "#30216"
+msgid "TV shows"
+msgstr "Séries"
+
+msgctxt "#30217"
+msgid "Episodes"
+msgstr "Épisodes"
+
+msgctxt "#30218"
+msgid "Not in the Kodi library. Use your video addon to play this title."
+msgstr "Absent de la bibliothèque Kodi. Utilisez votre addon vidéo pour lire ce titre."
+
+msgctxt "#30219"
+msgid "Sign in to dejaVu"
+msgstr "Connecter dejaVu"
+
+msgctxt "#30221"
+msgid "Next page"
+msgstr "Page suivante"
