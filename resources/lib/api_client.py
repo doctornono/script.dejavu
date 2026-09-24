@@ -855,13 +855,8 @@ class DejaVuAPI:
         return self._post("/media/resolve", payload)
 
     def get_last_activities(self):
-        """GET /sync/last_activities — 404 → {success: false, error: not_found}."""
-        result = self._get("/sync/last_activities", allow_404=True)
-        if result is None:
-            return None
-        from .cache import remember_plus_feature
-        remember_plus_feature("sync_cursor", result.get("error") != "not_found")
-        return result
+        """Deprecated: /sync/last_activities was removed from the v1 API."""
+        return {"success": False, "error": "not_found"}
 
     def get_show_progress(self, ids):
         """POST /media/show-progress — max 20 show TMDB ids. 404-safe."""
