@@ -274,11 +274,14 @@ def _mark_activities_checked():
 
 
 def _probe_activities(api):
-    result = api.get_last_activities()
-    if result is None:
-        return None
-    if is_not_found(result):
-        remember_plus_feature("sync_cursor", False)
+    """
+    Use the v1 API activity cursor when available.
+
+    The old /sync/last_activities endpoint was removed from DejaVu v1.
+    Once unsupported, keep that capability disabled locally and use the
+    existing TTL fallback without making a network request on every tick.
+    """
+    if get_meta("plus_sync_cursor") == "0":
         checked = get_meta("activities_checked_at")
         try:
             age = time.time() - float(checked or 0)
@@ -289,9 +292,13 @@ def _probe_activities(api):
         _mark_activities_checked()
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         return {"success": True, "data": {scope: now for scope in ("all",) + SCOPES}}
-    remember_plus_feature("sync_cursor", True)
+
+    # The legacy endpoint is no longer part of the DejaVu v1 API.
+    # Disable it permanently for this cache instance instead of probing it.
+    remember_plus_feature("sync_cursor", False)
     _mark_activities_checked()
-    return result
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    return {"success": True, "data": {scope: now for scope in ("all",) + SCOPES}}
 
 
 def warm_tick(api):
