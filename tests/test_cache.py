@@ -56,6 +56,16 @@ class CacheTests(unittest.TestCase):
         cache.clear()
         self.assertEqual(cache.get_many(["tv:1396"]), {})
 
+    def test_legacy_activity_endpoint_is_disabled_without_http_probe(self):
+        class FailingAPI:
+            def get_last_activities(self):
+                raise AssertionError("legacy /sync/last_activities must not be called")
+
+        result = cache._probe_activities(FailingAPI())
+        self.assertTrue(result["success"])
+        self.assertIn("all", result["data"])
+        self.assertEqual(cache.get_meta("plus_sync_cursor"), "0")
+
     def test_plus_features_meta(self):
         cache.remember_plus_feature("sync_cursor", True)
         cache.remember_plus_feature("unknown", True)
