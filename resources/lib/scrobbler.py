@@ -79,17 +79,21 @@ class DejaVuPlayer(xbmc.Player):
     # Metadata extraction
     # ------------------------------------------------------------------
 
-    def _resolve_via_api(self, imdb_id=None, title=None, media_type="movie", year=None):
+    def _resolve_via_api(self, imdb_id=None, title=None, media_type="movie", year=None,
+                         tv_show_id=None, season=None, episode=None):
         """Resolve a movie/show TMDB ID through dejaVu POST /media/resolve."""
         if not is_logged_in():
             return None
-        resolve_type = "tv" if media_type in ("tv", "episode") else "movie"
+        resolve_type = media_type
         try:
             result = self.api.resolve_media(
                 imdb_id=imdb_id,
                 media_type=resolve_type,
                 title=title,
                 year=year,
+                tv_show_id=tv_show_id,
+                season=season,
+                episode=episode,
             )
         except Exception as e:
             _log(f"media/resolve error: {e}", xbmc.LOGWARNING)
@@ -447,16 +451,14 @@ class DejaVuPlayer(xbmc.Player):
 
         _log(f"IDs after fallback: tmdb_id={tmdb_id}, imdb_id={imdb_id}", xbmc.LOGDEBUG)
 
-        # Resolution for movies and episodes
-        if not tmdb_id or str(tmdb_id).startswith("tt"):
-            # If TMDB is missing OR it contains an IMDB ID (common in some plugins)
+        # Resolve movie IDs immediately. Episode IDs are resolved only after
+        # show/season/episode are known, because /media/resolve does not
+        # resolve an episode IMDb ID by itself.
+        if media_type == "movie" and (not tmdb_id or str(tmdb_id).startswith("tt")):
             candidate = tmdb_id if str(tmdb_id).startswith("tt") else imdb_id
             if candidate:
-                _log(f"TMDB ID missing or invalid ('{tmdb_id}'), attempting resolution of '{candidate}'", xbmc.LOGDEBUG)
-                resolved = self._resolve_tmdb_from_external(
-                    candidate, 
-                    "movie" if media_type == "movie" else "episode"
-                )
+                _log(f"TMDB ID missing or invalid ('{tmdb_id}'), attempting movie resolution of '{candidate}'", xbmc.LOGDEBUG)
+                resolved = self._resolve_tmdb_from_external(candidate, "movie")
                 if resolved:
                     tmdb_id = resolved
 
@@ -510,9 +512,19 @@ class DejaVuPlayer(xbmc.Player):
                 should_resolve = True
 
             if should_resolve and show_tmdb and season > 0 and episode > 0:
-                resolved_id = self._resolve_episode_tmdb_id(show_tmdb, season, episode)
+                resolved_id = self._resolve_via_api(
+                    media_type="episode",
+                    tv_show_id=show_tmdb,
+                    season=season,
+                    episode=episode,
+                )
                 if resolved_id:
                     tmdb_id = resolved_id
+                else:
+                    # Local TMDB key remains a compatibility fallback.
+                    resolved_id = self._resolve_episode_tmdb_id(show_tmdb, season, episode)
+                    if resolved_id:
+                        tmdb_id = resolved_id
 
             # For episodes, we can proceed if we have a Show ID + S + E, 
             # even if the specific episode TMDB ID is null.
@@ -786,7 +798,13 @@ class DejaVuPlayer(xbmc.Player):
         tmdb_id = meta.get("tmdb_id")
         if not tmdb_id or not str(tmdb_id).isdigit():
             return False
-        self.api.delete_scrobble(meta["type"], tmdb_id)
+        self.api.delete_scrobble(
+            meta["type"],
+            tmdb_id=tmdb_id,
+            tv_show_id=meta.get("show_tmdb_id"),
+            season=meta.get("season"),
+            episode=meta.get("episode"),
+        )
         self._notify_progress("delete_scrobble", meta)
         return True
 
@@ -889,6 +907,7 @@ class DejaVuPlayer(xbmc.Player):
                     tmdb_id=tmdb_id,
                     tv_show_id=show_tmdb,
                     season=int(season) if season is not None else None,
+                    episode=int(episode) if episode is not None else None,
                 )
                 if result is not None and ADDON.getSettingBool("show_notifications"):
                     xbmcgui.Dialog().notification(
