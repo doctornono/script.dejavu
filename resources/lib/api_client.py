@@ -277,17 +277,28 @@ class DejaVuAPI:
             params["type"] = media_type
         return self._get("/scrobble", params)
 
-    def delete_scrobble(self, media_type, tmdb_id):
+    def delete_scrobble(self, media_type, tmdb_id=None, tv_show_id=None, season=None, episode=None):
         """
         Delete an active scrobble session.
 
         media_type : "movie" | "episode"
         tmdb_id    : TMDB ID of the movie or episode
         """
-        if not str(tmdb_id).isdigit():
-            _log(f"delete_scrobble: tmdb_id is non-numeric ('{tmdb_id}').", xbmc.LOGWARNING)
+        params = {"type": media_type}
+        if tmdb_id is not None and str(tmdb_id).isdigit():
+            params["id"] = int(tmdb_id)
+        elif media_type == "episode" and tv_show_id is not None and season is not None and episode is not None:
+            if not str(tv_show_id).isdigit():
+                return None
+            params.update({
+                "tvShowId": int(tv_show_id),
+                "seasonNumber": int(season),
+                "episodeNumber": int(episode),
+            })
+        else:
+            _log(f"delete_scrobble: insufficient identifiers for {media_type}.", xbmc.LOGWARNING)
             return None
-        return self._delete_qs("/scrobble", {"type": media_type, "id": int(tmdb_id)})
+        return self._delete_qs("/scrobble", params)
 
     def delete_scrobble_session(self, session_id):
         """Deprecated: the API has no /scrobble/{id} route. Use delete_scrobble(type, id)."""
@@ -305,7 +316,7 @@ class DejaVuAPI:
         """
         Retrieve the user's ratings.
 
-        media_type : "movie" | "tv" | "season" | "episode" | "all" (default)
+        media_type : "movie" | "tv" | "episode" | "season" | "episode" | "all" (default)
         page       : page number (default 1)
         page_size  : items per page, max 100 (default 20)
         minimal    : if True, returns only id/rating/createdAt (default False)
@@ -361,7 +372,7 @@ class DejaVuAPI:
         _log(f"rate API Call payload: {json.dumps(payload)}", xbmc.LOGDEBUG)
         return self._post("/ratings", payload)
 
-    def delete_rating(self, media_type, tmdb_id=None, tv_show_id=None, season=None):
+    def delete_rating(self, media_type, tmdb_id=None, tv_show_id=None, season=None, episode=None):
         """
         Delete a rating.
 
@@ -377,6 +388,8 @@ class DejaVuAPI:
             params["tvShowId"] = int(tv_show_id)
         if season is not None:
             params["seasonNumber"] = int(season)
+        if episode is not None:
+            params["episodeNumber"] = int(episode)
         return self._delete_qs("/ratings", params)
 
     # ------------------------------------------------------------------
@@ -440,7 +453,7 @@ class DejaVuAPI:
         _log(f"add_to_history API Call payload: {json.dumps(payload)}", xbmc.LOGDEBUG)
         return self._post("/history", payload)
 
-    def delete_history(self, media_type, tmdb_id):
+    def delete_history(self, media_type, tmdb_id=None, tv_show_id=None, season=None, episode=None):
         """
         Delete a movie or episode from the watch history.
 
@@ -448,10 +461,12 @@ class DejaVuAPI:
         tmdb_id    : TMDB ID of the movie or episode
         """
         params = {"type": media_type}
-        if str(tmdb_id).isdigit():
+        if tmdb_id is not None and str(tmdb_id).isdigit():
             params["id"] = int(tmdb_id)
+        elif media_type in ("tv", "episode") and tv_show_id is not None and season is not None and episode is not None and str(tv_show_id).isdigit():
+            params.update({"tvShowId": int(tv_show_id), "seasonNumber": int(season), "episodeNumber": int(episode)})
         else:
-            _log(f"delete_history: tmdb_id is non-numeric ('{tmdb_id}').", xbmc.LOGWARNING)
+            _log(f"delete_history: insufficient identifiers for {media_type}.", xbmc.LOGWARNING)
             return None
         return self._delete_qs("/history", params)
 
@@ -832,7 +847,8 @@ class DejaVuAPI:
         return self._post("/media/status", {"items": payload_items})
 
     def resolve_media(self, imdb_id=None, tmdb_id=None, media_type=None,
-                      title=None, year=None):
+                      title=None, year=None, tv_show_id=None, season=None,
+                      episode=None):
         """
         Resolve a movie or TV show to a TMDB ID via dejaVu (no local TMDB key).
 
@@ -850,6 +866,12 @@ class DejaVuAPI:
             payload["title"] = str(title)
         if year is not None and str(year).isdigit():
             payload["year"] = int(year)
+        if tv_show_id is not None and str(tv_show_id).isdigit():
+            payload["tvShowId"] = int(tv_show_id)
+        if season is not None:
+            payload["seasonNumber"] = int(season)
+        if episode is not None:
+            payload["episodeNumber"] = int(episode)
         if not payload:
             return None
         return self._post("/media/resolve", payload)
