@@ -850,10 +850,10 @@ class DejaVuAPI:
                       title=None, year=None, tv_show_id=None, season=None,
                       episode=None):
         """
-        Resolve a movie or TV show to a TMDB ID via dejaVu (no local TMDB key).
+        Resolve a movie, TV show, or episode to a TMDB ID via dejaVu.
 
-        Provide at least one of: imdb_id, tmdb_id+media_type, or title.
-        media_type : "movie" | "tv"
+        For episodes, tv_show_id + season + episode can identify the episode
+        even when Kodi does not provide an episode TMDB ID.
         """
         payload = {}
         if imdb_id:
@@ -861,7 +861,7 @@ class DejaVuAPI:
         if tmdb_id is not None and str(tmdb_id).isdigit():
             payload["tmdbId"] = int(tmdb_id)
         if media_type:
-            payload["type"] = media_type
+            payload["type"] = str(media_type)
         if title:
             payload["title"] = str(title)
         if year is not None and str(year).isdigit():
@@ -874,8 +874,9 @@ class DejaVuAPI:
             payload["episodeNumber"] = int(episode)
         if not payload:
             return None
-        return self._post("/media/resolve", payload)
 
+        _log(f"resolve_media API Call payload: {json.dumps(payload)}", xbmc.LOGDEBUG)
+        return self._post("/media/resolve", payload, allow_404=True)
     def get_last_activities(self):
         """Deprecated: /sync/last_activities was removed from the v1 API."""
         return {"success": False, "error": "not_found"}
