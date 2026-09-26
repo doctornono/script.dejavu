@@ -796,15 +796,20 @@ class DejaVuPlayer(xbmc.Player):
 
     def _delete_active_scrobble(self, meta):
         tmdb_id = meta.get("tmdb_id")
-        if not tmdb_id or not str(tmdb_id).isdigit():
+        show_tmdb_id = meta.get("show_tmdb_id")
+        season = meta.get("season")
+        episode = meta.get("episode")
+        if not tmdb_id and not (meta.get("type") == "episode" and show_tmdb_id and season is not None and episode is not None):
             return False
-        self.api.delete_scrobble(
+        result = self.api.delete_scrobble(
             meta["type"],
             tmdb_id=tmdb_id,
-            tv_show_id=meta.get("show_tmdb_id"),
-            season=meta.get("season"),
-            episode=meta.get("episode"),
+            tv_show_id=show_tmdb_id,
+            season=season,
+            episode=episode,
         )
+        if result is None:
+            return False
         self._notify_progress("delete_scrobble", meta)
         return True
 
