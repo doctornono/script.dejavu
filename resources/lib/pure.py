@@ -531,7 +531,7 @@ def apply_write_flags(action, params):
         if params.get("watched_at"):
             flags["watchedAt"] = params.get("watched_at")
     elif action in ("delete_history", "unwatched"):
-        flags = {"watched": False, "rewatchCount": None}
+        flags = {"watched": False, "watchedAt": None, "rewatchCount": None}
     elif action == "rate":
         flags = {"rating": params.get("rating")}
     elif action == "delete_rating":
