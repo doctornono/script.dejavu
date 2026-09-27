@@ -40,7 +40,7 @@ class ClientRpcParameterTests(unittest.TestCase):
         return client
 
     def test_call_does_not_mutate_caller_parameters(self):
-        client = self.make_client()
+        client = object.__new__(self.DejaVuClient)
         import resources.lib.client as client_module
 
         sent = []
