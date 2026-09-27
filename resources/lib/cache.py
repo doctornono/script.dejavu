@@ -191,7 +191,7 @@ def get_many(keys):
     return out
 
 
-def upsert_status(mapping):
+def upsert_status(mapping, commit=True):
     if not isinstance(mapping, dict) or not mapping:
         return
     existing = get_many(list(mapping.keys()))
@@ -206,7 +206,8 @@ def upsert_status(mapping):
             (key, json.dumps(merged), now),
         )
         _STATUS_MEM[key] = (time.time() + _STATUS_MEM_TTL, dict(merged))
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 def apply_write(action, params):
@@ -353,10 +354,11 @@ def warm_tick(api):
     for row in rows:
         mapping.update(row_status_update(row, scope))
     if mapping:
-        upsert_status(mapping)
+        upsert_status(mapping, commit=False)
 
     has_more = bool(pagination.get("hasMore"))
     if has_more:
+        _connect().commit()
         _warm = {"scope": scope, "page": page + 1}
         return
 
@@ -365,5 +367,6 @@ def warm_tick(api):
     if isinstance(data, dict):
         remote = data.get(scope) or data.get("all") or ""
     set_cursor(scope, remote or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+    _connect().commit()
     _warm = {"scope": None, "page": 1}
     _log("warmed %s (%s rows last page)" % (scope, len(rows)))
