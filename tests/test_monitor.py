@@ -91,6 +91,48 @@ class MonitorWriteResultTests(unittest.TestCase):
         )
 
         self.assertEqual([item[0] for item in calls], ["cache", "notify"])
+        self.assertEqual(
+            calls[1][2],
+            {"media_type": "movie", "tmdb_id": 603, "extra": None},
+        )
+
+    def test_episode_write_notification_preserves_identity(self):
+        monitor = self.make_monitor()
+        calls = []
+
+        cache = types.ModuleType("resources.lib.cache")
+        cache.apply_write = lambda *args, **kwargs: calls.append(("cache", args, kwargs))
+        sys.modules["resources.lib.cache"] = cache
+
+        import resources.lib.monitor as monitor_module
+        monitor_module.notify_changed = lambda *args, **kwargs: calls.append(("notify", args, kwargs))
+
+        monitor._broadcast_write(
+            "rate",
+            {
+                "type": "episode",
+                "id": None,
+                "tvShowId": 1396,
+                "seasonNumber": 1,
+                "episodeNumber": 2,
+                "rating": 8,
+            },
+            {"success": True},
+        )
+
+        self.assertEqual(calls[1][0], "notify")
+        self.assertEqual(
+            calls[1][2],
+            {
+                "media_type": "episode",
+                "tmdb_id": None,
+                "extra": {
+                    "tvShowId": 1396,
+                    "seasonNumber": 1,
+                    "episodeNumber": 2,
+                },
+            },
+        )
 
 
 if __name__ == "__main__":
