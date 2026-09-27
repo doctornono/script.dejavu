@@ -64,7 +64,7 @@ class CacheTests(unittest.TestCase):
         rows = cache.get_many(["movie:603", "movie:550"])
         self.assertTrue(rows["movie:603"]["watched"])
         self.assertTrue(rows["movie:603"]["isFavorite"])
-        self.assertNotIn("watched", rows["movie:550"])
+        self.assertNotIn("movie:550", rows)
         self.assertNotIn("watchedAt", rows["movie:603"])
         self.assertNotIn("rewatchCount", rows["movie:603"])
 
