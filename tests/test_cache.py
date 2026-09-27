@@ -93,6 +93,15 @@ class CacheTests(unittest.TestCase):
         self.assertNotIn("watched", rows["movie:550"])
         self.assertTrue(rows["movie:550"]["isFavorite"])
 
+    def test_list_rows_from_failed_response_is_empty(self):
+        from pure import list_rows_from_result
+
+        rows, pagination = list_rows_from_result(
+            {"success": False, "error": "temporary_failure"}
+        )
+        self.assertEqual(rows, [])
+        self.assertEqual(pagination, {})
+
     def test_apply_write_and_clear(self):
         cache.apply_write("add_to_favorites", {"type": "tv", "id": 1396})
         self.assertTrue(cache.get_many(["tv:1396"])["tv:1396"]["isFavorite"])
