@@ -36,6 +36,8 @@ except ImportError:
 _PATH = None
 _CONN = None
 _warm = {"scope": None, "page": 1}
+_STATUS_MEM_TTL = 8.0
+_STATUS_MEM = {}
 
 SCOPES = (
     "history",
@@ -49,20 +51,22 @@ SCOPES = (
 
 def set_path_for_tests(path):
     """Point the cache at a temp file (unit tests)."""
-    global _PATH, _CONN, _warm
+    global _PATH, _CONN, _warm, _STATUS_MEM
     close()
     _PATH = path
     _warm = {"scope": None, "page": 1}
+    _STATUS_MEM = {}
 
 
 def close():
-    global _CONN
+    global _CONN, _STATUS_MEM
     if _CONN is not None:
         try:
             _CONN.close()
         except Exception:
             pass
     _CONN = None
+    _STATUS_MEM = {}
 
 
 def _default_path():
@@ -158,21 +162,32 @@ def get_many(keys):
     keys = [k for k in (keys or []) if k]
     if not keys:
         return {}
-    qmarks = ",".join("?" * len(keys))
-    try:
-        rows = _connect().execute(
-            "SELECT key, json FROM status WHERE key IN (%s)" % qmarks, keys
-        ).fetchall()
-    except Exception:
-        return {}
+    now = time.time()
     out = {}
-    for key, raw in rows:
+    missing = []
+    for key in keys:
+        cached = _STATUS_MEM.get(key)
+        if cached and cached[0] > now:
+            out[key] = dict(cached[1])
+        else:
+            missing.append(key)
+
+    if missing:
+        qmarks = ",".join("?" * len(missing))
         try:
-            data = json.loads(raw)
+            rows = _connect().execute(
+                "SELECT key, json FROM status WHERE key IN (%s)" % qmarks, missing
+            ).fetchall()
         except Exception:
-            continue
-        if isinstance(data, dict):
-            out[key] = data
+            rows = []
+        for key, raw in rows:
+            try:
+                data = json.loads(raw)
+            except Exception:
+                continue
+            if isinstance(data, dict):
+                out[key] = data
+                _STATUS_MEM[key] = (now + _STATUS_MEM_TTL, dict(data))
     return out
 
 
@@ -190,6 +205,7 @@ def upsert_status(mapping):
             "INSERT OR REPLACE INTO status(key, json, updated_at) VALUES (?, ?, ?)",
             (key, json.dumps(merged), now),
         )
+        _STATUS_MEM[key] = (time.time() + _STATUS_MEM_TTL, dict(merged))
     conn.commit()
 
 
@@ -207,6 +223,7 @@ def clear():
     conn.execute("DELETE FROM meta")
     conn.commit()
     _warm = {"scope": None, "page": 1}
+    _STATUS_MEM.clear()
 
 
 def cached_status(items):
