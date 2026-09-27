@@ -498,7 +498,11 @@ class DejaVuMonitor(xbmc.Monitor):
     # ------------------------------------------------------------------
 
     def _broadcast_write(self, action, params, result):
+        # API errors (for example allow_404 -> {"success": False}) must not
+        # mutate the local status cache or notify other addons.
         if result is None:
+            return
+        if isinstance(result, dict) and result.get("success") is False:
             return
         try:
             from .cache import apply_write
