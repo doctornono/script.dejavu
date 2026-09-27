@@ -63,7 +63,7 @@ class ClientRpcParameterTests(unittest.TestCase):
 
         self.assertEqual(params, {"type": "movie", "id": 603})
         self.assertEqual(len(sent), 1)
-        self.assertIn('"result_property"', sent[0])
+        self.assertIn("\\\"result_property\\\"", sent[0])
 
     def test_delete_rating_forwards_episode_identity(self):
         client = self.make_client()
