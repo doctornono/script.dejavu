@@ -512,6 +512,11 @@ class DejaVuMonitor(xbmc.Monitor):
         extra = {}
         if params.get("list_id"):
             extra["list_id"] = params["list_id"]
+        # Episode writes may have no episode TMDB id; preserve the show +
+        # season + episode identity so consumers can refresh the right item.
+        for key in ("tvShowId", "seasonNumber", "episodeNumber"):
+            if params.get(key) is not None:
+                extra[key] = params[key]
         notify_changed(
             action,
             media_type=params.get("type"),
