@@ -138,25 +138,28 @@ class ScrobbleLifecycleTests(unittest.TestCase):
 
     def test_start_pause_resume_stop_keeps_continue_watching(self):
         """A real playback session must send start/pause/resume/stop."""
-        with patch.object(self.scrobbler.time, "time", side_effect=self._time):
-            self.player.onAVStarted()
-            self.player.tick()
+        lifecycle = []
+        original_scrobble = self.player._scrobble
 
-            self.player._time = 300
-            self.player.onPlayBackPaused()
+        def record_scrobble(action="update"):
+            lifecycle.append(action)
+            return original_scrobble(action)
 
-            self.player._time = 420
-            self.player.onPlayBackResumed()
+        with patch.object(self.player, "_scrobble", side_effect=record_scrobble):
+            with patch.object(self.scrobbler.time, "time", side_effect=self._time):
+                self.player.onAVStarted()
+                self.player.tick()
 
-            self.player._time = 600
-            self.player.onPlayBackStopped()
+                self.player._time = 300
+                self.player.onPlayBackPaused()
 
-        actions = [
-            call[1]["action"] if "action" in call[1] else None
-            for call in self.api.calls
-            if call[0] == "scrobble"
-        ]
-        self.assertEqual(actions, [None, None, None, None])
+                self.player._time = 420
+                self.player.onPlayBackResumed()
+
+                self.player._time = 600
+                self.player.onPlayBackStopped()
+
+        self.assertEqual(lifecycle, ["start", "pause", "resume", "stop"])
         self.assertEqual(
             [call[1]["progress"] for call in self.api.calls if call[0] == "scrobble"],
             [120, 300, 420, 600],
