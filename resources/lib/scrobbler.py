@@ -71,8 +71,9 @@ class DejaVuPlayer(xbmc.Player):
 
     @property
     def api(self):
-        """Lazy API client, refreshed each time (picks up token changes)."""
-        self._api = DejaVuAPI()
+        """Reuse the API client while keeping the session token dynamic."""
+        if self._api is None:
+            self._api = DejaVuAPI()
         return self._api
 
     # ------------------------------------------------------------------
@@ -264,7 +265,8 @@ class DejaVuPlayer(xbmc.Player):
         1. Via Kodi JSON-RPC (Library lookup).
         2. Via ListItem Properties (Plugin fallback).
         """
-        self._log_all_listItem_properties()
+        if _debug_enabled():
+            self._log_all_listItem_properties()
         # --- Attempt 1: Library lookup ---
         try:
             ep_dbid = int(xbmc.getInfoLabel("VideoPlayer.DBID") or 0)
@@ -422,8 +424,9 @@ class DejaVuPlayer(xbmc.Player):
         _log(f"Extracting metadata. Media type: {media_type}", xbmc.LOGDEBUG)
         _log(f"Detected UniqueIDs: {json.dumps(unique_ids)}", xbmc.LOGDEBUG)
         
-        # Comprehensive ID discovery
-        self._log_all_listItem_properties()
+        # Comprehensive ID discovery is diagnostic work; avoid it during normal playback.
+        if _debug_enabled():
+            self._log_all_listItem_properties()
         
         # Log common potential identifiers from InfoLabels
         _log("--- Identifier Extraction Debug ---", xbmc.LOGDEBUG)
