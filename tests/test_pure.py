@@ -395,6 +395,35 @@ class CapabilitiesAndKeysTests(unittest.TestCase):
         self.assertIsNone(mapping["movie:603"]["watchedAt"])
         self.assertIsNone(mapping["movie:603"]["rewatchCount"])
 
+    def test_delete_scrobble_clears_duration(self):
+        mapping = pure.apply_write_flags(
+            "delete_scrobble",
+            {"type": "movie", "id": 603},
+        )
+        self.assertFalse(mapping["movie:603"]["inProgress"])
+        self.assertIsNone(mapping["movie:603"]["progress"])
+        self.assertIsNone(mapping["movie:603"]["duration"])
+
+    def test_row_status_update_preserves_zero_values(self):
+        watchlist = pure.row_status_update(
+            {"type": "movie", "tmdbId": 603, "priority": 0},
+            "watchlist",
+        )
+        self.assertEqual(watchlist["movie:603"]["watchlistPriority"], 0)
+
+        ratings = pure.row_status_update(
+            {"type": "movie", "tmdbId": 603, "rating": 0},
+            "ratings",
+        )
+        self.assertEqual(ratings["movie:603"]["rating"], 0)
+
+        scrobbles = pure.row_status_update(
+            {"type": "movie", "tmdbId": 603, "progress": 0, "duration": 0},
+            "scrobbles",
+        )
+        self.assertEqual(scrobbles["movie:603"]["progress"], 0)
+        self.assertEqual(scrobbles["movie:603"]["duration"], 0)
+
     def test_apply_write_flags(self):
         mapping = pure.apply_write_flags(
             "add_to_watchlist", {"type": "movie", "id": 603},
