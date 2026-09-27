@@ -400,5 +400,79 @@ class ApiClientContractTests(unittest.TestCase):
         self.assertEqual(api._http.calls, [])
 
 
+
+    def test_get_collection_uses_filters(self):
+        api = self.make_api([FakeHttpResponse({"success": True})])
+        api.get_collection(
+            "movie", page=2, page_size=25, sort="addedAt:asc",
+            fmt="bluray", minimal=True,
+        )
+        self.assert_call(
+            api, "GET", "/collection",
+            params={
+                "page": 2, "pageSize": 25, "sort": "addedAt:asc",
+                "minimal": "true", "type": "movie", "format": "bluray",
+            },
+        )
+
+    def test_get_channel_uses_id_route_and_allows_404(self):
+        api = self.make_api([FakeHttpResponse({"success": True})])
+        api.get_channel("abc123")
+        self.assert_call(api, "GET", "/channels/abc123")
+
+    def test_get_device_code_posts_public_auth_route(self):
+        api = self.make_api([FakeHttpResponse({"success": True})])
+        api.get_device_code(client_id="dejavu-kodi", client_name="Kodi salon")
+        self.assertEqual(
+            api._http.calls[0][0:2],
+            ("POST", "https://dejavu.plus/api/v1/auth/device/code"),
+        )
+        self.assertEqual(
+            api._http.calls[0][2]["json"],
+            {"client_id": "dejavu-kodi", "client_name": "Kodi salon"},
+        )
+
+    def test_poll_token_accepts_authorization_pending_without_session(self):
+        api = self.make_api([FakeHttpResponse(status_code=428)])
+        result = api.poll_token("device-123")
+        self.assertIsNone(result)
+        self.assertEqual(
+            api._http.calls[0][1],
+            "https://dejavu.plus/api/v1/auth/device/token",
+        )
+        self.assertEqual(
+            api._http.calls[0][2]["json"],
+            {
+                "device_code": "device-123",
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "client_id": "dejavu-kodi",
+            },
+        )
+
+    def test_resolve_media_batch_falls_back_to_unitary_resolve_on_404(self):
+        api = self.make_api([
+            FakeHttpResponse(status_code=404),
+            FakeHttpResponse({"success": True, "data": {"tmdbId": 603}}),
+        ])
+        result = api.resolve_media_batch([
+            {"imdbId": "tt0133093", "type": "movie", "title": "The Matrix", "year": 1999},
+        ])
+        self.assertEqual(
+            [(call[0], call[1]) for call in api._http.calls],
+            [
+                ("POST", "https://dejavu.plus/api/v1/media/resolve/batch"),
+                ("POST", "https://dejavu.plus/api/v1/media/resolve"),
+            ],
+        )
+        self.assertEqual(result, {"success": True, "data": {"tt0133093": {"tmdbId": 603}}})
+
+    def test_api_requests_are_blocked_without_session(self):
+        api = self.DejaVuAPI(api_url="https://dejavu.plus/api/v1")
+        api._current_token = lambda: ""
+        api._http = FakeSession([])
+        self.assertIsNone(api.get_me())
+        self.assertEqual(api._http.calls, [])
+
+
 if __name__ == "__main__":
     unittest.main()
