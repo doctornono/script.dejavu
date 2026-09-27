@@ -39,6 +39,32 @@ class ClientRpcParameterTests(unittest.TestCase):
         client._calls = calls
         return client
 
+    def test_call_does_not_mutate_caller_parameters(self):
+        client = self.make_client()
+        import resources.lib.client as client_module
+
+        sent = []
+        class FakeWindow:
+            def clearProperty(self, name):
+                pass
+            def getProperty(self, name):
+                return ""
+        class FakeMonitor:
+            def waitForAbort(self, seconds):
+                return True
+
+        client.window = FakeWindow()
+        client._monitor = FakeMonitor()
+        client.timeout = 1
+        client_module.xbmc.executebuiltin = lambda value: sent.append(value)
+
+        params = {"type": "movie", "id": 603}
+        client.call("get_media_status", params)
+
+        self.assertEqual(params, {"type": "movie", "id": 603})
+        self.assertEqual(len(sent), 1)
+        self.assertIn('"result_property"', sent[0])
+
     def test_delete_rating_forwards_episode_identity(self):
         client = self.make_client()
 
