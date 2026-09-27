@@ -36,9 +36,9 @@ class DejaVuClient:
 
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                return None
+                return None, True
             if self._monitor.waitForAbort(min(poll_interval, remaining)):
-                return None
+                return None, False
 
     def call(self, action, params=None):
         """
@@ -67,7 +67,9 @@ class DejaVuClient:
         self._log(f"Calling {method} with {payload}")
         xbmc.executebuiltin("NotifyAll(%s, %s, %s)" % (sender, method, json.dumps(payload)))
 
-        result_raw = self._wait_for_property(result_property, self.timeout)
+        result_raw, aborted = self._wait_for_property(result_property, self.timeout)
+        if aborted:
+            return None
         if result_raw:
             try:
                 result = json.loads(result_raw)
@@ -211,7 +213,9 @@ class DejaVuClient:
         self.window.setProperty("script.dejavu.auth.status", "")
         xbmc.executebuiltin("RunScript(script.dejavu,action=login)")
 
-        status = self._wait_for_property("script.dejavu.auth.status", timeout, poll_interval=0.5)
+        status, aborted = self._wait_for_property("script.dejavu.auth.status", timeout, poll_interval=0.5)
+        if aborted:
+            return {"success": False, "error": "aborted"}
         if status == "success":
             return self.get_me()
         if status in ("cancelled", "expired", "error"):
@@ -232,7 +236,9 @@ class DejaVuClient:
         self.window.setProperty("script.dejavu.import.status", "")
         xbmc.executebuiltin("RunScript(script.dejavu,action=import_kodi)")
 
-        status = self._wait_for_property("script.dejavu.import.status", timeout, poll_interval=0.5)
+        status, aborted = self._wait_for_property("script.dejavu.import.status", timeout, poll_interval=0.5)
+        if aborted:
+            return {"success": False, "error": "aborted"}
         if status == "success":
             return {"success": True, "status": status}
         if status in ("cancelled", "error", "empty"):
