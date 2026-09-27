@@ -50,6 +50,27 @@ class CacheTests(unittest.TestCase):
         ])
         self.assertIsNone(miss)
 
+    def test_cached_status_episode_aliases_share_cached_flags(self):
+        cache.upsert_status({
+            "episode:62085": {
+                "watched": True,
+                "inProgress": False,
+            },
+        })
+        hit = cache.cached_status([{
+            "type": "episode",
+            "id": 62085,
+            "tmdbId": 1396,
+            "seasonNumber": 1,
+            "episodeNumber": 1,
+        }])
+        self.assertTrue(hit["success"])
+        self.assertEqual(
+            hit["data"]["episode:62085"],
+            hit["data"]["episode:1396:1:1"],
+        )
+        self.assertTrue(hit["data"]["episode:1396:1:1"]["watched"])
+
     def test_prune_scope_removes_stale_scope_flags_only(self):
         cache.upsert_status({
             "movie:603": {
