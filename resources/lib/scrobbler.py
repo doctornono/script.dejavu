@@ -18,6 +18,7 @@ from .util import notify_changed, unwrap_data, sync_kodi_library
 
 ADDON = xbmcaddon.Addon()
 SHIPPED_TMDB_KEY = "9c1662a033ca5210dc75b91e0aa9b49e"
+PLAYBACK_TRANSITION_DEBOUNCE_S = 0.75
 
 
 def _debug_enabled():
@@ -65,6 +66,8 @@ class DejaVuPlayer(xbmc.Player):
         self._api = None  # lazy: only created when logged in
         self._tmdb_http = requests.Session()
         self._pending_start = False
+        self._pending_playback_action = None
+        self._pending_playback_ts = 0.0
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -572,6 +575,8 @@ class DejaVuPlayer(xbmc.Player):
         self._resume_target = 0
         self._last_scrobble_ts = 0
         self._pending_start = False
+        self._pending_playback_action = None
+        self._pending_playback_ts = 0.0
 
     def _read_player_times(self):
         """(progress, duration) in seconds, or None if the player has no time."""
@@ -772,14 +777,34 @@ class DejaVuPlayer(xbmc.Player):
         self._last_duration = 0
         self._resume_from = 0
         self._resume_target = 0
+        self._pending_playback_action = None
+        self._pending_playback_ts = 0.0
         self._capture_player_times()
 
     def onPlayBackPaused(self):
         _log("onPlayBackPaused")
-        self._scrobble("pause")
+        if not self._active:
+            return
+        # Kodi can emit pause/resume in very quick succession (remote buttons,
+        # buffering, UI transitions). Delay the pause so a transient pair does
+        # not generate two HTTP requests.
+        self._pending_playback_action = "pause"
+        self._pending_playback_ts = time.time()
 
     def onPlayBackResumed(self):
         _log("onPlayBackResumed")
+        if not self._active:
+            return
+        if self._pending_playback_action == "pause":
+            elapsed = time.time() - self._pending_playback_ts
+            self._pending_playback_action = None
+            self._pending_playback_ts = 0.0
+            if elapsed < PLAYBACK_TRANSITION_DEBOUNCE_S:
+                _log("Coalesced transient pause/resume transition.", xbmc.LOGDEBUG)
+                return
+            # A long pause arrived before the next service tick; preserve the
+            # old lifecycle semantics by flushing pause before resume.
+            self._scrobble("pause")
         self._scrobble("resume")
 
     def onPlayBackStopped(self):
@@ -1228,6 +1253,11 @@ class DejaVuPlayer(xbmc.Player):
             self._scrobble("start")
             return
         self._capture_player_times()
+        if self._pending_playback_action == "pause":
+            if time.time() - self._pending_playback_ts >= PLAYBACK_TRANSITION_DEBOUNCE_S:
+                self._pending_playback_action = None
+                self._pending_playback_ts = 0.0
+                self._scrobble("pause")
         try:
             interval = ADDON.getSettingInt("scrobble_interval") or 30
         except Exception:
