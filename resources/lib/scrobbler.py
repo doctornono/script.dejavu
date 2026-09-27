@@ -52,7 +52,6 @@ class DejaVuPlayer(xbmc.Player):
 
     def __init__(self):
         super().__init__()
-        xbmc.log("[dejaVu][TRACE] DejaVuPlayer.__init__ completed.", xbmc.LOGINFO)
         self._active = False
         self._meta = None
         self._last_scrobble_ts = 0
@@ -760,7 +759,6 @@ class DejaVuPlayer(xbmc.Player):
     # ------------------------------------------------------------------
 
     def onAVStarted(self):
-        xbmc.log("[dejaVu][TRACE] onAVStarted CALLBACK RECEIVED.", xbmc.LOGINFO)
         _log("onAVStarted")
         if _debug_enabled():
             self._log_player_item_details()
@@ -777,22 +775,18 @@ class DejaVuPlayer(xbmc.Player):
         self._capture_player_times()
 
     def onPlayBackPaused(self):
-        xbmc.log("[dejaVu][TRACE] onPlayBackPaused CALLBACK RECEIVED.", xbmc.LOGINFO)
         _log("onPlayBackPaused")
         self._scrobble("pause")
 
     def onPlayBackResumed(self):
-        xbmc.log("[dejaVu][TRACE] onPlayBackResumed CALLBACK RECEIVED.", xbmc.LOGINFO)
         _log("onPlayBackResumed")
         self._scrobble("resume")
 
     def onPlayBackStopped(self):
-        xbmc.log("[dejaVu][TRACE] onPlayBackStopped CALLBACK RECEIVED.", xbmc.LOGINFO)
         _log("onPlayBackStopped")
         self._handle_stop("stop")
 
     def onPlayBackEnded(self):
-        xbmc.log("[dejaVu][TRACE] onPlayBackEnded CALLBACK RECEIVED.", xbmc.LOGINFO)
         _log("onPlayBackEnded")
         self._handle_stop("end")
 
