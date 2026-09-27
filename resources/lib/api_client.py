@@ -74,6 +74,20 @@ class DejaVuAPI:
             h["x-api-key"] = token
         return h
 
+    def _authenticated(self, path):
+        """Return True when a session is available for an authenticated API route."""
+        route = (path or "").lstrip("/")
+        if route.startswith("auth/device/"):
+            return True
+        return bool(self._current_token())
+
+    def _blocked_without_session(self, path):
+        """Prevent authenticated API traffic when the user is logged out."""
+        if self._authenticated(path):
+            return False
+        _log("API %s skipped: no authenticated dejaVu session." % path, xbmc.LOGDEBUG)
+        return True
+
     def _expire_if_unauthorized(self, response, path):
         if response is None:
             return
@@ -104,6 +118,8 @@ class DejaVuAPI:
         return None
 
     def _get(self, path, params=None, allow_404=False):
+        if self._blocked_without_session(path):
+            return None
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
             r = requests.get(url, headers=self._headers(), params=params, timeout=10)
@@ -116,6 +132,8 @@ class DejaVuAPI:
         return None
 
     def _post(self, path, payload, timeout=10, allow_404=False):
+        if self._blocked_without_session(path):
+            return None
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
             r = requests.post(url, headers=self._headers(), json=payload, timeout=timeout)
@@ -128,6 +146,8 @@ class DejaVuAPI:
         return None
 
     def _delete(self, path, payload=None):
+        if self._blocked_without_session(path):
+            return None
         """DELETE with a JSON body (used by scrobble)."""
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
@@ -142,6 +162,8 @@ class DejaVuAPI:
         return None
 
     def _delete_qs(self, path, params=None):
+        if self._blocked_without_session(path):
+            return None
         """DELETE with query string params (used by watchlist, collection, favorites, ratings, history)."""
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
