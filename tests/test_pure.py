@@ -378,6 +378,20 @@ class CapabilitiesAndKeysTests(unittest.TestCase):
         self.assertTrue(merged["inWatchlist"])
         self.assertNotIn("rating", merged)
 
+    def test_row_status_update_episode_keeps_season_zero(self):
+        mapping = pure.row_status_update(
+            {
+                "type": "episode",
+                "id": 900001,
+                "tvShowId": 1396,
+                "seasonNumber": 0,
+                "episodeNumber": 1,
+            },
+            "history",
+        )
+        self.assertIn("episode:900001", mapping)
+        self.assertIn("episode:1396:0:1", mapping)
+
     def test_row_status_update_watchlist(self):
         mapping = pure.row_status_update(
             {"type": "movie", "tmdbId": 603, "priority": 2},
