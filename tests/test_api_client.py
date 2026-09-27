@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """HTTP contract tests for the v1 endpoints used by script.dejavu."""
 
+import os
 import sys
+import tempfile
 import types
 import unittest
 
@@ -69,7 +71,14 @@ def load_api_client():
     xbmcgui = types.ModuleType("xbmcgui")
     xbmcgui.Window = lambda *args, **kwargs: None
 
+    # cache.py persists feature-capability markers in SQLite. Keep the
+    # filesystem part of the Kodi API local to a temporary test directory.
     xbmcvfs = types.ModuleType("xbmcvfs")
+    test_profile = os.path.join(
+        tempfile.gettempdir(), "script.dejavu-api-client-tests"
+    )
+    xbmcvfs.translatePath = lambda path: test_profile
+    xbmcvfs.mkdirs = lambda path: os.makedirs(path, exist_ok=True) or True
 
     sys.modules["xbmc"] = xbmc
     sys.modules["xbmcaddon"] = xbmcaddon
