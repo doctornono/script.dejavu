@@ -48,6 +48,7 @@ class DejaVuAPI:
         self.api_url = _effective_api_url(api_url)
         # None = re-read addon settings on every request (login/logout without restarting the service)
         self._token_override = token
+        self._http = requests.Session()
 
     def _current_token(self):
         if self._token_override is not None:
@@ -122,7 +123,7 @@ class DejaVuAPI:
             return None
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
-            r = requests.get(url, headers=self._headers(), params=params, timeout=10)
+            r = self._http.get(url, headers=self._headers(), params=params, timeout=10)
             r.raise_for_status()
             return r.json()
         except requests.HTTPError as e:
@@ -136,7 +137,7 @@ class DejaVuAPI:
             return None
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
-            r = requests.post(url, headers=self._headers(), json=payload, timeout=timeout)
+            r = self._http.post(url, headers=self._headers(), json=payload, timeout=timeout)
             r.raise_for_status()
             return r.json()
         except requests.HTTPError as e:
@@ -151,7 +152,7 @@ class DejaVuAPI:
         """DELETE with a JSON body (used by scrobble)."""
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
-            r = requests.delete(url, headers=self._headers(), json=payload, timeout=10)
+            r = self._http.delete(url, headers=self._headers(), json=payload, timeout=10)
             r.raise_for_status()
             return r.json() if r.content else {}
         except requests.HTTPError as e:
@@ -167,7 +168,7 @@ class DejaVuAPI:
         """DELETE with query string params (used by watchlist, collection, favorites, ratings, history)."""
         url = f"{self.api_url}/{path.lstrip('/')}"
         try:
-            r = requests.delete(url, headers=self._headers(), params=params, timeout=10)
+            r = self._http.delete(url, headers=self._headers(), params=params, timeout=10)
             r.raise_for_status()
             return r.json() if r.content else {}
         except requests.HTTPError as e:
@@ -198,7 +199,7 @@ class DejaVuAPI:
             quote(str(user_code), safe=""),
         )
         try:
-            r = requests.get(url, timeout=10)
+            r = self._http.get(url, timeout=10)
             if r.status_code == 200 and r.content:
                 handle = xbmcvfs.File(dest, "w")
                 try:
@@ -220,7 +221,7 @@ class DejaVuAPI:
         }
         url = f"{self.api_url}/auth/device/token"
         try:
-            r = requests.post(url, headers=self._headers(), json=payload, timeout=10)
+            r = self._http.post(url, headers=self._headers(), json=payload, timeout=10)
             _log(f"poll_token status={r.status_code}", xbmc.LOGDEBUG)
             if r.status_code == 200:
                 return r.json()
