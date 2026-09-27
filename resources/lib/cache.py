@@ -217,6 +217,56 @@ def apply_write(action, params):
         upsert_status(mapping)
 
 
+def _scope_fields(scope):
+    return {
+        "history": ("watched", "watchedAt", "rewatchCount"),
+        "watchlist": ("inWatchlist", "watchlistPriority"),
+        "ratings": ("rating",),
+        "favorites": ("isFavorite",),
+        "collection": ("inCollection",),
+        "scrobbles": ("inProgress", "progress", "duration"),
+    }.get(scope, ())
+
+
+def _prune_scope(scope, seen_keys, commit=True):
+    """Remove flags belonging to a refreshed scope that disappeared remotely."""
+    fields = _scope_fields(scope)
+    if not fields:
+        return
+    seen = set(seen_keys or ())
+    conn = _connect()
+    rows = conn.execute("SELECT key, json FROM status").fetchall()
+    now = time.time()
+    stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    for key, raw in rows:
+        if key in seen:
+            continue
+        try:
+            data = json.loads(raw)
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        changed = False
+        for field in fields:
+            if field in data:
+                data.pop(field, None)
+                changed = True
+        if not changed:
+            continue
+        if data:
+            conn.execute(
+                "UPDATE status SET json = ?, updated_at = ? WHERE key = ?",
+                (json.dumps(data), stamp, key),
+            )
+            _STATUS_MEM[key] = (now + _STATUS_MEM_TTL, dict(data))
+        else:
+            conn.execute("DELETE FROM status WHERE key = ?", (key,))
+            _STATUS_MEM.pop(key, None)
+    if commit:
+        conn.commit()
+
+
 def clear():
     global _warm
     conn = _connect()
@@ -343,6 +393,7 @@ def warm_tick(api):
     if scope not in stale:
         scope = stale[0]
         page = 1
+        _warm = {"scope": scope, "page": page, "seen": set()}
 
     result = _fetch_scope_page(api, scope, page)
     if result is None:
@@ -356,17 +407,22 @@ def warm_tick(api):
         mapping.update(row_status_update(row, scope))
     if mapping:
         upsert_status(mapping, commit=False)
+    seen_keys = _warm.get("seen")
+    if not isinstance(seen_keys, set):
+        seen_keys = set()
+    seen_keys.update(mapping.keys())
 
     has_more = bool(pagination.get("hasMore"))
     if has_more:
         _connect().commit()
-        _warm = {"scope": scope, "page": page + 1}
+        _warm = {"scope": scope, "page": page + 1, "seen": seen_keys}
         return
 
     data = unwrap_data(activities) if isinstance(activities, dict) else {}
     remote = ""
     if isinstance(data, dict):
         remote = data.get(scope) or data.get("all") or ""
+    _prune_scope(scope, seen_keys, commit=False)
     set_cursor(scope, remote or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), commit=False)
     _connect().commit()
     _warm = {"scope": None, "page": 1}
