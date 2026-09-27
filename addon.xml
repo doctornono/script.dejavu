@@ -138,7 +138,7 @@ v1.10.0 (2026-09-11):
 v1.9.6 (2026-09-11):
 - Account settings show Log out (and the signed-in name) after Connect, not Login again.
 v1.7.7 (2026-09-09):
-- Stop keeps continue watching at the last position (pause and stop are the same). Only a finished title or a <30s start leaves the list. Same for episodes.
+- Stop keeps continue watching at the last position (pause and stop are the same). Only a finished title or a  &lt;30s start leaves the list. Same for episodes.
 v1.7.5 (2026-09-09):
 - RPC: accept Other.script.dejavu.* (Kodi NotifyAll prefix) so other addons no longer time out.
 - DejaVuClient: quote NotifyAll JSON payload (commas were splitting the builtin).
