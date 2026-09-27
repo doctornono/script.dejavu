@@ -480,19 +480,19 @@ def row_status_update(row, scope):
     elif scope == "watchlist":
         flags = {
             "inWatchlist": True,
-            "watchlistPriority": row.get("priority") or row.get("watchlistPriority"),
+            "watchlistPriority": (row.get("priority") if row.get("priority") is not None else row.get("watchlistPriority")),
         }
     elif scope == "favorites":
         flags = {"isFavorite": True}
     elif scope == "collection":
         flags = {"inCollection": True}
     elif scope == "ratings":
-        flags = {"rating": row.get("rating") or row.get("userRating")}
+        flags = {"rating": (row.get("rating") if row.get("rating") is not None else row.get("userRating"))}
     elif scope == "scrobbles":
         flags = {
             "inProgress": True,
             "progress": row.get("progress"),
-            "duration": row.get("duration") or (row.get("info") or {}).get("duration"),
+            "duration": (row.get("duration") if row.get("duration") is not None else (row.get("info") or {}).get("duration")),
         }
     else:
         return {}
@@ -543,7 +543,7 @@ def apply_write_flags(action, params):
             "duration": params.get("duration"),
         }
     elif action == "delete_scrobble":
-        flags = {"inProgress": False, "progress": None}
+        flags = {"inProgress": False, "progress": None, "duration": None}
     if not flags or not keys:
         return {}
     return {key: dict(flags) for key in keys}
