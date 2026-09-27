@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dejavu" name="dejaVu" version="1.39.0" provider-name="doctornono">
+<addon id="script.dejavu" name="dejaVu" version="1.40.0" provider-name="doctornono">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
@@ -43,6 +43,10 @@
         <disclaimer lang="en_GB">For full synchronization, ensure your dejaVu.plus account is active. Background scrobbling might be affected by power saving settings.</disclaimer>
         <disclaimer lang="fr_FR">Pour une synchronisation complète, assurez-vous que votre compte dejaVu.plus est actif. Le scrobbling en arrière-plan peut être affecté par les réglages d'économie d'énergie.</disclaimer>
         <news lang="en_GB">
+v1.40.0 (2026-09-27):
+- Tests: correct RPC regression harnesses for client parameter immutability and write notifications.
+
+
 v1.39.0 (2026-09-27):
 - Fix: RPC calls no longer mutate parameter dictionaries supplied by calling addons.
 - Tests: cover parameter immutability during RPC dispatch.
@@ -119,6 +123,10 @@ v1.3.0 (2026-08-17):
 - Accept-Language follows Kodi UI. client.py covers all RPC actions.
         </news>
         <news lang="fr_FR">
+v1.40.0 (2026-09-27) :
+- Tests : correction des tests de régression RPC pour l'immutabilité des paramètres client et les notifications d’écriture.
+
+
 v1.39.0 (2026-09-27) :
 - Correctif : les appels RPC ne modifient plus les dictionnaires de paramètres fournis par les extensions appelantes.
 - Tests : couverture de l’absence de modification des paramètres lors de l’envoi RPC.
