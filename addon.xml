@@ -43,7 +43,7 @@
         <disclaimer lang="en_GB">For full synchronization, ensure your dejaVu.plus account is active. Background scrobbling might be affected by power saving settings.</disclaimer>
         <disclaimer lang="fr_FR">Pour une synchronisation complète, assurez-vous que votre compte dejaVu.plus est actif. Le scrobbling en arrière-plan peut être affecté par les réglages d'économie d'énergie.</disclaimer>
         <news lang="en_GB">
-v1.24.0 (2026-09-27):
+v1.25.0 (2026-09-27):
 - Performance: cache warm-up batches status writes and cursor updates into one SQLite transaction per page.
 v1.23.0 (2026-09-27):
 - Performance: short-lived in-memory media-status cache reduces repeated SQLite reads from skins and RPC. Cache entries are refreshed after local writes and cleared on reset.
@@ -78,7 +78,7 @@ v1.3.0 (2026-08-17):
 - Accept-Language follows Kodi UI. client.py covers all RPC actions.
         </news>
         <news lang="fr_FR">
-v1.24.0 (2026-09-27) :
+v1.25.0 (2026-09-27) :
 - Performances : le warm-up du cache regroupe les écritures de statuts et de curseur dans une seule transaction SQLite par page.
 v1.23.0 (2026-09-27) :
 - Performances : cache mémoire court terme du statut média pour réduire les lectures SQLite répétées depuis les skins et le RPC. Les entrées sont actualisées après les écritures locales et vidées lors de la réinitialisation.
