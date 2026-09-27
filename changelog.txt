@@ -1,3 +1,16 @@
+v1.51.0 (2026-09-27)
+EN:
+- Performance: debounce transient playback pause/resume events to avoid redundant scrobble requests.
+- Performance: coalesce duplicate script.dejavu.changed notifications during short bursts.
+- Performance: resolve TV show TMDB IDs from InfoTag and ListItem properties before falling back to Kodi library JSON-RPC.
+- Refactor: share the Kodi RPC window-property polling loop and preserve abort/timeout semantics.
+
+FR:
+- Performances : debounce des transitions pause/reprise pour éviter les requêtes de scrobble redondantes.
+- Performances : regroupement des notifications script.dejavu.changed identiques lors des rafales courtes.
+- Performances : résolution des IDs TMDB de séries via InfoTag et propriétés ListItem avant le fallback JSON-RPC de la bibliothèque Kodi.
+- Refactorisation : boucle commune d’attente des propriétés Kodi avec conservation du comportement timeout/annulation.
+
 v1.19.1 (2026-09-15)
 - Fix: always resolve the script.dejavu add-on context when called by a skin.
 - Fix: adding or removing an item from a custom list cannot crash on a malformed localized label.

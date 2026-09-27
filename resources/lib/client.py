@@ -26,6 +26,20 @@ class DejaVuClient:
     def _log(self, msg, level=xbmc.LOGDEBUG):
         xbmc.log(f"[script.dejavu.Client] {msg}", level)
 
+    def _wait_for_property(self, property_name, timeout, poll_interval=0.1):
+        """Poll a Kodi window property with one shared, monotonic wait loop."""
+        deadline = time.monotonic() + max(0.0, timeout)
+        while True:
+            value = self.window.getProperty(property_name)
+            if value:
+                return value, False
+
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return None, False
+            if self._monitor.waitForAbort(min(poll_interval, remaining)):
+                return None, True
+
     def call(self, action, params=None):
         """
         Sends an RPC request to script.dejavu and waits for the result.
@@ -53,20 +67,17 @@ class DejaVuClient:
         self._log(f"Calling {method} with {payload}")
         xbmc.executebuiltin("NotifyAll(%s, %s, %s)" % (sender, method, json.dumps(payload)))
 
-        start_time = time.time()
-        while time.time() - start_time < self.timeout:
-            if self._monitor.waitForAbort(0.1):
+        result_raw, aborted = self._wait_for_property(result_property, self.timeout)
+        if aborted:
+            return None
+        if result_raw:
+            try:
+                result = json.loads(result_raw)
+                self._log(f"Received result for {action}")
+                return result
+            except Exception as e:
+                self._log(f"Failed to parse result for {action}: {e}", xbmc.LOGERROR)
                 return None
-
-            result_raw = self.window.getProperty(result_property)
-            if result_raw:
-                try:
-                    result = json.loads(result_raw)
-                    self._log(f"Received result for {action}")
-                    return result
-                except Exception as e:
-                    self._log(f"Failed to parse result for {action}: {e}", xbmc.LOGERROR)
-                    return None
 
         self._log(f"Timeout waiting for {action} result", xbmc.LOGWARNING)
         return None
@@ -202,16 +213,13 @@ class DejaVuClient:
         self.window.setProperty("script.dejavu.auth.status", "")
         xbmc.executebuiltin("RunScript(script.dejavu,action=login)")
 
-        start = time.time()
-        monitor = xbmc.Monitor()
-        while time.time() - start < timeout:
-            if monitor.waitForAbort(0.5):
-                return {"success": False, "error": "aborted"}
-            status = self.window.getProperty("script.dejavu.auth.status")
-            if status == "success":
-                return self.get_me()
-            if status in ("cancelled", "expired", "error"):
-                return {"success": False, "error": status}
+        status, aborted = self._wait_for_property("script.dejavu.auth.status", timeout, poll_interval=0.5)
+        if aborted:
+            return {"success": False, "error": "aborted"}
+        if status == "success":
+            return self.get_me()
+        if status in ("cancelled", "expired", "error"):
+            return {"success": False, "error": status}
         return {"success": False, "error": "timeout"}
 
     def import_kodi_library(self, timeout=600):
@@ -228,16 +236,13 @@ class DejaVuClient:
         self.window.setProperty("script.dejavu.import.status", "")
         xbmc.executebuiltin("RunScript(script.dejavu,action=import_kodi)")
 
-        start = time.time()
-        monitor = xbmc.Monitor()
-        while time.time() - start < timeout:
-            if monitor.waitForAbort(0.5):
-                return {"success": False, "error": "aborted"}
-            status = self.window.getProperty("script.dejavu.import.status")
-            if status == "success":
-                return {"success": True, "status": status}
-            if status in ("cancelled", "error", "empty"):
-                return {"success": False, "error": status}
+        status, aborted = self._wait_for_property("script.dejavu.import.status", timeout, poll_interval=0.5)
+        if aborted:
+            return {"success": False, "error": "aborted"}
+        if status == "success":
+            return {"success": True, "status": status}
+        if status in ("cancelled", "error", "empty"):
+            return {"success": False, "error": status}
         return {"success": False, "error": "timeout"}
 
     def logout(self):

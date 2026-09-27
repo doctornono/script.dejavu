@@ -18,6 +18,7 @@ from .util import notify_changed, unwrap_data, sync_kodi_library
 
 ADDON = xbmcaddon.Addon()
 SHIPPED_TMDB_KEY = "9c1662a033ca5210dc75b91e0aa9b49e"
+PLAYBACK_TRANSITION_DEBOUNCE_S = 0.75
 
 
 def _debug_enabled():
@@ -65,6 +66,8 @@ class DejaVuPlayer(xbmc.Player):
         self._api = None  # lazy: only created when logged in
         self._tmdb_http = requests.Session()
         self._pending_start = False
+        self._pending_playback_action = None
+        self._pending_playback_ts = 0.0
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -262,94 +265,20 @@ class DejaVuPlayer(xbmc.Player):
 
     def _get_show_tmdb_id(self):
         """
-        Resolve the TV show TMDB ID.
-        1. Via Kodi JSON-RPC (Library lookup).
-        2. Via ListItem Properties (Plugin fallback).
+        Resolve the TV show TMDB ID using the cheapest sources first.
+
+        Order:
+          1. InfoTag show unique ID (no JSON-RPC).
+          2. Common ListItem properties (no JSON-RPC).
+          3. Kodi library DBID lookup (two JSON-RPC calls).
+          4. Title search as the final fallback.
         """
         if _debug_enabled():
             self._log_all_listItem_properties()
-        # --- Attempt 1: Library lookup ---
-        try:
-            ep_dbid = int(xbmc.getInfoLabel("VideoPlayer.DBID") or 0)
-            if ep_dbid > 0:
-                _log(f"Resolving show TMDB ID via Library (DBID: {ep_dbid})", xbmc.LOGDEBUG)
 
-                # Step 1: get tvshowid from the episode
-                req1 = json.dumps({
-                    "jsonrpc": "2.0",
-                    "method": "VideoLibrary.GetEpisodeDetails",
-                    "params": {"episodeid": ep_dbid, "properties": ["tvshowid", "season", "episode", "uniqueid"]},
-                    "id": 1,
-                })
-
-                resp1_raw = xbmc.executeJSONRPC(req1)
-                resp1 = json.loads(resp1_raw)
-                _log(f"Episode details: {resp1}", xbmc.LOGDEBUG)
-
-                tvshowid = (
-                    resp1.get("result", {})
-                         .get("episodedetails", {})
-                         .get("tvshowid", -1)
-                )
-                
-                if tvshowid >= 0:
-                    # Step 2: get uniqueid.tmdb from the TV show
-                    req2 = json.dumps({
-                        "jsonrpc": "2.0",
-                        "method": "VideoLibrary.GetTVShowDetails",
-                        "params": {"tvshowid": tvshowid, "properties": ["uniqueid"]},
-                        "id": 2,
-                    })
-                    
-                    resp2 = json.loads(xbmc.executeJSONRPC(req2))
-                    _log(f"TV Show details: {resp2}", xbmc.LOGDEBUG)
-                    
-                    uniqueids = (
-                        resp2.get("result", {})
-                             .get("tvshowdetails", {})
-                             .get("uniqueid", {})
-                    )
-                    show_tmdb = uniqueids.get("tmdb") or uniqueids.get("unknown")
-                    if show_tmdb:
-                        if str(show_tmdb).startswith("tt"):
-                            resolved = self._resolve_tmdb_from_external(show_tmdb, "tv")
-                            if resolved:
-                                return resolved
-                            
-                        _log(f"Resolved show TMDB ID via Library: {show_tmdb}", xbmc.LOGDEBUG)
-                        return str(show_tmdb)
-
-        except Exception as e:
-            _log(f"_get_show_tmdb_id Library lookup error: {e}", xbmc.LOGWARNING)
-
-        # --- Attempt 2: ListItem Properties (Common for plugins like Elementum/VStream) ---
-        _log("Resolving show TMDB ID via ListItem Properties fallback", xbmc.LOGDEBUG)
-        props = [
-            "tvshow_tmdb_id", "tmdb_id", "tmdb", "TVShowID", "tmdbid", "imdbid",
-            "elementum_tmdb_id", "elementum_tvshow_tmdb_id",
-            "imdb_id", "imdb", "TVShowIMDBID", "vstream_id"
-        ]
-        for prop in props:
-            val = xbmc.getInfoLabel(f"ListItem.Property({prop})")
-            if val:
-                _log(f"  [Property Check] {prop} = {val}", xbmc.LOGDEBUG)
-            
-            if not val:
-                continue
-            
-            if val.isdigit():
-                _log(f"Found show TMDB ID in property '{prop}': {val}", xbmc.LOGDEBUG)
-                return val
-            elif val.startswith("tt"):
-                _log(f"Found show IMDB ID in property '{prop}': {val}. Resolving...", xbmc.LOGDEBUG)
-                resolved = self._resolve_tmdb_from_external(val, "tv")
-                if resolved:
-                    return resolved
-
-        # --- Attempt 3: Check InfoTag for tvshow (Kodi 19+) ---
+        # --- Attempt 1: InfoTag show unique ID ---
         try:
             tag = self.getVideoInfoTag()
-            _log(f"InfoTag: {tag}", xbmc.LOGDEBUG)
             show_tmdb = tag.getUniqueID("tvshow.tmdb") or tag.getUniqueID("tvshow")
             if show_tmdb:
                 if str(show_tmdb).startswith("tt"):
@@ -358,18 +287,102 @@ class DejaVuPlayer(xbmc.Player):
                         return resolved
                 _log(f"Found show TMDB ID in InfoTag: {show_tmdb}", xbmc.LOGDEBUG)
                 return str(show_tmdb)
-        except Exception:
-            pass
+        except Exception as e:
+            _log(f"_get_show_tmdb_id InfoTag lookup error: {e}", xbmc.LOGDEBUG)
 
-        # --- Attempt 4: Universal Search by Title (Final Resort) ---
-        show_title = xbmc.getInfoLabel("VideoPlayer.TVShowTitle") or xbmc.getInfoLabel("ListItem.TVShowTitle")
+        # --- Attempt 2: ListItem Properties ---
+        props = [
+            "tvshow_tmdb_id", "tmdb_id", "tmdb", "TVShowID", "tmdbid",
+            "elementum_tmdb_id", "elementum_tvshow_tmdb_id",
+            "imdbid", "imdb_id", "imdb", "TVShowIMDBID", "vstream_id",
+        ]
+        for prop in props:
+            val = xbmc.getInfoLabel(f"ListItem.Property({prop})")
+            if val:
+                _log(f"  [Property Check] {prop} = {val}", xbmc.LOGDEBUG)
+            if not val:
+                continue
+            if val.isdigit():
+                _log(f"Found show TMDB ID in property '{prop}': {val}", xbmc.LOGDEBUG)
+                return val
+            if val.startswith("tt"):
+                _log(
+                    f"Found show IMDB ID in property '{prop}' = {val}. Resolving...",
+                    xbmc.LOGDEBUG,
+                )
+                resolved = self._resolve_tmdb_from_external(val, "tv")
+                if resolved:
+                    return resolved
+
+        # --- Attempt 3: Library lookup (expensive fallback) ---
+        try:
+            ep_dbid = int(xbmc.getInfoLabel("VideoPlayer.DBID") or 0)
+            if ep_dbid > 0:
+                _log(
+                    f"Resolving show TMDB ID via Library (DBID: {ep_dbid})",
+                    xbmc.LOGDEBUG,
+                )
+                req1 = json.dumps({
+                    "jsonrpc": "2.0",
+                    "method": "VideoLibrary.GetEpisodeDetails",
+                    "params": {
+                        "episodeid": ep_dbid,
+                        "properties": ["tvshowid", "season", "episode", "uniqueid"],
+                    },
+                    "id": 1,
+                })
+                resp1 = json.loads(xbmc.executeJSONRPC(req1))
+                tvshowid = (
+                    resp1.get("result", {})
+                    .get("episodedetails", {})
+                    .get("tvshowid", -1)
+                )
+                if tvshowid >= 0:
+                    req2 = json.dumps({
+                        "jsonrpc": "2.0",
+                        "method": "VideoLibrary.GetTVShowDetails",
+                        "params": {"tvshowid": tvshowid, "properties": ["uniqueid"]},
+                        "id": 2,
+                    })
+                    resp2 = json.loads(xbmc.executeJSONRPC(req2))
+                    uniqueids = (
+                        resp2.get("result", {})
+                        .get("tvshowdetails", {})
+                        .get("uniqueid", {})
+                    )
+                    show_tmdb = uniqueids.get("tmdb") or uniqueids.get("unknown")
+                    if show_tmdb:
+                        if str(show_tmdb).startswith("tt"):
+                            resolved = self._resolve_tmdb_from_external(show_tmdb, "tv")
+                            if resolved:
+                                return resolved
+                        _log(
+                            f"Resolved show TMDB ID via Library: {show_tmdb}",
+                            xbmc.LOGDEBUG,
+                        )
+                        return str(show_tmdb)
+        except Exception as e:
+            _log(f"_get_show_tmdb_id Library lookup error: {e}", xbmc.LOGWARNING)
+
+        # --- Attempt 4: Universal search by title (last resort) ---
+        show_title = (
+            xbmc.getInfoLabel("VideoPlayer.TVShowTitle")
+            or xbmc.getInfoLabel("ListItem.TVShowTitle")
+        )
         if show_title:
-            _log(f"Attempting universal search for show title: '{show_title}'", xbmc.LOGDEBUG)
+            _log(
+                f"Attempting universal search for show title: '{show_title}'",
+                xbmc.LOGDEBUG,
+            )
             resolved = self._search_tmdb_id(show_title, "tv")
             if resolved:
                 return resolved
 
-        _log("Could not resolve show TMDB ID via any method (Library, Properties, Tag, Search).", xbmc.LOGWARNING)
+        _log(
+            "Could not resolve show TMDB ID via any method "
+            "(InfoTag, Properties, Library, Search).",
+            xbmc.LOGWARNING,
+        )
         return None
 
     def _resolve_episode_tmdb_id(self, show_id, season, episode):
@@ -572,6 +585,8 @@ class DejaVuPlayer(xbmc.Player):
         self._resume_target = 0
         self._last_scrobble_ts = 0
         self._pending_start = False
+        self._pending_playback_action = None
+        self._pending_playback_ts = 0.0
 
     def _read_player_times(self):
         """(progress, duration) in seconds, or None if the player has no time."""
@@ -772,14 +787,34 @@ class DejaVuPlayer(xbmc.Player):
         self._last_duration = 0
         self._resume_from = 0
         self._resume_target = 0
+        self._pending_playback_action = None
+        self._pending_playback_ts = 0.0
         self._capture_player_times()
 
     def onPlayBackPaused(self):
         _log("onPlayBackPaused")
-        self._scrobble("pause")
+        if not self._active:
+            return
+        # Kodi can emit pause/resume in very quick succession (remote buttons,
+        # buffering, UI transitions). Delay the pause so a transient pair does
+        # not generate two HTTP requests.
+        self._pending_playback_action = "pause"
+        self._pending_playback_ts = time.time()
 
     def onPlayBackResumed(self):
         _log("onPlayBackResumed")
+        if not self._active:
+            return
+        if self._pending_playback_action == "pause":
+            elapsed = time.time() - self._pending_playback_ts
+            self._pending_playback_action = None
+            self._pending_playback_ts = 0.0
+            if elapsed < PLAYBACK_TRANSITION_DEBOUNCE_S:
+                _log("Coalesced transient pause/resume transition.", xbmc.LOGDEBUG)
+                return
+            # A long pause arrived before the next service tick; preserve the
+            # old lifecycle semantics by flushing pause before resume.
+            self._scrobble("pause")
         self._scrobble("resume")
 
     def onPlayBackStopped(self):
@@ -1228,6 +1263,11 @@ class DejaVuPlayer(xbmc.Player):
             self._scrobble("start")
             return
         self._capture_player_times()
+        if self._pending_playback_action == "pause":
+            if time.time() - self._pending_playback_ts >= PLAYBACK_TRANSITION_DEBOUNCE_S:
+                self._pending_playback_action = None
+                self._pending_playback_ts = 0.0
+                self._scrobble("pause")
         try:
             interval = ADDON.getSettingInt("scrobble_interval") or 30
         except Exception:

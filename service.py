@@ -12,7 +12,7 @@ from resources.lib.cache import warm_tick
 from resources.lib.scrobbler import DejaVuPlayer
 from resources.lib.monitor import DejaVuMonitor
 from resources.lib.session import sync_settings_from_session
-from resources.lib.util import publish_auth_window
+from resources.lib.util import flush_changed_notifications, publish_auth_window
 
 SESSION_SYNC_EVERY = 30
 CACHE_WARM_EVERY = 15
@@ -54,6 +54,10 @@ def run():
             xbmc.log("[dejaVu] RPC drain failed: %s" % exc, xbmc.LOGWARNING)
         finally:
             _log_perf("monitor.drain_rpc", time.monotonic() - started)
+        try:
+            flush_changed_notifications()
+        except Exception as exc:
+            xbmc.log("[dejaVu] changed notification flush failed: %s" % exc, xbmc.LOGDEBUG)
         cache_ticks += 1
         if cache_ticks >= CACHE_WARM_EVERY:
             cache_ticks = 0
