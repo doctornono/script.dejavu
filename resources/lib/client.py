@@ -243,10 +243,13 @@ class DejaVuClient:
     def logout(self):
         return self.call("logout", {})
 
-    def resolve_media(self, imdb_id=None, tmdb_id=None, media_type=None, title=None, year=None):
+    def resolve_media(self, imdb_id=None, tmdb_id=None, media_type=None, title=None,
+                      year=None, tv_show_id=None, season=None, episode=None):
         return self.call("resolve_media", {
             "imdb_id": imdb_id, "tmdb_id": tmdb_id, "type": media_type,
             "title": title, "year": year,
+            "tvShowId": tv_show_id, "seasonNumber": season,
+            "episodeNumber": episode,
         })
 
     def get_dashboard(self):
@@ -287,8 +290,12 @@ class DejaVuClient:
             "tvShowId": tv_show_id, "seasonNumber": season, "episodeNumber": episode,
         })
 
-    def delete_history(self, media_type, tmdb_id):
-        return self.call("delete_history", {"type": media_type, "id": tmdb_id})
+    def delete_history(self, media_type, tmdb_id=None, tv_show_id=None, season=None, episode=None):
+        return self.call("delete_history", {
+            "type": media_type, "id": tmdb_id,
+            "tvShowId": tv_show_id, "seasonNumber": season,
+            "episodeNumber": episode,
+        })
 
     def add_to_favorites(self, media_type, tmdb_id):
         return self.call("add_to_favorites", {"type": media_type, "id": tmdb_id})
