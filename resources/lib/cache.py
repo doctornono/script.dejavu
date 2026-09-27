@@ -150,12 +150,13 @@ def get_cursor(scope):
     return row[0] if row else ""
 
 
-def set_cursor(scope, iso):
+def set_cursor(scope, iso, commit=True):
     _connect().execute(
         "INSERT OR REPLACE INTO cursor(scope, iso) VALUES (?, ?)",
         (scope, iso or ""),
     )
-    _connect().commit()
+    if commit:
+        _connect().commit()
 
 
 def get_many(keys):
@@ -366,7 +367,7 @@ def warm_tick(api):
     remote = ""
     if isinstance(data, dict):
         remote = data.get(scope) or data.get("all") or ""
-    set_cursor(scope, remote or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+    set_cursor(scope, remote or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), commit=False)
     _connect().commit()
     _warm = {"scope": None, "page": 1}
     _log("warmed %s (%s rows last page)" % (scope, len(rows)))
