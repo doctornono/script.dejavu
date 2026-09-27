@@ -58,15 +58,19 @@ class CacheTests(unittest.TestCase):
                 "rewatchCount": 2,
                 "isFavorite": True,
             },
-            "movie:550": {"watched": True},
+            "movie:550": {
+                "watched": True,
+                "isFavorite": True,
+            },
         })
         cache._prune_scope("history", {"movie:603"})
         rows = cache.get_many(["movie:603", "movie:550"])
         self.assertTrue(rows["movie:603"]["watched"])
+        self.assertEqual(rows["movie:603"]["watchedAt"], "2026-09-27T18:00:00Z")
+        self.assertEqual(rows["movie:603"]["rewatchCount"], 2)
         self.assertTrue(rows["movie:603"]["isFavorite"])
-        self.assertNotIn("movie:550", rows)
-        self.assertNotIn("watchedAt", rows["movie:603"])
-        self.assertNotIn("rewatchCount", rows["movie:603"])
+        self.assertNotIn("watched", rows["movie:550"])
+        self.assertTrue(rows["movie:550"]["isFavorite"])
 
     def test_apply_write_and_clear(self):
         cache.apply_write("add_to_favorites", {"type": "tv", "id": 1396})
