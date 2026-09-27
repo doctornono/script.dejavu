@@ -40,7 +40,7 @@ class DejaVuClient:
 
         self.window.clearProperty(result_property)
 
-        data = params if params else {}
+        data = dict(params) if params else {}
         data["result_property"] = result_property
 
         # xbmc.getAddonInfo does not exist; the caller id is on xbmcaddon.Addon().
