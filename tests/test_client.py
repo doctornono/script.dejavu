@@ -64,6 +64,25 @@ class ClientRpcParameterTests(unittest.TestCase):
             )],
         )
 
+    def test_delete_history_forwards_episode_identity(self):
+        client = self.make_client()
+        result = client.delete_history("episode", tv_show_id=1396, season=1, episode=2)
+        self.assertEqual(result, {"success": True})
+        self.assertEqual(client._calls, [("delete_history", {
+            "type": "episode", "id": None, "tvShowId": 1396,
+            "seasonNumber": 1, "episodeNumber": 2,
+        })])
+
+    def test_resolve_media_forwards_episode_identity(self):
+        client = self.make_client()
+        result = client.resolve_media(media_type="episode", tv_show_id=1396, season=1, episode=2)
+        self.assertEqual(result, {"success": True})
+        self.assertEqual(client._calls, [("resolve_media", {
+            "imdb_id": None, "tmdb_id": None, "type": "episode",
+            "title": None, "year": None, "tvShowId": 1396,
+            "seasonNumber": 1, "episodeNumber": 2,
+        })])
+
     def test_delete_scrobble_forwards_episode_identity(self):
         client = self.make_client()
 
