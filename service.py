@@ -47,14 +47,6 @@ def run():
             xbmc.log("[dejaVu] tick failed: %s" % exc, xbmc.LOGWARNING)
         finally:
             _log_perf("player.tick", time.monotonic() - started)
-        if ticks % 10 == 0:
-            try:
-                xbmc.log(
-                        player._active, player.isPlayingVideo()
-                    ),
-                    xbmc.LOGINFO,
-                )
-            except Exception as exc:
         started = time.monotonic()
         try:
             monitor.drain_rpc(budget_s=0.2)
