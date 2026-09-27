@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dejavu" name="dejaVu" version="1.43.0" provider-name="doctornono">
+<addon id="script.dejavu" name="dejaVu" version="1.44.0" provider-name="doctornono">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
@@ -43,6 +43,11 @@
         <disclaimer lang="en_GB">For full synchronization, ensure your dejaVu.plus account is active. Background scrobbling might be affected by power saving settings.</disclaimer>
         <disclaimer lang="fr_FR">Pour une synchronisation complète, assurez-vous que votre compte dejaVu.plus est actif. Le scrobbling en arrière-plan peut être affecté par les réglages d'économie d'énergie.</disclaimer>
         <news lang="en_GB">
+v1.44.0 (2026-09-27):
+- Fix: clear cached scrobble duration when an active scrobble is deleted.
+- Fix: preserve valid zero-valued priority, rating, progress, and duration fields during cache warming.
+- Tests: cover scrobble cleanup and zero-valued cache fields.
+
 v1.43.0 (2026-09-27):
 - Fix: clearing history now also removes the cached watched date.
 - Tests: cover optimistic cache cleanup for history deletion.
@@ -136,6 +141,11 @@ v1.3.0 (2026-08-17):
 - Accept-Language follows Kodi UI. client.py covers all RPC actions.
         </news>
         <news lang="fr_FR">
+v1.44.0 (2026-09-27) :
+- Correctif : la suppression d'un scrobble efface désormais la durée mise en cache.
+- Correctif : conservation des valeurs valides à zéro pour priorité, note, progression et durée lors du réchauffement du cache.
+- Tests : couverture du nettoyage des scrobbles et des valeurs nulles du cache.
+
 v1.43.0 (2026-09-27) :
 - Correctif : la suppression de l'historique efface désormais également la date de visionnage mise en cache.
 - Tests : couverture du nettoyage optimiste du cache lors de la suppression de l'historique.
