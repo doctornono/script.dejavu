@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dejavu" name="dejaVu" version="1.26.0" provider-name="doctornono">
+<addon id="script.dejavu" name="dejaVu" version="1.27.0" provider-name="doctornono">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
@@ -43,6 +43,8 @@
         <disclaimer lang="en_GB">For full synchronization, ensure your dejaVu.plus account is active. Background scrobbling might be affected by power saving settings.</disclaimer>
         <disclaimer lang="fr_FR">Pour une synchronisation complète, assurez-vous que votre compte dejaVu.plus est actif. Le scrobbling en arrière-plan peut être affecté par les réglages d'économie d'énergie.</disclaimer>
         <news lang="en_GB">
+v1.27.0 (2026-09-27):
+- Diagnostic: persistent INFO-level playback/service traces to verify Kodi player callbacks and service state.
 v1.26.0 (2026-09-27):
 - Performance: debug-only timing for player tick, RPC drain, cache warm-up, and session sync.
 - Performance: cache warm-up batches status writes and cursor updates into one SQLite transaction per page.
@@ -79,6 +81,8 @@ v1.3.0 (2026-08-17):
 - Accept-Language follows Kodi UI. client.py covers all RPC actions.
         </news>
         <news lang="fr_FR">
+v1.27.0 (2026-09-27) :
+- Diagnostic : traces INFO persistantes du service et des callbacks lecteur Kodi pour isoler les problèmes de scrobbling.
 v1.26.0 (2026-09-27) :
 - Performances : chronométrage uniquement en mode debug du tick lecteur, RPC, warm-up du cache et synchronisation de session.
 - Performances : le warm-up du cache regroupe les écritures de statuts et de curseur dans une seule transaction SQLite par page.
