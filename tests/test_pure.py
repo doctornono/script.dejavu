@@ -386,6 +386,15 @@ class CapabilitiesAndKeysTests(unittest.TestCase):
         self.assertEqual(mapping["movie:603"]["inWatchlist"], True)
         self.assertEqual(mapping["movie:603"]["watchlistPriority"], 2)
 
+    def test_delete_history_clears_watched_date(self):
+        mapping = pure.apply_write_flags(
+            "delete_history",
+            {"type": "movie", "id": 603},
+        )
+        self.assertFalse(mapping["movie:603"]["watched"])
+        self.assertIsNone(mapping["movie:603"]["watchedAt"])
+        self.assertIsNone(mapping["movie:603"]["rewatchCount"])
+
     def test_apply_write_flags(self):
         mapping = pure.apply_write_flags(
             "add_to_watchlist", {"type": "movie", "id": 603},
