@@ -13,12 +13,14 @@ from resources.lib.session import sync_settings_from_session
 from resources.lib.util import publish_auth_window
 
 SESSION_SYNC_EVERY = 30
+CACHE_WARM_EVERY = 15
 
 
 def run():
     monitor = DejaVuMonitor()
     player = DejaVuPlayer()
     ticks = 0
+    cache_ticks = 0
 
     xbmc.log("[dejaVu] Service started.", xbmc.LOGINFO)
     publish_auth_window()
@@ -32,10 +34,13 @@ def run():
             monitor.drain_rpc(budget_s=0.2)
         except Exception as exc:
             xbmc.log("[dejaVu] RPC drain failed: %s" % exc, xbmc.LOGWARNING)
-        try:
-            warm_tick(monitor.api)
-        except Exception as exc:
-            xbmc.log("[dejaVu] cache warm failed: %s" % exc, xbmc.LOGDEBUG)
+        cache_ticks += 1
+        if cache_ticks >= CACHE_WARM_EVERY:
+            cache_ticks = 0
+            try:
+                warm_tick(monitor.api)
+            except Exception as exc:
+                xbmc.log("[dejaVu] cache warm failed: %s" % exc, xbmc.LOGDEBUG)
         ticks += 1
         if ticks >= SESSION_SYNC_EVERY:
             ticks = 0
