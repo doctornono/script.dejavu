@@ -25,14 +25,14 @@ Supported actions (method format: 'script.dejavu.ACTION'):
     get_capabilities      params: (none)
     get_last_activities   params: (none)
     get_show_progress     params: ids
-    resolve_media         params: imdb_id, tmdb_id, type, title, year
+    resolve_media         params: imdb_id, tmdb_id, type, title, year, tvShowId, seasonNumber, episodeNumber
     resolve_media_batch   params: items
 
   WRITE
     add_to_watchlist      params: type, id, priority, notes
     remove_from_watchlist params: type, id
     add_to_history        params: type, id, count, watched_at, tvShowId, seasonNumber, episodeNumber
-    delete_history        params: type, id
+    delete_history        params: type, id, tvShowId, seasonNumber, episodeNumber
     add_to_favorites      params: type, id
     remove_from_favorites params: type, id
     add_to_collection     params: type, id, format, notes
@@ -41,9 +41,9 @@ Supported actions (method format: 'script.dejavu.ACTION'):
     add_to_list           params: list_id, type, id, notes, position
     remove_from_list      params: list_id, type, id
     rate                  params: type, id, rating, tvShowId, seasonNumber, episodeNumber, review
-    delete_rating         params: type, id, tvShowId, seasonNumber
+    delete_rating         params: type, id, tvShowId, seasonNumber, episodeNumber
     scrobble              params: type, id, progress, duration, tvShowId, seasonNumber, episodeNumber
-    delete_scrobble       params: type, id
+    delete_scrobble       params: type, id, tvShowId, seasonNumber, episodeNumber
     logout                params: (none)
 
   SCRIPT (not RPC — use RunScript / DejaVuClient.import_kodi_library)
@@ -323,6 +323,9 @@ class DejaVuMonitor(xbmc.Monitor):
             media_type=params.get("type"),
             title=params.get("title"),
             year=params.get("year"),
+            tv_show_id=params.get("tvShowId"),
+            season=params.get("seasonNumber"),
+            episode=params.get("episodeNumber"),
         )
 
     # ------------------------------------------------------------------
@@ -363,7 +366,10 @@ class DejaVuMonitor(xbmc.Monitor):
     def _handle_delete_history(self, params):
         result = self.api.delete_history(
             media_type=params["type"],
-            tmdb_id=params["id"],
+            tmdb_id=params.get("id"),
+            tv_show_id=params.get("tvShowId"),
+            season=params.get("seasonNumber"),
+            episode=params.get("episodeNumber"),
         )
         self._broadcast_write("delete_history", params, result)
         return result
