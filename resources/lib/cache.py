@@ -396,7 +396,9 @@ def warm_tick(api):
         _warm = {"scope": scope, "page": page, "seen": set()}
 
     result = _fetch_scope_page(api, scope, page)
-    if result is None:
+    if result is None or (
+        isinstance(result, dict) and result.get("success") is False
+    ):
         _log("warm %s page %s failed" % (scope, page))
         _warm = {"scope": None, "page": 1}
         return
