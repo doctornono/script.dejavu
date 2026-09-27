@@ -33,6 +33,7 @@ def _log_perf(label, elapsed):
 def run():
     monitor = DejaVuMonitor()
     player = DejaVuPlayer()
+    xbmc.log("[dejaVu][TRACE] DejaVuPlayer instantiated.", xbmc.LOGINFO)
     ticks = 0
     cache_ticks = 0
 
@@ -47,6 +48,16 @@ def run():
             xbmc.log("[dejaVu] tick failed: %s" % exc, xbmc.LOGWARNING)
         finally:
             _log_perf("player.tick", time.monotonic() - started)
+        if ticks % 10 == 0:
+            try:
+                xbmc.log(
+                    "[dejaVu][TRACE] service heartbeat: player_active=%s playing_video=%s" % (
+                        player._active, player.isPlayingVideo()
+                    ),
+                    xbmc.LOGINFO,
+                )
+            except Exception as exc:
+                xbmc.log("[dejaVu][TRACE] heartbeat failed: %s" % exc, xbmc.LOGWARNING)
         started = time.monotonic()
         try:
             monitor.drain_rpc(budget_s=0.2)
