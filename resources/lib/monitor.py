@@ -453,6 +453,7 @@ class DejaVuMonitor(xbmc.Monitor):
             tmdb_id=params.get("id"),
             tv_show_id=params.get("tvShowId"),
             season=params.get("seasonNumber"),
+            episode=params.get("episodeNumber"),
         )
         self._broadcast_write("delete_rating", params, result)
         return result
@@ -473,7 +474,10 @@ class DejaVuMonitor(xbmc.Monitor):
     def _handle_delete_scrobble(self, params):
         result = self.api.delete_scrobble(
             media_type=params["type"],
-            tmdb_id=params["id"],
+            tmdb_id=params.get("id"),
+            tv_show_id=params.get("tvShowId"),
+            season=params.get("seasonNumber"),
+            episode=params.get("episodeNumber"),
         )
         self._broadcast_write("delete_scrobble", params, result)
         return result
