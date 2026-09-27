@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.dejavu" name="dejaVu" version="1.41.0" provider-name="doctornono">
+<addon id="script.dejavu" name="dejaVu" version="1.42.0" provider-name="doctornono">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
         <import addon="script.module.requests" version="2.25.1"/>
@@ -43,6 +43,11 @@
         <disclaimer lang="en_GB">For full synchronization, ensure your dejaVu.plus account is active. Background scrobbling might be affected by power saving settings.</disclaimer>
         <disclaimer lang="fr_FR">Pour une synchronisation complète, assurez-vous que votre compte dejaVu.plus est actif. Le scrobbling en arrière-plan peut être affecté par les réglages d'économie d'énergie.</disclaimer>
         <news lang="en_GB">
+v1.42.0 (2026-09-27):
+- Fix: RPC change notifications now preserve TV episode identity (show, season, episode) when no episode TMDB ID is available.
+- Tests: cover episode identity in successful write notifications.
+
+
 v1.41.0 (2026-09-27):
 - Tests: assert the escaped RPC result payload correctly and patch the monitor notification hook at its imported location.
 
@@ -127,6 +132,11 @@ v1.3.0 (2026-08-17):
 - Accept-Language follows Kodi UI. client.py covers all RPC actions.
         </news>
         <news lang="fr_FR">
+v1.42.0 (2026-09-27) :
+- Correctif : les notifications de changement RPC conservent désormais l'identité des épisodes TV (série, saison, épisode) lorsqu'aucun ID TMDB d'épisode n'est disponible.
+- Tests : couverture de l'identité des épisodes dans les notifications d'écriture réussies.
+
+
 v1.41.0 (2026-09-27) :
 - Tests : vérification correcte du payload RPC échappé et correction du point de patch du hook de notification du monitor.
 
