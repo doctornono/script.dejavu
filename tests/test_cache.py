@@ -50,6 +50,24 @@ class CacheTests(unittest.TestCase):
         ])
         self.assertIsNone(miss)
 
+    def test_prune_scope_removes_stale_scope_flags_only(self):
+        cache.upsert_status({
+            "movie:603": {
+                "watched": True,
+                "watchedAt": "2026-09-27T18:00:00Z",
+                "rewatchCount": 2,
+                "isFavorite": True,
+            },
+            "movie:550": {"watched": True},
+        })
+        cache._prune_scope("history", {"movie:603"})
+        rows = cache.get_many(["movie:603", "movie:550"])
+        self.assertTrue(rows["movie:603"]["watched"])
+        self.assertTrue(rows["movie:603"]["isFavorite"])
+        self.assertNotIn("watched", rows["movie:550"])
+        self.assertNotIn("watchedAt", rows["movie:603"])
+        self.assertNotIn("rewatchCount", rows["movie:603"])
+
     def test_apply_write_and_clear(self):
         cache.apply_write("add_to_favorites", {"type": "tv", "id": 1396})
         self.assertTrue(cache.get_many(["tv:1396"])["tv:1396"]["isFavorite"])
