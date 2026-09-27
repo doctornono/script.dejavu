@@ -37,10 +37,36 @@ class FakeAddon:
         return str(key)
 
 
+class FakeVideoInfoTag:
+    """Small Kodi VideoInfoTag replacement used by the lifecycle tests."""
+
+    def getMediaType(self):
+        return "movie"
+
+    def getUniqueIDs(self):
+        return {"tmdb": "603", "imdb": "tt0133093"}
+
+    def getUniqueID(self, key):
+        return self.getUniqueIDs().get(key, "")
+
+    def getTitle(self):
+        return "The Matrix"
+
+    def getTVShowTitle(self):
+        return ""
+
+    def getSeason(self):
+        return 0
+
+    def getEpisode(self):
+        return 0
+
+
 class FakePlayer:
     def __init__(self):
         self._time = 0
         self._duration = 3600
+        self._video_info_tag = FakeVideoInfoTag()
 
     def getTime(self):
         return self._time
@@ -50,6 +76,9 @@ class FakePlayer:
 
     def isPlayingVideo(self):
         return True
+
+    def getVideoInfoTag(self):
+        return self._video_info_tag
 
 
 def load_scrobbler():
