@@ -62,8 +62,8 @@ class MonitorWriteResultTests(unittest.TestCase):
         cache.apply_write = lambda *args, **kwargs: calls.append(("cache", args, kwargs))
         sys.modules["resources.lib.cache"] = cache
 
-        import resources.lib.util as util
-        util.notify_changed = lambda *args, **kwargs: calls.append(("notify", args, kwargs))
+        import resources.lib.monitor as monitor_module
+        monitor_module.notify_changed = lambda *args, **kwargs: calls.append(("notify", args, kwargs))
 
         monitor._broadcast_write(
             "remove_from_watchlist",
