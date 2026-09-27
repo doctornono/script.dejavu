@@ -32,13 +32,13 @@ class DejaVuClient:
         while True:
             value = self.window.getProperty(property_name)
             if value:
-                return value
+                return value, False
 
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                return None, True
-            if self._monitor.waitForAbort(min(poll_interval, remaining)):
                 return None, False
+            if self._monitor.waitForAbort(min(poll_interval, remaining)):
+                return None, True
 
     def call(self, action, params=None):
         """
