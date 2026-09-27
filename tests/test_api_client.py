@@ -65,10 +65,15 @@ def load_api_client():
     xbmcaddon = types.ModuleType("xbmcaddon")
     xbmcaddon.Addon = FakeAddon
 
+    # resources.lib.__init__ imports client.py, which imports xbmcgui.
+    xbmcgui = types.ModuleType("xbmcgui")
+    xbmcgui.Window = lambda *args, **kwargs: None
+
     xbmcvfs = types.ModuleType("xbmcvfs")
 
     sys.modules["xbmc"] = xbmc
     sys.modules["xbmcaddon"] = xbmcaddon
+    sys.modules["xbmcgui"] = xbmcgui
     sys.modules["xbmcvfs"] = xbmcvfs
 
     sys.path.insert(0, ".")
