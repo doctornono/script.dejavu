@@ -63,6 +63,7 @@ class DejaVuPlayer(xbmc.Player):
         self._resume_from = 0
         self._resume_target = 0
         self._api = None  # lazy: only created when logged in
+        self._tmdb_http = requests.Session()
         self._pending_start = False
 
     # ------------------------------------------------------------------
@@ -134,7 +135,7 @@ class DejaVuPlayer(xbmc.Player):
         url = f"https://api.themoviedb.org/3/find/{external_id}"
         
         try:
-            r = requests.get(url, params={"api_key": api_key, "external_source": source}, timeout=10)
+            r = self._tmdb_http.get(url, params={"api_key": api_key, "external_source": source}, timeout=10)
             r.raise_for_status()
             data = r.json()
             
@@ -183,7 +184,7 @@ class DejaVuPlayer(xbmc.Player):
             params[param_year] = year
 
         try:
-            r = requests.get(url, params=params, timeout=10)
+            r = self._tmdb_http.get(url, params=params, timeout=10)
             r.raise_for_status()
             data = r.json()
             results = data.get("results", [])
@@ -385,7 +386,7 @@ class DejaVuPlayer(xbmc.Player):
         url = f"https://api.themoviedb.org/3/tv/{show_id}/season/{season}/episode/{episode}"
         
         try:
-            r = requests.get(url, params={"api_key": api_key}, timeout=10)
+            r = self._tmdb_http.get(url, params={"api_key": api_key}, timeout=10)
             r.raise_for_status()
             data = r.json()
             ep_id = data.get("id")
