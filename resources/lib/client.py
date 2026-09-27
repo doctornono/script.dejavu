@@ -328,10 +328,11 @@ class DejaVuClient:
             "episodeNumber": episode, "review": review,
         })
 
-    def delete_rating(self, media_type, tmdb_id=None, tv_show_id=None, season=None):
+    def delete_rating(self, media_type, tmdb_id=None, tv_show_id=None, season=None, episode=None):
         return self.call("delete_rating", {
             "type": media_type, "id": tmdb_id,
             "tvShowId": tv_show_id, "seasonNumber": season,
+            "episodeNumber": episode,
         })
 
     def scrobble(self, media_type, progress, duration, tmdb_id=None,
@@ -341,5 +342,9 @@ class DejaVuClient:
             "tvShowId": tv_show_id, "seasonNumber": season, "episodeNumber": episode,
         })
 
-    def delete_scrobble(self, media_type, tmdb_id):
-        return self.call("delete_scrobble", {"type": media_type, "id": tmdb_id})
+    def delete_scrobble(self, media_type, tmdb_id=None, tv_show_id=None, season=None, episode=None):
+        return self.call("delete_scrobble", {
+            "type": media_type, "id": tmdb_id,
+            "tvShowId": tv_show_id, "seasonNumber": season,
+            "episodeNumber": episode,
+        })
