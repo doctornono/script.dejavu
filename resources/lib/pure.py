@@ -450,14 +450,32 @@ def _row_media(row):
         raw_id = row.get("id")
         if raw_id is not None and str(raw_id).isdigit():
             tmdb_id = raw_id
+    show_tmdb_id = row.get("tvShowId")
+    if show_tmdb_id is None:
+        show_tmdb_id = row.get("tvShowTmdbId")
+    if show_tmdb_id is None:
+        show_tmdb_id = row.get("showTmdbId")
+    if show_tmdb_id is None:
+        show_tmdb_id = row.get("show_tmdb_id")
+    if show_tmdb_id is None:
+        show_tmdb_id = info.get("tvShowId")
+
+    season_number = row.get("seasonNumber")
+    if season_number is None:
+        season_number = row.get("season")
+    if season_number is None:
+        season_number = info.get("season")
+
+    episode_number = row.get("episodeNumber")
+    if episode_number is None:
+        episode_number = row.get("episode")
+    if episode_number is None:
+        episode_number = info.get("episode")
+
     extra = {
-        "tmdbId": (
-            row.get("tvShowId") or row.get("tvShowTmdbId")
-            or row.get("showTmdbId") or row.get("show_tmdb_id")
-            or info.get("tvShowId")
-        ),
-        "seasonNumber": row.get("seasonNumber") or row.get("season") or info.get("season"),
-        "episodeNumber": row.get("episodeNumber") or row.get("episode") or info.get("episode"),
+        "tmdbId": show_tmdb_id,
+        "seasonNumber": season_number,
+        "episodeNumber": episode_number,
     }
     return media_type, tmdb_id, extra
 
