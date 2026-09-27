@@ -3,6 +3,7 @@
 
 import json
 import sys
+import time
 import xbmc
 import xbmcaddon
 import xbmcgui
@@ -22,6 +23,8 @@ from .pure import (
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = "script.dejavu"
+_CHANGED_DEBOUNCE_S = 0.25
+_pending_changed_notifications = {}
 AUTH_WINDOW_PROP = "script.dejavu.authenticated"
 USER_WINDOW_PROP = "script.dejavu.username"
 
@@ -89,8 +92,23 @@ def play_from_library(info):
     return not res.get("error")
 
 
+def _emit_changed(payload):
+    """Send one already-coalesced changed notification."""
+    try:
+        payload_json = json.dumps(payload)
+        xbmc.executebuiltin(
+            "NotifyAll(%s, %s, %s)" % (
+                ADDON_ID,
+                f"{ADDON_ID}.changed",
+                json.dumps(payload_json),
+            )
+        )
+    except Exception as e:
+        _log(f"notify_changed failed: {e}", xbmc.LOGWARNING)
+
+
 def notify_changed(action, media_type=None, tmdb_id=None, extra=None):
-    """Tell other addons that dejaVu state changed so they can refresh overlays."""
+    """Queue a short-lived changed notification to collapse duplicate bursts."""
     payload = {"action": action}
     if media_type:
         payload["type"] = media_type
@@ -98,14 +116,25 @@ def notify_changed(action, media_type=None, tmdb_id=None, extra=None):
         payload["id"] = tmdb_id
     if extra:
         payload.update(extra)
-    try:
-        # Quote the JSON so commas are not treated as NotifyAll argument separators.
-        payload_json = json.dumps(payload)
-        xbmc.executebuiltin(
-            "NotifyAll(%s, %s, %s)" % (ADDON_ID, f"{ADDON_ID}.changed", json.dumps(payload_json))
-        )
-    except Exception as e:
-        _log(f"notify_changed failed: {e}", xbmc.LOGWARNING)
+
+    key = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    now = time.monotonic()
+    _pending_changed_notifications[key] = (now + _CHANGED_DEBOUNCE_S, payload)
+
+
+def flush_changed_notifications(force=False):
+    """Flush notifications whose debounce window has elapsed."""
+    if not _pending_changed_notifications:
+        return
+
+    now = time.monotonic()
+    ready = [
+        key for key, (deadline, _payload) in _pending_changed_notifications.items()
+        if force or deadline <= now
+    ]
+    for key in ready:
+        _deadline, payload = _pending_changed_notifications.pop(key)
+        _emit_changed(payload)
 
 
 def status_for(result, media_type, tmdb_id, show_tmdb_id=None, season=None, episode=None):
