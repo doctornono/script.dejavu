@@ -181,6 +181,8 @@ class ScrobbleLifecycleTests(unittest.TestCase):
 
                 self.player._time = 300
                 self.player.onPlayBackPaused()
+                # The service tick flushes a real pause after the debounce window.
+                self.player.tick()
 
                 self.player._time = 420
                 self.player.onPlayBackResumed()
@@ -197,6 +199,42 @@ class ScrobbleLifecycleTests(unittest.TestCase):
             any(call[0] == "delete_scrobble" for call in self.api.calls)
         )
         self.assertFalse(self.player._active)
+
+    def test_transient_pause_resume_is_coalesced(self):
+        """A pause immediately followed by resume must not hit the API twice."""
+        with patch.object(self.scrobbler.time, "time", return_value=self.clock):
+            self.player.onAVStarted()
+            self.player.tick()
+            before = list(self.api.calls)
+
+            self.player.onPlayBackPaused()
+            self.player.onPlayBackResumed()
+
+        self.assertEqual(
+            [call[0] for call in self.api.calls],
+            [call[0] for call in before],
+        )
+        self.assertIsNone(self.player._pending_playback_action)
+
+    def test_show_tmdb_id_prefers_infotag_before_library_rpc(self):
+        """A direct show ID must avoid the two-library-call fallback."""
+        tag = FakeVideoInfoTag()
+        original = tag.getUniqueID
+
+        def show_unique_id(key):
+            if key == "tvshow.tmdb":
+                return "1396"
+            return original(key)
+
+        tag.getUniqueID = show_unique_id
+        self.player.getVideoInfoTag = lambda: tag
+
+        with patch.object(
+            self.scrobbler.xbmc,
+            "executeJSONRPC",
+            side_effect=AssertionError("library JSON-RPC should not be needed"),
+        ):
+            self.assertEqual(self.player._get_show_tmdb_id(), "1396")
 
     def test_end_clears_continue_watching(self):
         """A natural end at the end of the file must delete the active scrobble."""
