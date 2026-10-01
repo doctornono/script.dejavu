@@ -334,8 +334,6 @@ def show_home_actions(handle, params):
 
 
 def show_home_test_movies(handle, params):
-    if not _require_auth(handle):
-        return
     media_items = [
         {
             "tmdb_id": 27205,
