@@ -538,6 +538,50 @@ def show_list_items(handle, params):
             xbmc.LOGDEBUG,
         )
         rows = filtered_rows
+
+    usable_rows = []
+    for raw in rows:
+        media = _normalize(raw)
+        if media and (media.get("title") or media.get("tmdb_id")):
+            usable_rows.append(raw)
+
+    if rows and not usable_rows:
+        xbmc.log(
+            "[dejaVu.Plugin] show_list_items cached rows unusable; refreshing scope=%s"
+            % scope_action,
+            xbmc.LOGWARNING,
+        )
+        cache.invalidate_content(scope_action)
+        rows, pagination = _cached_page(
+            scope_action, None, page,
+            lambda api, _media_type, current_page: api.get_list_items(
+                list_id, page=current_page, page_size=20, minimal=False,
+            ),
+        )
+        if requested_type:
+            filtered_rows = []
+            for raw in rows:
+                media = _normalize(raw)
+                if media and media.get("media_type") == requested_type:
+                    filtered_rows.append(raw)
+            rows = filtered_rows
+        xbmc.log(
+            "[dejaVu.Plugin] show_list_items refreshed usable=%d/%d"
+            % (
+                sum(
+                    1
+                    for raw in rows
+                    if _normalize(raw)
+                    and (
+                        _normalize(raw).get("title")
+                        or _normalize(raw).get("tmdb_id")
+                    )
+                ),
+                len(rows),
+            ),
+            xbmc.LOGDEBUG,
+        )
+
     xbmc.log("[dejaVu.Plugin] show_list_items rows=%d pagination=%s" % (len(rows), pagination), xbmc.LOGDEBUG)
     _media_page(handle, {"data": rows, "pagination": pagination})
     if pagination.get("hasMore"):
