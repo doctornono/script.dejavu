@@ -38,6 +38,8 @@ _CONN = None
 _warm = {"scope": None, "page": 1}
 _STATUS_MEM_TTL = 8.0
 _STATUS_MEM = {}
+CONTENT_TTL = 300.0
+MEDIA_TTL = 86400.0
 
 SCOPES = (
     "history",
@@ -103,9 +105,166 @@ def _connect():
         "CREATE TABLE IF NOT EXISTS meta ("
         "key TEXT PRIMARY KEY, value TEXT NOT NULL)"
     )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS content_cache ("
+        "scope TEXT NOT NULL, item_key TEXT NOT NULL, position INTEGER NOT NULL,"
+        "json TEXT NOT NULL, updated_at REAL NOT NULL,"
+        "PRIMARY KEY(scope, item_key))"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_content_cache_scope_position "
+        "ON content_cache(scope, position)"
+    )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS content_meta ("
+        "scope TEXT PRIMARY KEY, pagination_json TEXT NOT NULL, updated_at REAL NOT NULL)"
+    )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS media_cache ("
+        "key TEXT PRIMARY KEY, json TEXT NOT NULL, updated_at REAL NOT NULL)"
+    )
     conn.commit()
     _CONN = conn
     return conn
+
+
+
+def _row_identity(row, position=0):
+    if not isinstance(row, dict):
+        return "position:%s" % position
+    info = row.get("info") if isinstance(row.get("info"), dict) else {}
+    media_type = str(
+        row.get("type") or info.get("mediatype") or info.get("type") or ""
+    ).strip().lower()
+    if media_type in ("movies", "movie"):
+        media_type = "movie"
+    elif media_type in ("tv", "tvshow", "show", "series"):
+        media_type = "tv"
+    elif media_type != "episode":
+        media_type = "item"
+    tmdb_id = row.get("tmdbId") or row.get("tmdb_id") or info.get("tmdbId")
+    if tmdb_id is None:
+        raw_id = row.get("id")
+        if raw_id is not None and str(raw_id).isdigit():
+            tmdb_id = raw_id
+    if tmdb_id is not None and str(tmdb_id).strip():
+        return "%s:%s" % (media_type, str(tmdb_id).strip())
+    imdb_id = row.get("imdbId") or row.get("imdb_id") or info.get("imdbId") or info.get("imdbnumber")
+    if imdb_id:
+        return "%s:imdb:%s" % (media_type, str(imdb_id).strip())
+    return "position:%s" % position
+
+
+def _media_cache_key(row):
+    if not isinstance(row, dict):
+        return ""
+    info = row.get("info") if isinstance(row.get("info"), dict) else {}
+    media_type = str(row.get("type") or info.get("mediatype") or "").strip().lower()
+    if media_type in ("movie", "movies"):
+        media_type = "movie"
+    elif media_type in ("tv", "tvshow", "show", "series"):
+        media_type = "tv"
+    elif media_type == "episode":
+        media_type = "episode"
+    else:
+        media_type = ""
+    tmdb_id = row.get("tmdbId") or row.get("tmdb_id") or info.get("tmdbId")
+    if tmdb_id is not None and str(tmdb_id).strip().isdigit() and media_type:
+        return "%s:%s" % (media_type, int(tmdb_id))
+    return ""
+
+
+def cache_page(scope, rows, pagination=None, commit=True):
+    rows = rows if isinstance(rows, list) else []
+    now = time.time()
+    conn = _connect()
+    conn.execute("DELETE FROM content_cache WHERE scope = ?", (scope,))
+    for position, row in enumerate(rows):
+        key = _row_identity(row, position)
+        conn.execute(
+            "INSERT OR REPLACE INTO content_cache(scope, item_key, position, json, updated_at) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (scope, key, position, json.dumps(row), now),
+        )
+        media_key = _media_cache_key(row)
+        if media_key:
+            conn.execute(
+                "INSERT OR REPLACE INTO media_cache(key, json, updated_at) VALUES (?, ?, ?)",
+                (media_key, json.dumps(row), now),
+            )
+    conn.execute(
+        "INSERT OR REPLACE INTO content_meta(scope, pagination_json, updated_at) VALUES (?, ?, ?)",
+        (scope, json.dumps(pagination or {}), now),
+    )
+    if commit:
+        conn.commit()
+
+
+def get_cached_page(scope, max_age=CONTENT_TTL):
+    try:
+        row = _connect().execute(
+            "SELECT updated_at FROM content_meta WHERE scope = ?", (scope,)
+        ).fetchone()
+    except Exception:
+        return None
+    if not row or time.time() - float(row[0]) > max_age:
+        return None
+    try:
+        meta = _connect().execute(
+            "SELECT pagination_json FROM content_meta WHERE scope = ?", (scope,)
+        ).fetchone()
+        pagination = json.loads(meta[0]) if meta and meta[0] else {}
+        rows = _connect().execute(
+            "SELECT json FROM content_cache WHERE scope = ? ORDER BY position",
+            (scope,),
+        ).fetchall()
+    except Exception:
+        return None
+    values = []
+    for raw, in rows:
+        try:
+            value = json.loads(raw)
+        except Exception:
+            continue
+        if isinstance(value, dict):
+            values.append(value)
+    return values, pagination
+
+
+def get_cached_media(media_type, tmdb_id, max_age=MEDIA_TTL):
+    if not media_type or not tmdb_id:
+        return None
+    key = "%s:%s" % (str(media_type).strip().lower(), int(tmdb_id))
+    try:
+        row = _connect().execute(
+            "SELECT json, updated_at FROM media_cache WHERE key = ?", (key,)
+        ).fetchone()
+    except Exception:
+        return None
+    if not row or time.time() - float(row[1]) > max_age:
+        return None
+    try:
+        value = json.loads(row[0])
+    except Exception:
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def invalidate_content(prefix):
+    if not prefix:
+        return
+    conn = _connect()
+    conn.execute("DELETE FROM content_cache WHERE scope = ? OR scope LIKE ?", (prefix, prefix + ":%"))
+    conn.execute("DELETE FROM content_meta WHERE scope = ? OR scope LIKE ?", (prefix, prefix + ":%"))
+    conn.commit()
+
+
+def clear_content():
+    conn = _connect()
+    conn.execute("DELETE FROM content_cache")
+    conn.execute("DELETE FROM content_meta")
+    conn.execute("DELETE FROM media_cache")
+    conn.commit()
 
 
 def get_meta(key, default=""):
@@ -215,6 +374,25 @@ def apply_write(action, params):
     mapping = apply_write_flags(action, params)
     if mapping:
         upsert_status(mapping)
+    prefixes = {
+        "add_to_watchlist": "watchlist",
+        "remove_from_watchlist": "watchlist",
+        "add_to_favorites": "favorites",
+        "remove_from_favorites": "favorites",
+        "add_to_collection": "collection",
+        "remove_from_collection": "collection",
+        "add_to_history": "history",
+        "delete_history": "history",
+        "watched": "history",
+        "unwatched": "history",
+        "rate": "ratings",
+        "delete_rating": "ratings",
+        "scrobble": "scrobbles",
+        "delete_scrobble": "scrobbles",
+    }
+    prefix = prefixes.get(action)
+    if prefix:
+        invalidate_content(prefix)
 
 
 def _scope_fields(scope):
@@ -273,6 +451,9 @@ def clear():
     conn.execute("DELETE FROM status")
     conn.execute("DELETE FROM cursor")
     conn.execute("DELETE FROM meta")
+    conn.execute("DELETE FROM content_cache")
+    conn.execute("DELETE FROM content_meta")
+    conn.execute("DELETE FROM media_cache")
     conn.commit()
     _warm = {"scope": None, "page": 1}
     _STATUS_MEM.clear()
