@@ -18,6 +18,8 @@ Handles all user-invoked actions:
 """
 
 
+import json
+import re
 import sys
 import xbmc
 import xbmcgui
@@ -619,6 +621,28 @@ def add_to_list_dialog(api=None, info=None):
     notify_changed("add_to_list", api_type, tmdb_id, extra={"list_id": list_id})
 
 
+def switch_skin(params):
+    """Switch Kodi's active skin for controlled skin-development workflows."""
+    match = re.search(r"(?:^|,)skin=([^,]+)", params or "")
+    skin_id = match.group(1).strip() if match else ""
+    if not skin_id or not skin_id.startswith("skin."):
+        xbmc.log("[dejaVu] switch_skin: invalid skin id", xbmc.LOGWARNING)
+        return
+
+    xbmc.log("[dejaVu] switch_skin: requested {}".format(skin_id), xbmc.LOGINFO)
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "Settings.SetSettingValue",
+        "params": {
+            "setting": "lookandfeel.skin",
+            "value": skin_id,
+        },
+        "id": "dejaVu-switch-skin",
+    }
+    response = xbmc.executeJSONRPC(json.dumps(payload))
+    xbmc.log("[dejaVu] switch_skin: RPC response {}".format(response), xbmc.LOGINFO)
+
+
 def main_menu():
     """Simple select dialog shown when the addon is launched from Programs."""
     from resources.lib.auth_handler import is_logged_in
@@ -681,6 +705,8 @@ def main():
         _run_context(add_to_list_dialog)
     elif "action=settings" in params:
         ADDON.openSettings()
+    elif "action=switch_skin" in params:
+        switch_skin(params)
     else:
         main_menu()
 
