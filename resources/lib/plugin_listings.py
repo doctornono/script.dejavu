@@ -451,6 +451,7 @@ def show_home_test_movies(handle, params):
 
 
 def show_lists(handle, params):
+    xbmc.log("[dejaVu.Plugin] show_lists handle=%s params=%s" % (handle, params), xbmc.LOGDEBUG)
     if not _require_auth(handle):
         return
     page = _page(params)
@@ -460,13 +461,17 @@ def show_lists(handle, params):
             page=current_page, page_size=20, minimal=False,
         ),
     )
+    xbmc.log("[dejaVu.Plugin] show_lists rows=%d pagination=%s" % (len(rows), pagination), xbmc.LOGDEBUG)
     for raw in rows:
         if not isinstance(raw, dict):
+            xbmc.log("[dejaVu.Plugin] show_lists skip non-dict row=%r" % (raw,), xbmc.LOGWARNING)
             continue
         list_id = raw.get("id")
         if not list_id:
+            xbmc.log("[dejaVu.Plugin] show_lists skip row without id=%r" % (raw,), xbmc.LOGWARNING)
             continue
         name = raw.get("name") or "Liste"
+        xbmc.log("[dejaVu.Plugin] show_lists add id=%s name=%s" % (list_id, name), xbmc.LOGDEBUG)
         description = raw.get("description") or ""
         item = xbmcgui.ListItem(label=name, offscreen=True)
         item.setInfo("video", {"title": name, "plot": description})
@@ -484,13 +489,16 @@ def show_lists(handle, params):
 
 
 def show_list_items(handle, params):
+    xbmc.log("[dejaVu.Plugin] show_list_items handle=%s params=%s" % (handle, params), xbmc.LOGDEBUG)
     if not _require_auth(handle):
         return
     list_id = params.get("list_id") or ""
     if not list_id:
+        xbmc.log("[dejaVu.Plugin] show_list_items missing list_id", xbmc.LOGWARNING)
         _end(handle)
         return
     page = _page(params)
+    xbmc.log("[dejaVu.Plugin] show_list_items list_id=%s page=%s" % (list_id, page), xbmc.LOGDEBUG)
     scope_action = "list_items:%s" % list_id
     rows, pagination = _cached_page(
         scope_action, None, page,
@@ -498,6 +506,7 @@ def show_list_items(handle, params):
             list_id, page=current_page, page_size=20, minimal=False,
         ),
     )
+    xbmc.log("[dejaVu.Plugin] show_list_items rows=%d pagination=%s" % (len(rows), pagination), xbmc.LOGDEBUG)
     _media_page(handle, {"data": rows, "pagination": pagination})
     if pagination.get("hasMore"):
         _next_page(handle, {"action": "list_items", "list_id": list_id}, pagination)
@@ -562,13 +571,16 @@ def _cached_page(action, media_type, page, fetcher):
     scope = "%s:%s:page:%s" % (action, media_type or "all", page)
     cached = cache.get_cached_page(scope)
     if cached is not None:
+        rows, pagination = cached
+        xbmc.log("[dejaVu.Plugin] cache HIT scope=%s rows=%d page=%s" % (scope, len(rows), page), xbmc.LOGDEBUG)
         return cached
+    xbmc.log("[dejaVu.Plugin] cache MISS scope=%s page=%s" % (scope, page), xbmc.LOGDEBUG)
     api = DejaVuAPI()
     result = fetcher(api, media_type, page)
     rows, pagination = list_rows_from_result(result)
+    xbmc.log("[dejaVu.Plugin] API result scope=%s rows=%d pagination=%s" % (scope, len(rows), pagination), xbmc.LOGDEBUG)
     cache.cache_page(scope, rows, pagination)
     return rows, pagination
-
 
 def show_list(handle, params, fetcher):
     if not _require_auth(handle):
