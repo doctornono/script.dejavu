@@ -523,15 +523,11 @@ def show_list(handle, params, fetcher):
     _type_folders(handle, action, media_type)
     page = _page(params)
     limit = _as_int(params.get("limit"))
+    rows, pagination = _cached_page(action, media_type, page, fetcher)
+    result = {"data": rows, "pagination": pagination}
+    _media_page(handle, result, limit=limit)
     if limit is None:
-        rows, pagination = _cached_page(action, media_type, page, fetcher)
-        result = {"data": rows, "pagination": pagination}
-        _media_page(handle, result)
         _next_page(handle, {"action": action, "type": media_type or ""}, pagination)
-    else:
-        api = DejaVuAPI()
-        result = fetcher(api, media_type, page)
-        _media_page(handle, result, limit=limit)
     _end(handle)
 
 
