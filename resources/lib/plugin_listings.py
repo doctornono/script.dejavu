@@ -450,6 +450,60 @@ def show_home_test_movies(handle, params):
     _end(handle, content="videos")
 
 
+def show_lists(handle, params):
+    if not _require_auth(handle):
+        return
+    page = _page(params)
+    rows, pagination = _cached_page(
+        "lists", None, page,
+        lambda api, _media_type, current_page: api.get_lists(
+            page=current_page, page_size=20, minimal=False,
+        ),
+    )
+    for raw in rows:
+        if not isinstance(raw, dict):
+            continue
+        list_id = raw.get("id")
+        if not list_id:
+            continue
+        name = raw.get("name") or "Liste"
+        description = raw.get("description") or ""
+        item = xbmcgui.ListItem(label=name, offscreen=True)
+        item.setInfo("video", {"title": name, "plot": description})
+        item.setArt({"icon": _icon(), "thumb": _icon(), "fanart": _fanart()})
+        item.setProperty("list_id", str(list_id))
+        item.setProperty("listId", str(list_id))
+        item.setProperty("node.type", "target_folder")
+        xbmcplugin.addDirectoryItem(
+            handle, _plugin_url(action="list_items", list_id=list_id, page=1),
+            item, isFolder=True,
+        )
+    if pagination.get("hasMore"):
+        _next_page(handle, {"action": "lists"}, pagination)
+    _end(handle, content="files")
+
+
+def show_list_items(handle, params):
+    if not _require_auth(handle):
+        return
+    list_id = params.get("list_id") or ""
+    if not list_id:
+        _end(handle)
+        return
+    page = _page(params)
+    scope_action = "list_items:%s" % list_id
+    rows, pagination = _cached_page(
+        scope_action, None, page,
+        lambda api, _media_type, current_page: api.get_list_items(
+            list_id, page=current_page, page_size=20, minimal=False,
+        ),
+    )
+    _media_page(handle, {"data": rows, "pagination": pagination})
+    if pagination.get("hasMore"):
+        _next_page(handle, {"action": "list_items", "list_id": list_id}, pagination)
+    _end(handle)
+
+
 def show_favorites_widget(handle, params):
     if not _require_auth(handle):
         return
@@ -593,6 +647,12 @@ def dispatch(argv):
         return
     if action == "favorites_widget":
         show_favorites_widget(handle, params)
+        return
+    if action == "lists":
+        show_lists(handle, params)
+        return
+    if action == "list_items":
+        show_list_items(handle, params)
         return
     if action == "home_reload":
         xbmc.executebuiltin("ReloadSkin")
