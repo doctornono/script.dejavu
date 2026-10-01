@@ -506,10 +506,27 @@ def show_list_items(handle, params):
             list_id, page=current_page, page_size=20, minimal=False,
         ),
     )
+    requested_type = str(params.get("type") or "").strip().lower()
+    if requested_type:
+        filtered_rows = []
+        for raw in rows:
+            media = _normalize(raw)
+            if media and media.get("media_type") == requested_type:
+                filtered_rows.append(raw)
+        xbmc.log(
+            "[dejaVu.Plugin] show_list_items filter type=%s rows=%d->%d"
+            % (requested_type, len(rows), len(filtered_rows)),
+            xbmc.LOGDEBUG,
+        )
+        rows = filtered_rows
     xbmc.log("[dejaVu.Plugin] show_list_items rows=%d pagination=%s" % (len(rows), pagination), xbmc.LOGDEBUG)
     _media_page(handle, {"data": rows, "pagination": pagination})
     if pagination.get("hasMore"):
-        _next_page(handle, {"action": "list_items", "list_id": list_id}, pagination)
+        _next_page(
+            handle,
+            {"action": "list_items", "list_id": list_id, "type": requested_type},
+            pagination,
+        )
     _end(handle)
 
 
