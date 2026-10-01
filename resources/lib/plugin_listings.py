@@ -505,12 +505,26 @@ def connect(handle, params):
 
 def dispatch(argv):
     handle = int(argv[1]) if len(argv) > 1 else -1
-    raw = argv[2] if len(argv) > 2 else ""
-    raw = raw.lstrip("/")
-    route, _, query = raw.partition("?")
+
+    # Kodi plugins receive query parameters in argv[2], while the path of
+    # plugin://<addon>/<route> is exposed through argv[0]. Support both forms.
+    arg_url = argv[0] if len(argv) > 0 else ""
+    raw_query = argv[2] if len(argv) > 2 else ""
+
+    base_url, _, url_query = arg_url.partition("?")
+    query = raw_query.lstrip("?") or url_query
+
+    prefix = "plugin://script.dejavu"
+    route = base_url[len(prefix):] if base_url.startswith(prefix) else ""
+    route = route.strip("/")
     params = dict(parse_qsl(query, keep_blank_values=True))
-    action = params.get("action") or route.strip("/")
-    xbmc.log("[dejaVu.Plugin] route=%s action=%s" % (route, action), xbmc.LOGDEBUG)
+    action = params.get("action") or route
+
+    xbmc.log(
+        "[dejaVu.Plugin] argv0=%s argv2=%s route=%s action=%s"
+        % (arg_url, raw_query, route, action),
+        xbmc.LOGDEBUG,
+    )
 
     if action == "play":
         play_item(handle, params)
