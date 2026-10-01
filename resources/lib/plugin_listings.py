@@ -292,14 +292,33 @@ def _media_page(handle, result, limit=None):
         media = _normalize(raw)
         if media and (media.get("title") or media.get("tmdb_id")):
             media_items.append(media)
+    xbmc.log(
+        "[dejaVu.Plugin] _media_page handle=%s rows=%d normalized=%d"
+        % (handle, len(rows), len(media_items)),
+        xbmc.LOGDEBUG,
+    )
     api = DejaVuAPI()
     status_map = _status_map(api, media_items)
+    added = 0
     for media in media_items:
         flags = _flags_for(status_map, media)
         item = _build_item(media, flags)
-        xbmcplugin.addDirectoryItem(
+        added_ok = xbmcplugin.addDirectoryItem(
             handle, _plugin_url(**_play_params(media)), item, isFolder=False,
         )
+        if added_ok:
+            added += 1
+        else:
+            xbmc.log(
+                "[dejaVu.Plugin] _media_page addDirectoryItem FAILED handle=%s title=%s tmdb=%s"
+                % (handle, media.get("title"), media.get("tmdb_id")),
+                xbmc.LOGWARNING,
+            )
+    xbmc.log(
+        "[dejaVu.Plugin] _media_page handle=%s added=%d/%d"
+        % (handle, added, len(media_items)),
+        xbmc.LOGDEBUG,
+    )
     return pagination
 
 
