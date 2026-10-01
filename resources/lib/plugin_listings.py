@@ -280,8 +280,10 @@ def _play_params(media):
     }
 
 
-def _media_page(handle, result):
+def _media_page(handle, result, limit=None):
     rows, pagination = list_rows_from_result(result)
+    if limit is not None:
+        rows = rows[:limit]
     media_items = []
     for raw in rows:
         media = _normalize(raw)
@@ -322,6 +324,103 @@ def _require_auth(handle):
     _add_action(handle, _ls(30219) or "Sign in to dejaVu", {"action": "connect"})
     _end(handle, content="files")
     return False
+
+
+def show_home_actions(handle, params):
+    _add_action(handle, "Rafraîchir la skin", {"action": "home_reload"})
+    _add_action(handle, "Test bouton 2", {"action": "home_test2"})
+    _add_action(handle, "Test bouton 3", {"action": "home_test3"})
+    _end(handle, content="videos")
+
+
+def show_home_test_movies(handle, params):
+    if not _require_auth(handle):
+        return
+    media_items = [
+        {
+            "tmdb_id": 27205,
+            "media_type": "movie",
+            "kodi_dbtype": "movie",
+            "title": "Inception",
+            "plot": "",
+            "year": 2010,
+            "imdb_id": "tt1375666",
+            "poster": "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
+            "fanart": "",
+            "show_tmdb_id": None,
+            "season": None,
+            "episode": None,
+            "progress": 0.0,
+            "duration": 0.0,
+        },
+        {
+            "tmdb_id": 603,
+            "media_type": "movie",
+            "kodi_dbtype": "movie",
+            "title": "The Matrix",
+            "plot": "",
+            "year": 1999,
+            "imdb_id": "tt0133093",
+            "poster": "https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg",
+            "fanart": "",
+            "show_tmdb_id": None,
+            "season": None,
+            "episode": None,
+            "progress": 0.0,
+            "duration": 0.0,
+        },
+        {
+            "tmdb_id": 157336,
+            "media_type": "movie",
+            "kodi_dbtype": "movie",
+            "title": "Interstellar",
+            "plot": "",
+            "year": 2014,
+            "imdb_id": "tt0816692",
+            "poster": "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+            "fanart": "",
+            "show_tmdb_id": None,
+            "season": None,
+            "episode": None,
+            "progress": 0.0,
+            "duration": 0.0,
+        },
+    ]
+    for media in media_items:
+        item = _build_item(media, {})
+        xbmcplugin.addDirectoryItem(
+            handle, _plugin_url(**_play_params(media)), item, isFolder=False,
+        )
+    _end(handle, content="videos")
+
+
+def show_favorites_widget(handle, params):
+    if not _require_auth(handle):
+        return
+    api = DejaVuAPI()
+    movie_result = api.get_favorites(media_type="movie", page=1, page_size=5, minimal=False)
+    tv_result = api.get_favorites(media_type="tv", page=1, page_size=5, minimal=False)
+    rows = []
+    for result in (movie_result, tv_result):
+        if not isinstance(result, dict):
+            continue
+        result_rows, _ = list_rows_from_result(result)
+        rows.extend(result_rows)
+    rows.sort(key=lambda raw: str(raw.get("addedAt") or ""), reverse=True)
+    rows = rows[:5]
+    media_items = []
+    for raw in rows:
+        media = _normalize(raw)
+        if media and (media.get("title") or media.get("tmdb_id")):
+            media_items.append(media)
+    status_map = _status_map(api, media_items)
+    for media in media_items:
+        flags = _flags_for(status_map, media)
+        item = _build_item(media, flags)
+        xbmcplugin.addDirectoryItem(
+            handle, _plugin_url(**_play_params(media)), item, isFolder=False,
+        )
+    _end(handle, content="videos")
 
 
 def show_home(handle, params):
@@ -416,6 +515,23 @@ def dispatch(argv):
         return
     if action == "connect":
         connect(handle, params)
+        return
+    if action == "home_actions":
+        show_home_actions(handle, params)
+        return
+    if action == "home_test_movies":
+        show_home_test_movies(handle, params)
+        return
+    if action == "favorites_widget":
+        show_favorites_widget(handle, params)
+        return
+    if action == "home_reload":
+        xbmc.executebuiltin("ReloadSkin")
+        _end(handle, content="videos")
+        return
+    if action in ("home_test2", "home_test3"):
+        xbmcgui.Dialog().notification("dejaVu", action, xbmcgui.NOTIFICATION_INFO, 2500)
+        _end(handle, content="videos")
         return
     if action in ("", "home"):
         show_home(handle, params)
