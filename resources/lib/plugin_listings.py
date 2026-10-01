@@ -489,12 +489,21 @@ def show_lists(handle, params):
         if not list_id:
             xbmc.log("[dejaVu.Plugin] show_lists skip row without id=%r" % (raw,), xbmc.LOGWARNING)
             continue
-        name = raw.get("name") or "Liste"
+        info = raw.get("info") if isinstance(raw.get("info"), dict) else {}
+        art = raw.get("art") if isinstance(raw.get("art"), dict) else {}
+        name = raw.get("name") or info.get("title") or raw.get("title") or "Liste"
         xbmc.log("[dejaVu.Plugin] show_lists add id=%s name=%s" % (list_id, name), xbmc.LOGDEBUG)
-        description = raw.get("description") or ""
+        description = raw.get("description") or info.get("plot") or ""
+        poster = art.get("poster") or art.get("thumb") or raw.get("posterPath") or ""
+        fanart = art.get("fanart") or raw.get("backdropPath") or ""
         item = xbmcgui.ListItem(label=name, offscreen=True)
-        item.setInfo("video", {"title": name, "plot": description})
-        item.setArt({"icon": _icon(), "thumb": _icon(), "fanart": _fanart()})
+        item.setInfo("video", {"title": name, "plot": description, "mediatype": "set"})
+        item.setArt({
+            "icon": poster or _icon(),
+            "thumb": poster or _icon(),
+            "poster": poster or _icon(),
+            "fanart": fanart or _fanart(),
+        })
         item.setProperty("list_id", str(list_id))
         item.setProperty("listId", str(list_id))
         item.setProperty("node.type", "target_folder")
