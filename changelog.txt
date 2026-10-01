@@ -1,3 +1,6 @@
+v1.66.0 (2026-10-01):
+- Add optional media-type filtering to custom-list widgets.
+
 v1.65.0 (2026-10-01):
 - Add debug logging for custom-list widgets, cache lookups, and API responses.
 
