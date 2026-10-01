@@ -1,3 +1,6 @@
+v1.67.0 (2026-10-01):
+- Add debug diagnostics for custom-list widget item insertion.
+
 v1.66.0 (2026-10-01):
 - Add optional media-type filtering to custom-list widgets.
 
