@@ -396,14 +396,18 @@ def show_favorites_widget(handle, params):
     if not _require_auth(handle):
         return
     api = DejaVuAPI()
-    movie_result = api.get_favorites(media_type="movie", page=1, page_size=5, minimal=False)
-    tv_result = api.get_favorites(media_type="tv", page=1, page_size=5, minimal=False)
     rows = []
-    for result in (movie_result, tv_result):
+    for media_type, key in (("movie", "movies"), ("tv", "tvShows")):
+        result = api.get_favorites(
+            media_type=media_type, page=1, page_size=5, minimal=False,
+        )
         if not isinstance(result, dict):
             continue
-        result_rows, _ = list_rows_from_result(result)
-        rows.extend(result_rows)
+        data = result.get("data")
+        if isinstance(data, dict):
+            values = data.get(key)
+            if isinstance(values, list):
+                rows.extend(values)
     rows.sort(key=lambda raw: str(raw.get("addedAt") or ""), reverse=True)
     rows = rows[:5]
     media_items = []
@@ -501,12 +505,12 @@ def connect(handle, params):
 
 def dispatch(argv):
     handle = int(argv[1]) if len(argv) > 1 else -1
-    query = argv[2][1:] if len(argv) > 2 and argv[2].startswith("?") else (
-        argv[2] if len(argv) > 2 else ""
-    )
+    raw = argv[2] if len(argv) > 2 else ""
+    raw = raw.lstrip("/")
+    route, _, query = raw.partition("?")
     params = dict(parse_qsl(query, keep_blank_values=True))
-    action = params.get("action") or ""
-    xbmc.log("[dejaVu.Plugin] action=%s" % action, xbmc.LOGDEBUG)
+    action = params.get("action") or route.strip("/")
+    xbmc.log("[dejaVu.Plugin] route=%s action=%s" % (route, action), xbmc.LOGDEBUG)
 
     if action == "play":
         play_item(handle, params)
