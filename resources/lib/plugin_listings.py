@@ -2,11 +2,13 @@
 """plugin://script.dejavu/ listings for skins. No scrapers, no streams."""
 
 from urllib.parse import parse_qsl, urlencode
+import json
 
 import xbmc
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
+import xbmcvfs
 
 from .api_client import DejaVuAPI
 from .auth_handler import is_logged_in
@@ -334,6 +336,61 @@ def show_home_actions(handle, params):
 
 
 def show_home_test_movies(handle, params):
+    if params.get("type") == "episodes":
+        path = xbmcvfs.translatePath("special://skin/resources/data/test_episodes.json")
+        try:
+            with xbmcvfs.File(path, "r") as handle_file:
+                payload = json.loads(handle_file.read())
+        except Exception as exc:
+            xbmc.log("[dejaVu.Plugin] test episodes JSON error: %s" % exc, xbmc.LOGERROR)
+            _end(handle, content="videos")
+            return
+        episodes = payload.get("episodes", []) if isinstance(payload, dict) else []
+        for raw in episodes[:3]:
+            if not isinstance(raw, dict):
+                continue
+            title = raw.get("title") or ""
+            item = xbmcgui.ListItem(label=title, offscreen=True)
+            info = {
+                "title": title,
+                "tvshowtitle": raw.get("tvshowtitle") or "",
+                "plot": raw.get("plot") or "",
+                "mediatype": "episode",
+                "season": int(raw.get("season") or 0),
+                "episode": int(raw.get("episode") or 0),
+            }
+            if raw.get("year"):
+                info["year"] = int(raw["year"])
+            item.setInfo("video", info)
+            item.setArt({
+                "icon": raw.get("poster") or _icon(),
+                "thumb": raw.get("poster") or _icon(),
+                "poster": raw.get("poster") or _icon(),
+                "fanart": raw.get("fanart") or _fanart(),
+            })
+            if raw.get("tmdb_id"):
+                item.setUniqueIDs({"tmdb": str(raw["tmdb_id"])}, "tmdb")
+                item.setProperty("tmdb_id", str(raw["tmdb_id"]))
+                item.setProperty("TmdbId", str(raw["tmdb_id"]))
+            if raw.get("tv_show_id"):
+                item.setProperty("tvshow_tmdb_id", str(raw["tv_show_id"]))
+                item.setProperty("TVShowID", str(raw["tv_show_id"]))
+            item.setProperty("DBType", "episode")
+            item.setProperty("media_type", "episode")
+            play_params = {
+                "action": "play",
+                "type": "episode",
+                "tmdb_id": raw.get("tmdb_id") or "",
+                "show_tmdb_id": raw.get("tv_show_id") or "",
+                "title": title,
+                "season": raw.get("season") or "",
+                "episode": raw.get("episode") or "",
+            }
+            xbmcplugin.addDirectoryItem(
+                handle, _plugin_url(**play_params), item, isFolder=False,
+            )
+        _end(handle, content="episodes")
+        return
     media_items = [
         {
             "tmdb_id": 27205,
