@@ -582,6 +582,20 @@ def show_list_items(handle, params):
             xbmc.LOGDEBUG,
         )
 
+    if rows:
+        sample = rows[0]
+        if isinstance(sample, dict):
+            xbmc.log(
+                "[dejaVu.Plugin] show_list_items sample keys=%s sample=%r"
+                % (sorted(sample.keys()), sample),
+                xbmc.LOGDEBUG,
+            )
+        else:
+            xbmc.log(
+                "[dejaVu.Plugin] show_list_items sample type=%s sample=%r"
+                % (type(sample).__name__, sample),
+                xbmc.LOGDEBUG,
+            )
     xbmc.log("[dejaVu.Plugin] show_list_items rows=%d pagination=%s" % (len(rows), pagination), xbmc.LOGDEBUG)
     _media_page(handle, {"data": rows, "pagination": pagination})
     if pagination.get("hasMore"):
