@@ -641,6 +641,11 @@ def switch_skin(params):
     }
     response = xbmc.executeJSONRPC(json.dumps(payload))
     xbmc.log("[dejaVu] switch_skin: RPC response {}".format(response), xbmc.LOGINFO)
+    if '"error"' in response:
+        xbmc.log("[dejaVu] switch_skin: JSON-RPC reported an error; aborting builtin switch", xbmc.LOGWARNING)
+        return
+    xbmc.log("[dejaVu] switch_skin: invoking Kodi LoadSkin({})".format(skin_id), xbmc.LOGINFO)
+    xbmc.executebuiltin("LoadSkin({})".format(skin_id))
 
 
 def main_menu():
