@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """plugin://script.dejavu/ listings for skins. No scrapers, no streams."""
 
-from urllib.parse import parse_qsl, quote, urlencode
+from urllib.parse import parse_qsl, urlencode
 import json
 
 import xbmc
@@ -10,6 +10,7 @@ import xbmcgui
 import xbmcplugin
 import xbmcvfs
 
+from . import cache
 from .api_client import DejaVuAPI
 from .auth_handler import is_logged_in
 from .pure import list_rows_from_result, status_flags
@@ -328,245 +329,6 @@ def _require_auth(handle):
     return False
 
 
-def _jsonrpc_directory(source, limit=0):
-    properties = [
-        "title", "plot", "year", "art", "thumbnail", "fanart",
-        "imdbnumber", "uniqueid", "playcount", "runtime", "premiered",
-        "lastplayed", "showtitle", "season", "episode", "type",
-    ]
-    payload = {
-        "jsonrpc": "2.0",
-        "id": "dejaVuEnrich",
-        "method": "Files.GetDirectory",
-        "params": {
-            "directory": source,
-            "media": "files",
-            "properties": properties,
-            "sort": {"method": "none"},
-        },
-    }
-    try:
-        raw = xbmc.executeJSONRPC(json.dumps(payload))
-        response = json.loads(raw or "{}")
-    except Exception as exc:
-        xbmc.log("[dejaVu.Plugin] enrich JSON-RPC error: %s" % exc, xbmc.LOGERROR)
-        return []
-    result = response.get("result") if isinstance(response, dict) else {}
-    rows = result.get("files") if isinstance(result, dict) else []
-    if not isinstance(rows, list):
-        return []
-    if limit and limit > 0:
-        rows = rows[:limit]
-    return rows
-
-
-def _unique_tmdb_id(raw):
-    uniqueid = raw.get("uniqueid")
-    if isinstance(uniqueid, dict):
-        value = uniqueid.get("tmdb") or uniqueid.get("tmdb_id")
-        if value and str(value).isdigit():
-            return int(value)
-    custom = raw.get("customproperties")
-    if isinstance(custom, dict):
-        for key in ("tmdb_id", "tmdbId", "TmdbId", "tmdb"):
-            value = custom.get(key)
-            if value and str(value).isdigit():
-                return int(value)
-    return None
-
-
-def _unique_imdb_id(raw):
-    value = raw.get("imdbnumber") or ""
-    return str(value).strip() if value else ""
-
-
-def _build_source_item(raw, flags=None):
-    flags = flags or {}
-    label = raw.get("label") or raw.get("title") or ""
-    item = xbmcgui.ListItem(label=label, offscreen=True)
-
-    media_type = str(raw.get("type") or "").lower()
-    if media_type in ("tvshow", "tv"):
-        kodi_type = "tvshow"
-    elif media_type == "episode":
-        kodi_type = "episode"
-    else:
-        kodi_type = "movie"
-
-    info = {
-        "title": raw.get("title") or label,
-        "plot": raw.get("plot") or "",
-        "mediatype": kodi_type,
-    }
-    for source_key, info_key in (
-        ("year", "year"),
-        ("runtime", "runtime"),
-        ("premiered", "premiered"),
-        ("imdbnumber", "imdbnumber"),
-        ("showtitle", "tvshowtitle"),
-        ("season", "season"),
-        ("episode", "episode"),
-    ):
-        value = raw.get(source_key)
-        if value not in (None, ""):
-            info[info_key] = value
-
-    watched = bool(flags.get("watched"))
-    if flags:
-        info["playcount"] = 1 if watched else 0
-    elif raw.get("playcount") is not None:
-        info["playcount"] = int(raw.get("playcount") or 0)
-
-    item.setInfo("video", info)
-
-    art = raw.get("art") if isinstance(raw.get("art"), dict) else {}
-    poster = art.get("poster") or raw.get("thumbnail") or raw.get("thumb") or ""
-    fanart = art.get("fanart") or raw.get("fanart") or ""
-    thumb = art.get("thumb") or poster
-    item.setArt({
-        "icon": poster or _icon(),
-        "thumb": thumb or _icon(),
-        "poster": poster or _icon(),
-        "fanart": fanart or _fanart(),
-    })
-
-    tmdb_id = _unique_tmdb_id(raw)
-    imdb_id = _unique_imdb_id(raw)
-    if tmdb_id:
-        if hasattr(item, "setUniqueIDs"):
-            item.setUniqueIDs({"tmdb": str(tmdb_id), **({"imdb": imdb_id} if imdb_id else {})}, "tmdb")
-        item.setProperty("tmdb_id", str(tmdb_id))
-        item.setProperty("TmdbId", str(tmdb_id))
-    elif imdb_id and hasattr(item, "setUniqueIDs"):
-        item.setUniqueIDs({"imdb": imdb_id}, "imdb")
-        item.setProperty("imdb_id", imdb_id)
-
-    item.setProperty("DBType", kodi_type)
-    item.setProperty("media_type", "tv" if kodi_type == "tvshow" else kodi_type)
-
-    progress = flags.get("progress")
-    duration = flags.get("duration")
-    try:
-        resume_time = float(progress or 0)
-        resume_total = float(duration or raw.get("runtime") or 0)
-    except (TypeError, ValueError):
-        resume_time = 0.0
-        resume_total = 0.0
-
-    if resume_time >= 30 and resume_total > resume_time:
-        try:
-            item.setProperty("ResumeTime", str(resume_time))
-            item.setProperty("TotalTime", str(resume_total))
-            tag = item.getVideoInfoTag()
-            if hasattr(tag, "setResumePoint"):
-                tag.setResumePoint(resume_time, resume_total)
-        except Exception:
-            pass
-
-    return item, tmdb_id, imdb_id, kodi_type
-
-
-def show_enriched_source(handle, params):
-    source = params.get("source") or ""
-    if not source:
-        _end(handle)
-        return
-
-    rows = _jsonrpc_directory(source)
-    if not rows:
-        _end(handle)
-        return
-
-    media_items = []
-    unresolved = []
-    for raw in rows:
-        tmdb_id = _unique_tmdb_id(raw)
-        imdb_id = _unique_imdb_id(raw)
-        media_type = str(raw.get("type") or "").lower()
-        if media_type in ("tvshow", "tv"):
-            status_type = "tv"
-        elif media_type == "episode":
-            status_type = "episode"
-        else:
-            status_type = "movie"
-        entry = {
-            "raw": raw,
-            "tmdb_id": tmdb_id,
-            "imdb_id": imdb_id,
-            "status_type": status_type,
-        }
-        media_items.append(entry)
-        if not tmdb_id and imdb_id:
-            unresolved.append(entry)
-
-    api = DejaVuAPI()
-    status_map = {}
-    resolved_by_imdb = {}
-
-    if is_logged_in():
-        if unresolved:
-            batch = api.resolve_media_batch([
-                {
-                    "imdbId": entry["imdb_id"],
-                    "type": entry["status_type"],
-                    "title": entry["raw"].get("title") or entry["raw"].get("label") or "",
-                    "year": entry["raw"].get("year"),
-                }
-                for entry in unresolved
-            ])
-            resolved_data = batch.get("data") if isinstance(batch, dict) else {}
-            if isinstance(resolved_data, dict):
-                for key, value in resolved_data.items():
-                    if isinstance(value, dict) and value.get("tmdbId"):
-                        resolved_by_imdb[key] = int(value["tmdbId"])
-
-        status_payload = []
-        for entry in media_items:
-            tmdb_id = entry["tmdb_id"] or resolved_by_imdb.get(entry["imdb_id"])
-            if not tmdb_id:
-                continue
-            entry["tmdb_id"] = tmdb_id
-            status_payload.append({
-                "type": entry["status_type"],
-                "id": tmdb_id,
-            })
-        if status_payload:
-            status_map = _status_map(api, [
-                {
-                    "media_type": entry["status_type"],
-                    "tmdb_id": entry["tmdb_id"],
-                }
-                for entry in media_items
-                if entry["tmdb_id"]
-            ])
-
-    for entry in media_items:
-        raw = entry["raw"]
-        media_type = entry["status_type"]
-        tmdb_id = entry["tmdb_id"]
-        flags = _flags_for(
-            status_map,
-            {
-                "media_type": media_type,
-                "tmdb_id": tmdb_id,
-            },
-        ) if tmdb_id else {}
-        item, _, _, _ = _build_source_item(raw, flags)
-
-        original = raw.get("file") or ""
-        is_folder = str(raw.get("filetype") or "").lower() == "directory"
-        if not original:
-            original = source
-
-        xbmcplugin.addDirectoryItem(
-            handle,
-            original,
-            item,
-            isFolder=is_folder,
-        )
-
-    _end(handle, content="videos")
-
 def show_home_actions(handle, params):
     _add_action(handle, "Rafraîchir la skin", {"action": "home_reload"})
     _add_action(handle, "Test bouton 2", {"action": "home_test2"})
@@ -691,15 +453,12 @@ def show_home_test_movies(handle, params):
 def show_favorites_widget(handle, params):
     if not _require_auth(handle):
         return
-    api = DejaVuAPI()
-    movie_result = api.get_favorites(media_type="movie", page=1, page_size=5, minimal=False)
-    tv_result = api.get_favorites(media_type="tv", page=1, page_size=5, minimal=False)
-    rows = []
-    for result in (movie_result, tv_result):
-        if not isinstance(result, dict):
-            continue
-        result_rows, _ = list_rows_from_result(result)
-        rows.extend(result_rows)
+    fetcher = lambda api, media_type, page: api.get_favorites(
+        media_type=media_type, page=page, page_size=5, minimal=False,
+    )
+    movie_rows, _ = _cached_page("favorites", "movie", 1, fetcher)
+    tv_rows, _ = _cached_page("favorites", "tv", 1, fetcher)
+    rows = list(movie_rows) + list(tv_rows)
     rows.sort(key=lambda raw: str(raw.get("addedAt") or ""), reverse=True)
     rows = rows[:5]
     media_items = []
@@ -744,18 +503,35 @@ def _type_folders(handle, action, current):
         _add_folder(handle, _ls(30217), {"action": action, "type": "episode"})
 
 
+def _cached_page(action, media_type, page, fetcher):
+    scope = "%s:%s:page:%s" % (action, media_type or "all", page)
+    cached = cache.get_cached_page(scope)
+    if cached is not None:
+        return cached
+    api = DejaVuAPI()
+    result = fetcher(api, media_type, page)
+    rows, pagination = list_rows_from_result(result)
+    cache.cache_page(scope, rows, pagination)
+    return rows, pagination
+
+
 def show_list(handle, params, fetcher):
     if not _require_auth(handle):
         return
     action = params.get("action") or ""
     media_type = params.get("type") or None
     _type_folders(handle, action, media_type)
-    api = DejaVuAPI()
-    result = fetcher(api, media_type, _page(params))
+    page = _page(params)
     limit = _as_int(params.get("limit"))
-    pagination = _media_page(handle, result, limit=limit)
     if limit is None:
+        rows, pagination = _cached_page(action, media_type, page, fetcher)
+        result = {"data": rows, "pagination": pagination}
+        _media_page(handle, result)
         _next_page(handle, {"action": action, "type": media_type or ""}, pagination)
+    else:
+        api = DejaVuAPI()
+        result = fetcher(api, media_type, page)
+        _media_page(handle, result, limit=limit)
     _end(handle)
 
 
@@ -814,9 +590,6 @@ def dispatch(argv):
         return
     if action == "home_actions":
         show_home_actions(handle, params)
-        return
-    if action == "enrich_source":
-        show_enriched_source(handle, params)
         return
     if action == "home_test_movies":
         show_home_test_movies(handle, params)
