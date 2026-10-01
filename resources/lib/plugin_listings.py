@@ -421,33 +421,6 @@ def show_favorites_widget(handle, params):
     _end(handle, content="videos")
 
 
-def show_favorites_tv_widget(handle, params):
-    if not _require_auth(handle):
-        return
-    api = DejaVuAPI()
-    result = api.get_favorites(
-        media_type="tv", page=1, page_size=5, minimal=False,
-    )
-    if isinstance(result, dict):
-        rows, _ = list_rows_from_result(result)
-    else:
-        rows = []
-    rows = rows[:5]
-    media_items = []
-    for raw in rows:
-        media = _normalize(raw)
-        if media and (media.get("title") or media.get("tmdb_id")):
-            media_items.append(media)
-    status_map = _status_map(api, media_items)
-    for media in media_items:
-        flags = _flags_for(status_map, media)
-        item = _build_item(media, flags)
-        xbmcplugin.addDirectoryItem(
-            handle, _plugin_url(**_play_params(media)), item, isFolder=False,
-        )
-    _end(handle, content="videos")
-
-
 def show_home(handle, params):
     if is_logged_in():
         name = get_username() or "?"
@@ -483,8 +456,10 @@ def show_list(handle, params, fetcher):
     _type_folders(handle, action, media_type)
     api = DejaVuAPI()
     result = fetcher(api, media_type, _page(params))
-    pagination = _media_page(handle, result)
-    _next_page(handle, {"action": action, "type": media_type or ""}, pagination)
+    limit = _as_int(params.get("limit"))
+    pagination = _media_page(handle, result, limit=limit)
+    if limit is None:
+        _next_page(handle, {"action": action, "type": media_type or ""}, pagination)
     _end(handle)
 
 
@@ -549,9 +524,6 @@ def dispatch(argv):
         return
     if action == "favorites_widget":
         show_favorites_widget(handle, params)
-        return
-    if action == "favorites_tv_widget":
-        show_favorites_tv_widget(handle, params)
         return
     if action == "home_reload":
         xbmc.executebuiltin("ReloadSkin")
