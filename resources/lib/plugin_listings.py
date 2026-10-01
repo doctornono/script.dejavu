@@ -453,6 +453,7 @@ def show_home_test_movies(handle, params):
 def show_favorites_widget(handle, params):
     if not _require_auth(handle):
         return
+    api = DejaVuAPI()
     fetcher = lambda api, media_type, page: api.get_favorites(
         media_type=media_type, page=page, page_size=5, minimal=False,
     )
